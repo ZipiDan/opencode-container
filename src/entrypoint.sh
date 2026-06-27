@@ -1,0 +1,50 @@
+#!/bin/bash
+set -e
+
+# opencode container entrypoint.
+# El modo se selecciona mediante la variable de entorno OPENCODE_MODE:
+#   - web (por defecto): ejecuta `opencode` con los argumentos recibidos
+#                         (típicamente los del CMD: web --port N --hostname ...)
+#   - tui:                ejecuta `opencode` sin argumentos (arranca la TUI)
+
+# Symlinks para que git/ssh encuentren la identidad del agente
+ln -sf /root/.identity/gitconfig /root/.gitconfig
+ln -sf /root/.identity/ssh /root/.ssh
+chmod 700 /root/.identity/ssh
+
+# Generar clave ed25519 si no existe
+if [ ! -f /root/.identity/ssh/id_ed25519 ]; then
+    ssh-keygen -t ed25519 -N "" -C "agent@opencode.local" \
+        -f /root/.identity/ssh/id_ed25519
+fi
+chmod 600 /root/.identity/ssh/id_ed25519
+chmod 644 /root/.identity/ssh/id_ed25519.pub
+
+# Configurar git user si no está seteado
+if ! git config --global user.name >/dev/null 2>&1; then
+    git config --global user.name "${AGENT_GIT_NAME:-OpenCode Agent}"
+    git config --global user.email "${AGENT_GIT_EMAIL:-agent@opencode.local}"
+fi
+
+# Los datos globales (auth.json, db/, repos/) viven en
+# XDG_DATA_HOME/opencode-global/ y se exponen dentro del directorio de datos
+# del proyecto mediante symlinks. Así opencode.db y el resto de datos del
+# proyecto permanecen aislados por proyecto.
+ln -sf /home/opencode/.local/share/opencode-global/auth.json /home/opencode/.local/share/opencode/auth.json
+ln -sf /home/opencode/.local/share/opencode-global/db   /home/opencode/.local/share/opencode/db
+ln -sf /home/opencode/.local/share/opencode-global/repos /home/opencode/.local/share/opencode/repos
+
+MODE="${OPENCODE_MODE:-web}"
+
+case "$MODE" in
+  tui)
+    exec opencode
+    ;;
+  web)
+    exec opencode "$@"
+    ;;
+  *)
+    echo "[ERROR] OPENCODE_MODE desconocido: '$MODE' (valores válidos: 'web', 'tui')" >&2
+    exit 1
+    ;;
+esac

@@ -1,0 +1,19 @@
+# Datos internos de opencode
+.opencode/
+
+# Versiones anteriores (histórico)
+iteracion9/
+iteracion10/
+iteracion11/
+
+# Imágenes exportadas
+*.tar.gz
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+*.tmp
+*.swp
+*~

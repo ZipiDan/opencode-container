@@ -1,6 +1,6 @@
 # opencode-container
 
-Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecuta opencode dentro de un contenedor Debian aislado por proyecto, con separación estricta de datos y configuración global compartida.
+Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecuta opencode dentro de un contenedor Debian aislado por proyecto, con separación estricta de datos y configuración global compartida. El contenedor es un entorno de desarrollo completo listo para tareas de desarrollo Python y Node.js, diagnóstico de redes, devops, automatización, seguridad y análisis asistido por IA — sin instalar nada adicional.
 
 ## Características
 
@@ -10,6 +10,26 @@ Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecut
 - **Modos de ejecución**: Web (servidor HTTP) y TUI (terminal interactiva).
 - **Gestión de imagen**: Reconstrucción con caché (`--rebuild`), actualización completa (`--update`) y renovación atómica (`--renew`).
 - **Red configurable**: Aislada por defecto; `--network-host` para acceder a servicios del host.
+
+## Capacidades del contenedor
+
+### 🐍 Desarrollo Python
+Python 3, pip, `venv` y `python3-dev` para compilar extensiones nativas. Instalá dependencias, creá entornos virtuales, corré tests y usá pyright como LSP para type checking, todo dentro del contenedor.
+
+### 🌐 Diagnóstico y debugging de red
+Herramientas completas de red: `ping`, `traceroute` y `mtr` para verificar conectividad; `dig`, `nslookup` y `host` para resolución DNS; `ss` y `netstat` para inspeccionar conexiones activas; `nmap` para escaneo de puertos; `tcpdump` y `tshark` (Wireshark CLI) para captura y análisis de tráfico en vivo.
+
+### 🔧 DevOps / Automatización
+Git, SSH y GPG para control de versiones y autenticación segura. Curl, wget y jq para interactuar con APIs REST y procesar JSON. Bash scripting para automatización de tareas administrativas. Iptables para configuración de firewall.
+
+### 🤖 Inteligencia Artificial
+OpenCode integrado con acceso a 75+ proveedores de LLM para análisis, generación, refactorización y debugging de código asistido por IA.
+
+### 📦 Node.js / JavaScript
+Node.js y npm permiten ejecutar scripts JS, instalar paquetes del ecosistema y utilizar LSPs para desarrollo JavaScript.
+
+### 🔐 Seguridad
+SSH a servidores remotos, verificación de certificados SSL/TLS, escaneo de puertos con nmap y captura de paquetes para auditoría de red.
 
 ## Prerrequisitos
 

@@ -71,6 +71,65 @@ chmod +x opencode.sh
 
 > `--renew` y `--rebuild` son mutuamente excluyentes.
 
+## Combinaciones de parámetros
+
+Los parámetros se distribuyen en dos **mundos mutuamente excluyentes**:
+
+- **Mundo IMAGEN**: `--renew` / `--rebuild` / `--update` — gestionan la imagen del contenedor.
+- **Mundo EJECUCIÓN**: `<proyecto>` + flags runtime (`-config`, `--port`, `--tui`, `--network-host`) — lanzan un contenedor.
+
+Los flags de un mundo **no se cruzan** con los del otro. La referencia formal completa (tabla única, BNF y reglas del parser) está en [`PARAMETERS.md`](PARAMETERS.md).
+
+### Árbol de combinaciones
+
+```
+ℹ️  --help / -h es compatible con cualquier rama (short-circuits y sale)
+
+parámetros
+│
+├── --renew                          reconstruye imagen atómicamente
+│
+├── --rebuild                        reconstruye imagen usando caché
+│
+├── --update                         actualiza imagen desde cero
+│
+└── <proyecto>                       lanza opencode en el proyecto
+    │
+    ├── --tui                        arranca terminal interactiva
+    │   ├── -config <ruta>
+    │   └── --network-host
+    │
+    └── web (sin --tui, default)     arranca servidor web
+        ├── --port <1-65535>
+        │   └── default: 4096
+        ├── -config <ruta>
+        └── --network-host
+```
+
+### Reglas clave
+
+- No mezclar flags IMAGEN con flags EJECUCIÓN.
+- `--renew` y `--rebuild` son mutuamente excluyentes (error del script).
+- `--tui` ignora `--port` (no hay servidor web).
+- `--network-host` omite `-p` en modo web (podman lo publica vía el host).
+
+### Ejemplos de invocaciones válidas
+
+```bash
+# Mundo IMAGEN
+./opencode.sh --renew
+./opencode.sh --update
+
+# Mundo EJECUCIÓN — web
+./opencode.sh /ruta/proyecto
+./opencode.sh /ruta/proyecto --port 4097 --network-host
+./opencode.sh /ruta/proyecto -config /mnt/data
+
+# Mundo EJECUCIÓN — TUI
+./opencode.sh /ruta/proyecto --tui
+./opencode.sh /ruta/proyecto --tui --network-host
+```
+
 ## Arquitectura
 
 ### Separación de datos

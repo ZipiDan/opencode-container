@@ -169,6 +169,32 @@ ${BLUE}Parámetros:${NC}
                                  ⚠ DETIENE cualquier contenedor activo
                                  que esté usando la imagen anterior.
 
+${BLUE}Combinaciones de parámetros:${NC}
+    Los parámetros se separan en dos mundos mutuamente excluyentes:
+
+      • Mundo IMAGEN:    --renew | --rebuild | --update   (gestionan la imagen)
+      • Mundo EJECUCIÓN:  <proyecto> + [-config] [--port] [--tui] [--network-host]
+
+    Árbol de combinaciones válidas (-h es compatible con cualquier rama):
+
+    parámetros
+    ├── --renew                reconstruye imagen atómicamente
+    ├── --rebuild              reconstruye imagen usando caché
+    ├── --update               actualiza imagen desde cero
+    └── <proyecto>             lanza opencode en el proyecto
+        ├── --tui              arranca terminal interactiva
+        │   ├── -config <ruta>
+        │   └── --network-host
+        └── web (sin --tui)   arranca servidor web
+            ├── --port <1-65535>   (default ${DEFAULT_PORT})
+            ├── -config <ruta>
+            └── --network-host
+
+    Reglas clave:
+      • No mezclar flags IMAGEN con flags EJECUCIÓN.
+      • --renew y --rebuild son mutuamente excluyentes.
+      • --tui ignora --port (no hay servidor web).
+
 ${BLUE}Ejemplos:${NC}
     $0 /home/usuario/mi-proyecto
     $0 ./proyecto -config /mnt/opencode-data
@@ -328,6 +354,10 @@ check_image() {
 # ==========================
 # FLUJO PRINCIPAL
 # ==========================
+# Referencia formal de combinaciones válidas: ver PARAMETERS.md
+# (tabla única, árbol y BNF). El parser actual es permisivo por
+# compatibilidad histórica con iteraciones 9-11; endurecerlo es
+# un cambio de behavior de tratarse como breaking change.
 
 PORT="$DEFAULT_PORT"
 TUI_MODE=false

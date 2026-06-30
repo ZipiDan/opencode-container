@@ -6,31 +6,35 @@
 
 ## Filosofía: mundos separados estrictos
 
-El launcher tiene **dos mundos funcionales mutuamente excluyentes**:
+El launcher tiene **tres mundos funcionales mutuamente excluyentes**:
 
 - **Mundo IMAGEN**: gestiona la imagen del contenedor (build/update/renew). No necesita un proyecto ni configura el runtime.
+- **Mundo GESTIÓN**: opera sobre contenedores ya en ejecución (`--ps`/`--ls` para listar, `--kill`/`--rm` para detener). No requiere `<proyecto>`.
 - **Mundo EJECUCIÓN**: lanza un contenedor sobre un proyecto. Configura puerto, modo (TUI/web) y red.
 
-Los flags de un mundo **no se cruzan** con los del otro. Si se mezclan, el resultado es semánticamente incorrecto (un flag se ignora o no tiene sentido).
+Los flags de un mundo **no se cruzan** con los del otro. Si se mezclan, el resultado es semánticamente incorrecto (un flag se ignora o no tiene sentido) y el parser emite `error_exit`.
 
 ## Tabla única de combinaciones
 
 ```
-                  MUNDO IMAGEN                  MUNDO EJECUCIÓN
-               ┌──────┬──────┬──────┬─────────┬──────┬───────┬──────┬──────┐
-               │renew │rebuild│update│<proyecto>│-config│--port│--tui│--network│
-┌──────────────┼──────┼──────┼──────┼─────────┼──────┼───────┼──────┼─────────┤
-│ --renew      │  —   │  ❌  │  🔴  │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
-│ --rebuild    │  ❌  │  —   │  🔴  │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
-│ --update     │  🔴  │  🔴  │  —   │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
-├──────────────┼──────┼──────┼──────┼─────────┼──────┼───────┼──────┼─────────┤
-│ <proyecto>   │  🔴  │  🔴  │  🔴  │   —    │  ✅  │  ✅   │  ✅  │   ✅   │
-│ -config      │  🔴  │  🔴  │  🔴  │   ✅   │  —   │  ✅   │  ✅  │   ✅   │
-│ --port       │  🔴  │  🔴  │  🔴  │   ✅   │  ✅  │   —   │  🔴  │   ✅   │
-│ --tui        │  🔴  │  🔴  │  🔴  │   ✅   │  ✅  │  🔴   │  —   │   ✅   │
-│ --network    │  🔴  │  🔴  │  🔴  │   ✅   │  ✅  │  ✅   │  ✅  │   —    │
-│ -h, --help   │  ✅  │  ✅  │  ✅  │   ✅   │  ✅  │  ✅   │  ✅  │   ✅   │
-└──────────────┴──────┴──────┴──────┴─────────┴──────┴───────┴──────┴─────────┘
+                  MUNDO IMAGEN              MUNDO GESTIÓN            MUNDO EJECUCIÓN
+               ┌──────┬──────┬──────┬──────┬──────────┬─────────┬──────┬───────┬──────┬──────┐
+               │renew │rebuild│update│--ps  │ --kill   │<proyecto>│-config│--port│--tui│--network│
+┌──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼───────┼──────┼─────────┤
+│ --renew      │  —   │  ❌  │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
+│ --rebuild    │  ❌  │  —   │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
+│ --update     │  🔴  │  🔴  │  —   │  🔴  │   🔴    │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
+│ --ps         │  🔴  │  🔴  │  🔴  │  —   │   ❌    │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
+│ --kill       │  🔴  │  🔴  │  🔴  │  ❌  │   —     │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
+├──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼───────┼──────┼─────────┤
+│ <proyecto>   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   —    │  ✅  │  ✅   │  ✅  │   ✅   │
+│ -config      │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  —   │  ✅   │  ✅  │   ✅   │
+│ --port       │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │   —   │  🔴  │   ✅   │
+│ --tui        │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │  🔴   │  —   │   ✅   │
+│ --network    │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │  ✅   │  ✅  │   —    │
+│ -h, --help   │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │  ✅   │  ✅  │   ✅   │
+│ --version    │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │  ✅   │  ✅  │   ✅   │
+└──────────────┴──────┴──────┴──────┴──────┴──────────┴─────────┴──────┴───────┴──────┴─────────┘
 ```
 
 Leyenda:
@@ -46,6 +50,7 @@ Leyenda:
 
 ```
 ℹ️  --help / -h es compatible con cualquier rama (short-circuits y sale)
+ℹ️  --version imprime la versión del launcher y sale
 
 parámetros
 │
@@ -54,6 +59,14 @@ parámetros
 ├── --rebuild                        reconstruye imagen usando caché
 │
 ├── --update                         actualiza imagen desde cero
+│
+├── --ps | --ls                      muestra contenedores opencode en ejecución
+│
+├── --kill <patrón> | --rm <patrón>  detiene un contenedor opencode
+│       Patrón puede ser:
+│         nombre exacto (opencode-tui2, opencode-4096)
+│         o forma corta (tui2, 2, 4096)
+│       Si el patrón no matchea o matchea varios, no se actúa.
 │
 └── <proyecto>                       lanza opencode en el proyecto
     │
@@ -77,26 +90,34 @@ Reglas de lectura:
 ## Sintaxis formal (BNF simplificada)
 
 ```
-invocacion     ::= mundo_imagen | mundo_ejecucion | "--help"
+invocacion       ::= mundo_imagen | mundo_gestion | mundo_ejecucion | "--help" | "--version"
 
-mundo_imagen   ::= ("--renew" | "--rebuild" | "--update") ["--help"]
-mundo_ejecucion ::= "<proyecto>" (modo_tui | modo_web) ["--help"]
+mundo_imagen     ::= ("--renew" | "--rebuild" | "--update") ["--help"]
+mundo_gestion    ::= ( "--ps" | "--ls"
+                     | "--kill" <patrón> | "--rm" <patrón>
+                     ) ["--help"]
+mundo_ejecucion  ::= "<proyecto>" (modo_tui | modo_web) ["--help"]
 
-modo_tui       ::= "--tui" *tui_option
-tui_option     ::= "-config" "<ruta>" | "--network-host" | "--network_host"
+modo_tui         ::= "--tui" *tui_option
+tui_option       ::= "-config" "<ruta>" | "--network-host" | "--network_host"
 
-modo_web       ::= *web_option
-web_option     ::= "--port" "<1-65535>"
-                 | "-config" "<ruta>"
-                 | "--network-host"
-                 | "--network_host"
+modo_web         ::= *web_option
+web_option       ::= "--port" "<1-65535>"
+                   | "-config" "<ruta>"
+                   | "--network-host"
+                   | "--network_host"
 ```
 
 Restricciones adicionales:
 
 - `--renew` y `--rebuild` son **mutuamente excluyentes** (error de sintaxis en el parser).
+- `--ps`/`--ls` y `--kill`/`--rm` son **mutuamente excluyentes** (error de sintaxis en el parser).
+- Cualquier flag IMAGEN con cualquier flag GESTIÓN o EJECUCIÓN es **error de sintaxis**.
+- Cualquier flag GESTIÓN con cualquier flag IMAGEN o EJECUCIÓN es **error de sintaxis**.
 - `--tui` **excluye** el uso de `--port` (no hay servidor).
-- En `modo_web`, `--network-host` suppress explicitamente el flag `-p` de `podman run` (podman lo ignora con `--network host` y emite warning).
+- En `modo_web`, `--network-host` omite el flag `-p` de `podman run` (podman lo ignora con `--network host` y emite warning).
+- Contenedores TUI: nombre `opencode-tuiN` con N = `max(existentes) + 1` (no rellena huecos).
+- Contenedores web: nombre `opencode-<puerto>`.
 
 ## Estado del parser actual vs. el esquema
 
@@ -105,11 +126,13 @@ Estado de cada regla en el parser actual de `opencode.sh`:
 | Regla del esquema | Parser actual | Acción requerida |
 |-------------------|---------------|-------------------|
 | `--renew` ❌ `--rebuild` | ✅ ya lo impone | Ninguna |
-| `--renew` + `<proyecto>` should be 🔴 | ⚠️ Lo permite y ejecuta | Endurecer |
-| `--renew` + `--tui` should be 🔴 | ⚠️ Lo permite (ignora `--tui` en flujo rápido) | Endurecer |
+| Mundo GESTIÓN (--ps/--kill) excluye IMAGEN y EJECUCIÓN | ✅ ya lo impone (error_exit) | Ninguna |
+| `--ps` ❌ `--kill` | ✅ ya lo impone (error_exit) | Ninguna |
+| `--kill <patrón>` match flexible | ✅ Implementado (1 match → stop, 0 o >1 → no actúa) | Ninguna |
+| `--ps` lista contenedores con formato extendido | ✅ Implementado | Ninguna |
+| Contenedores TUI: nombre `opencode-tuiN` con N=max+1 | ✅ Implementado | Ninguna |
 | `--tui` ignora `--port` | ⚠️ No lo valida, solo lo silencia al armar `PORT_ARGS` | Validar y advertir |
 | `--network-host` omite `-p` en web | ✅ Ya lo hace | Ninguna |
-| Sin `<proyecto>` + flags runtime | ⚠️ Los parsea pero los descarta al salir temprano | Endurecer o advertir |
 
 ## Optimizaciones sugeridas para el parser
 

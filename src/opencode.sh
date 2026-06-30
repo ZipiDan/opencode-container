@@ -1,8 +1,13 @@
 #!/bin/bash
+# opencode.sh — launcher de opencode en contenedor Podman.
+# VERSION y TAG_RELEASE: bumpear ambos al liberar una nueva versión.
+# VERSION sigue semver (major.minor.patch). El tag de git es v$VERSION.
 
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
+VERSION="1.5.0"
+TAG_RELEASE="v1.5.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -116,8 +121,13 @@ ${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tu
        $0 --rebuild
        $0 --update
        $0 --renew
+       $0 --ps | --ls
+       $0 --kill <patrón> | --rm <patrón>
+       $0 --version
+       $0 -h | --help
 
 ${BLUE}Descripción:${NC}
+     opencode.sh ${VERSION} (${TAG_RELEASE})
      Lanza opencode en un contenedor Podman (basado en Debian stable-backports),
      montando el proyecto y separando los datos en dos ámbitos:
 
@@ -168,11 +178,19 @@ ${BLUE}Parámetros:${NC}
                                  Si falla, la imagen anterior no se modifica.
                                  ⚠ DETIENE cualquier contenedor activo
                                  que esté usando la imagen anterior.
+    --ps, --ls                   Lista los contenedores opencode en ejecución
+                                 (ID, nombre, status, modo, puerto, proyecto).
+    --kill <patrón>              Detiene un contenedor opencode en ejecución.
+    --rm <patrón>                Alias de --kill. El patrón puede ser:
+                                 nombre exacto (opencode-tui2, opencode-4096),
+                                 forma corta (tui2, 2, 4096). Si el patrón no
+                                 encuentra exactamente 1 contenedor no actúa.
 
 ${BLUE}Combinaciones de parámetros:${NC}
-    Los parámetros se separan en dos mundos mutuamente excluyentes:
+    Los parámetros se separan en tres mundos mutuamente excluyentes:
 
       • Mundo IMAGEN:    --renew | --rebuild | --update   (gestionan la imagen)
+      • Mundo GESTIÓN:  --ps/--ls (listar) | --kill/--rm <patrón> (detener)
       • Mundo EJECUCIÓN:  <proyecto> + [-config] [--port] [--tui] [--network-host]
 
     Árbol de combinaciones válidas (-h es compatible con cualquier rama):
@@ -181,18 +199,24 @@ ${BLUE}Combinaciones de parámetros:${NC}
     ├── --renew                reconstruye imagen atómicamente
     ├── --rebuild              reconstruye imagen usando caché
     ├── --update               actualiza imagen desde cero
+    ├── --ps | --ls            muestra contenedores opencode en ejecución
+    ├── --kill <patrón>        detiene un contenedor opencode (alias --rm)
+    │       Patrones: nombre exacto (opencode-tui2, opencode-4096)
+    │                 o forma corta: tui2 / 2 / 4096
+    │       Si el patrón no matchea o matchea varios, no se actúa.
     └── <proyecto>             lanza opencode en el proyecto
-        ├── --tui              arranca terminal interactiva
+        ├── --tui              arranca terminal interactiva (nombre: opencode-tuiN)
         │   ├── -config <ruta>
         │   └── --network-host
-        └── web (sin --tui)   arranca servidor web
+        └── web (sin --tui)   arranca servidor web (nombre: opencode-<puerto>)
             ├── --port <1-65535>   (default ${DEFAULT_PORT})
             ├── -config <ruta>
             └── --network-host
 
     Reglas clave:
-      • No mezclar flags IMAGEN con flags EJECUCIÓN.
+      • No mezclar flags de mundos distintos (IMAGEN/GESTIÓN/EJECUCIÓN).
       • --renew y --rebuild son mutuamente excluyentes.
+      • --ps/--ls y --kill/--rm son mutuamente excluyentes entre sí.
       • --tui ignora --port (no hay servidor web).
 
 ${BLUE}Ejemplos:${NC}
@@ -203,6 +227,9 @@ ${BLUE}Ejemplos:${NC}
     $0 ./proyecto --network-host
     $0 --update
     $0 --renew
+    $0 --ps
+    $0 --kill tui2
+    $0 --rm opencode-4096
 
 ${BLUE}Nota:${NC}
     Config global (API keys, share)    → ${GLOBAL_CONFIG_DIR}/  (no afectado por -config)
@@ -268,6 +295,130 @@ setup_project_dirs() {
       mkdir -p "${base}/${sub}" || error_exit "No se pudo crear ${base}/${sub}"
     done
     echo -e "${GREEN}[OK]${NC} Estructura del proyecto creada correctamente."
+  fi
+}
+
+# ==========================
+# FUNCIONES DE GESTIÓN DE CONTENEDORES
+# ==========================
+
+# Calcula el siguiente nombre TUI disponible: opencode-tuiN con N = (max existente) + 1.
+# No rellena huecos: si tui1 y tui3 están corriendo, devuelve tui4.
+next_tui_name() {
+  local max=0 n name
+  while read -r name; do
+    [[ -z "$name" ]] && continue
+    if [[ "$name" =~ opencode-tui([0-9]+)$ ]]; then
+      n="${BASH_REMATCH[1]}"
+      (( n > max )) && max=$n
+    fi
+  done < <(podman ps --filter "name=opencode-tui" --format "{{.Names}}" 2>/dev/null)
+  echo "opencode-tui$((max + 1))"
+}
+
+# Lista contenedores opencode en ejecución con formato extendido.
+# Columnas: ID, Nombre, Status, Modo, Puerto, Proyecto.
+list_opencode_containers() {
+  local id name status mode port project
+  local has_containers=false
+
+  printf "%-12s %-22s %-14s %-6s %-7s %s\n" \
+    "ID" "NOMBRE" "STATUS" "MODO" "PUERTO" "PROYECTO"
+  printf "%-12s %-22s %-14s %-6s %-7s %s\n" \
+    "------------" "----------------------" "--------------" "------" "-------" "-------"
+
+  while read -r name; do
+    [[ -z "$name" ]] && continue
+    has_containers=true
+
+    id=$(podman ps --filter "name=^${name}\$" --format "{{.ID}}" 2>/dev/null | head -n1)
+    status=$(podman ps --filter "name=^${name}\$" --format "{{.Status}}" 2>/dev/null | head -n1)
+
+    if [[ "$name" =~ opencode-tui([0-9]+)$ ]]; then
+      mode="tui"; port="-"
+    elif [[ "$name" =~ opencode-([0-9]+)$ ]]; then
+      mode="web"; port="${BASH_REMATCH[1]}"
+    else
+      mode="?"; port="?"
+    fi
+
+    # Proyecto: buscar el mount cuyo destino sea /workspace
+    project=$(podman inspect "$name" \
+      --format '{{range .Mounts}}{{if eq .Destination "/workspace"}}{{.Source}}{{end}}{{end}}' \
+      2>/dev/null)
+
+    printf "%-12s %-22s %-14s %-6s %-7s %s\n" \
+      "${id:0:12}" "$name" "$status" "$mode" "$port" "$project"
+  done < <(podman ps --filter "name=opencode-" --format "{{.Names}}" 2>/dev/null | sort)
+
+  if [[ "$has_containers" == "false" ]]; then
+    echo -e "${YELLOW}[INFO]${NC} No hay contenedores opencode en ejecución."
+  fi
+}
+
+# Detiene un contenedor opencode por nombre exacto o patrón corto.
+# Patrones aceptados:
+#   opencode-tui2  (exacto)
+#   opencode-4096  (exacto, web)
+#   tui2           (expandido a opencode-tui2)
+#   2              (expandido a opencode-2 [web] y opencode-tui2)
+#   4096           (expandido a opencode-4096 [web] y opencode-tui4096 [TUI])
+# Reglas:
+#   - 0 matches  → no actúa, avisa
+#   - >1 match   → no actúa, lista los candidatos y pide más especificidad
+#   - 1 match    → podman stop y confirma
+kill_opencode_container() {
+  local pattern="$1"
+  local -A seen=()
+  local -a matches=()
+  local -a candidates=()
+  local c match
+
+  # Construir lista de candidatos a probar
+  candidates+=("$pattern")
+
+  # tuiN → opencode-tuiN
+  if [[ "$pattern" =~ ^tui([0-9]+)$ ]]; then
+    candidates+=("opencode-tui${BASH_REMATCH[1]}")
+  fi
+
+  # N puro o puerto puro → opencode-N (web) y opencode-tuiN (TUI)
+  if [[ "$pattern" =~ ^([0-9]+)$ ]]; then
+    candidates+=("opencode-${BASH_REMATCH[1]}")
+    candidates+=("opencode-tui${BASH_REMATCH[1]}")
+  fi
+
+  # Resolver candidatos contra podman (solo running)
+  for c in "${candidates[@]}"; do
+    while read -r match; do
+      [[ -n "$match" && -z "${seen[$match]:-}" ]] && {
+        seen[$match]=1
+        matches+=("$match")
+      }
+    done < <(podman ps --filter "name=^${c}\$" --format "{{.Names}}" 2>/dev/null)
+  done
+
+  # Decidir según la cantidad de matches
+  if [[ ${#matches[@]} -eq 0 ]]; then
+    echo -e "${YELLOW}[INFO]${NC} No se encontró contenedor opencode en ejecución que coincida con '${pattern}'."
+    echo -e "${YELLOW}[INFO]${NC} Usá --ps para ver los contenedores disponibles."
+    return 1
+  fi
+
+  if [[ ${#matches[@]} -gt 1 ]]; then
+    echo -e "${YELLOW}[AVISO]${NC} ${#matches[@]} contenedores coinciden con '${pattern}':"
+    printf "  • %s\n" "${matches[@]}"
+    echo -e "${YELLOW}[AVISO]${NC} Sé más específico (usá el nombre completo). No se tomó ninguna acción."
+    return 1
+  fi
+
+  # Exactamente un match → stop graceful
+  echo -e "${BLUE}[INFO]${NC} Deteniendo contenedor: ${matches[0]}"
+  if podman stop "${matches[0]}" >/dev/null 2>&1; then
+    echo -e "${GREEN}[OK]${NC} Contenedor '${matches[0]}' detenido correctamente."
+    return 0
+  else
+    error_exit "No se pudo detener el contenedor '${matches[0]}'."
   fi
 }
 
@@ -367,6 +518,10 @@ UPDATE=false
 RENEW=false
 PROJECT_DATA_DIR=""
 NETWORK_HOST=false
+PS_MODE=false
+KILL_MODE=false
+KILL_PATTERN=""
+PASSED_PORT_SET=false
 
 # Parseo de argumentos
 while [[ $# -gt 0 ]]; do
@@ -386,6 +541,7 @@ while [[ $# -gt 0 ]]; do
       error_exit "Puerto inválido: $2. Debe ser un número entre 1 y 65535."
     fi
     PORT="$2"
+    PASSED_PORT_SET=true
     shift 2
     ;;
   --tui | --no-web)
@@ -408,8 +564,24 @@ while [[ $# -gt 0 ]]; do
     NETWORK_HOST=true
     shift
     ;;
+  --ps | --ls)
+    PS_MODE=true
+    shift
+    ;;
+  --kill | --rm)
+    if [[ -z "$2" ]]; then
+      error_exit "La opción $1 requiere un nombre o patrón como argumento."
+    fi
+    KILL_MODE=true
+    KILL_PATTERN="$2"
+    shift 2
+    ;;
   -h | --help)
     show_help
+    exit 0
+    ;;
+  --version)
+    echo "opencode.sh ${VERSION} (${TAG_RELEASE})"
     exit 0
     ;;
   *)
@@ -428,6 +600,28 @@ check_podman
 # Validar exclusión mutua: --renew y --rebuild no pueden usarse juntos
 if [[ "$RENEW" == "true" && "$REBUILD" == "true" ]]; then
   error_exit "Las opciones --renew y --rebuild no pueden usarse juntas."
+fi
+
+# Mundo GESTIÓN: --ps/--ls y --kill/--rm son mutuamente excluyentes entre sí
+# y con cualquier flag de los mundos IMAGEN o EJECUCIÓN.
+if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" ]]; then
+  if [[ "$PS_MODE" == "true" && "$KILL_MODE" == "true" ]]; then
+    error_exit "Las opciones --ps/--ls y --kill/--rm son mutuamente excluyentes."
+  fi
+  if [[ "$RENEW" == "true" || "$REBUILD" == "true" || "$UPDATE" == "true" \
+      || -n "$PROJECT_PATH" || "$TUI_MODE" == "true" || "$NETWORK_HOST" == "true" \
+      || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" ]]; then
+    error_exit "Las opciones --ps/--ls/--kill/--rm (mundo GESTIÓN) no pueden combinarse con flags de otros mundos (IMAGEN/EJECUCIÓN)."
+  fi
+  # Ejecutar y salir (no requieren <proyecto> ni imagen)
+  if [[ "$PS_MODE" == "true" ]]; then
+    list_opencode_containers
+    exit 0
+  fi
+  if [[ "$KILL_MODE" == "true" ]]; then
+    kill_opencode_container "$KILL_PATTERN"
+    exit $?
+  fi
 fi
 
 if [[ "$RENEW" == "true" && -z "$PROJECT_PATH" ]]; then
@@ -512,18 +706,20 @@ if [[ "$NETWORK_HOST" == "true" ]]; then
 fi
 
 if [[ "$TUI_MODE" == "true" ]]; then
-  echo -e "${BLUE}[INFO]${NC} Modo TUI activado (sin servidor web, --port se ignora)"
+  RUN_NAME=$(next_tui_name)
+  echo -e "${BLUE}[INFO]${NC} Modo TUI activado (contenedor: ${RUN_NAME}, --port se ignora)"
   PORT_ARGS=()
   ENV_VARS+=(-e "OPENCODE_MODE=tui")
   EXTRA_ARGS=()
 else
+  RUN_NAME="${CONTAINER_NAME}-${PORT}"
   if [[ "$NETWORK_HOST" == "true" ]]; then
-    echo -e "${BLUE}[INFO]${NC} Servidor web activo en puerto ${PORT} (hostname 0.0.0.0, red del host)"
+    echo -e "${BLUE}[INFO]${NC} Servidor web activo en puerto ${PORT} (contenedor: ${RUN_NAME}, red del host)"
     echo -e "${BLUE}[INFO]${NC} Con --network-host el puerto se publica automáticamente (se omite -p)."
     # --network host hace que -p lo ignore podman (emite warning): se omite.
     PORT_ARGS=()
   else
-    echo -e "${BLUE}[INFO]${NC} Servidor web activo en puerto ${PORT} (hostname 0.0.0.0)"
+    echo -e "${BLUE}[INFO]${NC} Servidor web activo en puerto ${PORT} (contenedor: ${RUN_NAME}, hostname 0.0.0.0)"
     PORT_ARGS=(-p "${PORT}:${PORT}")
   fi
   EXTRA_ARGS=(web --port "${PORT}" --hostname 0.0.0.0)
@@ -535,7 +731,7 @@ echo -e "${BLUE}[INFO]${NC} Datos globales: ${GLOBAL_DATA_DIR}"
 echo -e "${BLUE}[INFO]${NC} Datos del proyecto: ${PROJECT_DATA_DIR}"
 echo -e "${BLUE}[INFO]${NC} Imagen: ${OPENCODE_IMAGE}"
 
-podman run -it --rm --name "${CONTAINER_NAME}-${PORT}" \
+podman run -it --rm --name "${RUN_NAME}" \
   "${NETWORK_ARGS[@]}" \
   "${PORT_ARGS[@]}" \
   --workdir /workspace \

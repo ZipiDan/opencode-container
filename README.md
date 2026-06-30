@@ -9,6 +9,7 @@ Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecut
 - **Identidad del agente**: Git/ssh keys separadas del usuario, almacenadas en `~/.config/opencode/identity/`.
 - **Modos de ejecución**: Web (servidor HTTP) y TUI (terminal interactiva).
 - **Gestión de imagen**: Reconstrucción con caché (`--rebuild`), actualización completa (`--update`) y renovación atómica (`--renew`).
+- **Gestión de contenedores**: Listar (`--ps` / `--ls`) y detener (`--kill` / `--rm`) contenedores opencode en ejecución. Contenedores TUI se numeran automáticamente (`opencode-tuiN`).
 - **Red configurable**: Aislada por defecto; `--network-host` para acceder a servicios del host.
 
 ## Capacidades del contenedor
@@ -71,11 +72,24 @@ chmod +x opencode.sh
 
 > `--renew` y `--rebuild` son mutuamente excluyentes.
 
+### Comandos de gestión de contenedores
+
+| Acción | Comando |
+|--------|---------|
+| Listar contenedores opencode en ejecución | `./opencode.sh --ps` o `./opencode.sh --ls` |
+| Detener un contenedor opencode (nombre exacto) | `./opencode.sh --kill opencode-tui2` |
+| Detener un contenedor opencode (forma corta) | `./opencode.sh --kill tui2` o `./opencode.sh --kill 2` |
+| Detener un contenedor opencode (por puerto) | `./opencode.sh --kill 4096` |
+| Alias de `--kill` | `./opencode.sh --rm <patrón>` |
+
+> `--ps`/`--ls` y `--kill`/`--rm` son mutuamente excluyentes y no se pueden combinar con flags de gestión de imagen ni de ejecución.
+
 ## Combinaciones de parámetros
 
-Los parámetros se distribuyen en dos **mundos mutuamente excluyentes**:
+Los parámetros se distribuyen en tres **mundos mutuamente excluyentes**:
 
 - **Mundo IMAGEN**: `--renew` / `--rebuild` / `--update` — gestionan la imagen del contenedor.
+- **Mundo GESTIÓN**: `--ps` / `--ls` / `--kill` / `--rm` — operan sobre contenedores en ejecución.
 - **Mundo EJECUCIÓN**: `<proyecto>` + flags runtime (`-config`, `--port`, `--tui`, `--network-host`) — lanzan un contenedor.
 
 Los flags de un mundo **no se cruzan** con los del otro. La referencia formal completa (tabla única, BNF y reglas del parser) está en [`PARAMETERS.md`](PARAMETERS.md).
@@ -84,6 +98,7 @@ Los flags de un mundo **no se cruzan** con los del otro. La referencia formal co
 
 ```
 ℹ️  --help / -h es compatible con cualquier rama (short-circuits y sale)
+ℹ️  --version imprime la versión del launcher y sale
 
 parámetros
 │
@@ -92,6 +107,11 @@ parámetros
 ├── --rebuild                        reconstruye imagen usando caché
 │
 ├── --update                         actualiza imagen desde cero
+│
+├── --ps | --ls                      muestra contenedores opencode en ejecución
+│
+├── --kill <patrón> | --rm <patrón>  detiene un contenedor opencode
+│       (patrón: opencode-tui2, opencode-4096, tui2, 2, 4096)
 │
 └── <proyecto>                       lanza opencode en el proyecto
     │
@@ -108,10 +128,13 @@ parámetros
 
 ### Reglas clave
 
-- No mezclar flags IMAGEN con flags EJECUCIÓN.
+- No mezclar flags de mundos distintos (IMAGEN/GESTIÓN/EJECUCIÓN).
 - `--renew` y `--rebuild` son mutuamente excluyentes (error del script).
+- `--ps`/`--ls` y `--kill`/`--rm` son mutuamente excluyentes entre sí.
 - `--tui` ignora `--port` (no hay servidor web).
 - `--network-host` omite `-p` en modo web (podman lo publica vía el host).
+- Contenedores TUI se nombran `opencode-tuiN` (numeración `max+1`).
+- Contenedores web se nombran `opencode-<puerto>`.
 
 ### Ejemplos de invocaciones válidas
 
@@ -119,6 +142,13 @@ parámetros
 # Mundo IMAGEN
 ./opencode.sh --renew
 ./opencode.sh --update
+
+# Mundo GESTIÓN
+./opencode.sh --ps
+./opencode.sh --ls
+./opencode.sh --kill opencode-tui2
+./opencode.sh --kill 4096
+./opencode.sh --rm tui2
 
 # Mundo EJECUCIÓN — web
 ./opencode.sh /ruta/proyecto

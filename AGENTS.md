@@ -129,3 +129,10 @@ Migration is manual by design to avoid overwriting data. Run it once per existin
 - `PYTHONUSERBASE=/home/opencode/.pythonuser` — pip `--user` installs go to the mounted python volume.
 - The agent's git/ssh identity lives in `~/.config/opencode/identity/` and is symlinked into `/root/` at container startup by `entrypoint.sh`. This keeps the agent's commits/pushes separate from the user's own git identity.
 - opencode organizes sessions and snapshots internally by `projectID` (derived from the git root commit hash). The nested bind mounts provide an additional physical guarantee of isolation between projects.
+
+## Git policy (STRICT)
+
+- **NEVER** run `git commit`, `git push`, `git add` (staging for a commit) or any remote operation unless the user **explicitly** instructs you to do so.
+- This rule overrides any default proactiveness guidance. Even if a task is fully complete, do not commit or push it on your own initiative.
+- The user will tell you when to commit (`"haz commit"`, `"commiteá"`, `"push"`, etc.). Only then stage, commit and/or push as requested.
+- You may run read-only git commands freely (`git status`, `git log`, `git diff`, `git show`, etc.) without asking.

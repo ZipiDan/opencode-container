@@ -18,23 +18,24 @@ Los flags de un mundo **no se cruzan** con los del otro. Si se mezclan, el resul
 
 ```
                   MUNDO IMAGEN              MUNDO GESTIÓN            MUNDO EJECUCIÓN
-               ┌──────┬──────┬──────┬──────┬──────────┬─────────┬──────┬───────┬──────┬──────┐
-               │renew │rebuild│update│--ps  │ --kill   │<proyecto>│-config│--port│--tui│--network│
-┌──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼───────┼──────┼─────────┤
-│ --renew      │  —   │  ❌  │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
-│ --rebuild    │  ❌  │  —   │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
-│ --update     │  🔴  │  🔴  │  —   │  🔴  │   🔴    │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
-│ --ps         │  🔴  │  🔴  │  🔴  │  —   │   ❌    │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
-│ --kill       │  🔴  │  🔴  │  🔴  │  ❌  │   —     │   🔴   │  🔴  │  🔴   │  🔴  │   🔴   │
-├──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼───────┼──────┼─────────┤
-│ <proyecto>   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   —    │  ✅  │  ✅   │  ✅  │   ✅   │
-│ -config      │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  —   │  ✅   │  ✅  │   ✅   │
-│ --port       │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │   —   │  🔴  │   ✅   │
-│ --tui        │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │  🔴   │  —   │   ✅   │
-│ --network    │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │  ✅   │  ✅  │   —    │
-│ -h, --help   │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │  ✅   │  ✅  │   ✅   │
-│ --version    │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │  ✅   │  ✅  │   ✅   │
-└──────────────┴──────┴──────┴──────┴──────┴──────────┴─────────┴──────┴───────┴──────┴─────────┘
+               ┌──────┬──────┬──────┬──────┬──────────┬─────────┬──────┬──────────┬───────┬──────┬─────────┐
+               │renew │rebuild│update│--ps  │ --kill   │<proyecto>│-config│--no-climb│--port│--tui│--network│
+┌──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼──────────┼───────┼──────┼─────────┤
+│ --renew      │  —   │  ❌  │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
+│ --rebuild    │  ❌  │  —   │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
+│ --update     │  🔴  │  🔴  │  —   │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
+│ --ps         │  🔴  │  🔴  │  🔴  │  —   │   ❌    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
+│ --kill       │  🔴  │  🔴  │  🔴  │  ❌  │   —     │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
+├──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼──────────┼───────┼──────┼─────────┤
+│ <proyecto>   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   —    │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │
+│ -config      │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  —   │    ✅    │  ✅  │  ✅  │   ✅   │
+│ --no-climb   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    —     │  ✅  │  ✅  │   ✅   │
+│ --port       │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  —   │  🔴  │   ✅   │
+│ --tui        │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  🔴  │  —   │   ✅   │
+│ --network    │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   —    │
+│ -h, --help   │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │
+│ --version    │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │
+└──────────────┴──────┴──────┴──────┴──────┴──────────┴─────────┴──────┴──────────┴───────┴──────┴─────────┘
 ```
 
 Leyenda:
@@ -54,7 +55,8 @@ Leyenda:
 
 parámetros
 │
-├── --renew                          reconstruye imagen atómicamente
+├── --renew                          actualiza la imagen reconstruyendo desde cero;
+│                                    elimina la anterior si el build es exitoso
 │
 ├── --rebuild                        reconstruye imagen usando caché
 │
@@ -69,6 +71,9 @@ parámetros
 │       Si el patrón no matchea o matchea varios, no se actúa.
 │
 └── <proyecto>                       lanza opencode en el proyecto
+    │
+    ├── --no-climb                   desactiva la búsqueda de .git hacia atrás
+    │                                (también: --no-search-git)
     │
     ├── --tui                        arranca terminal interactiva
     │   ├── -config <ruta>
@@ -96,7 +101,7 @@ mundo_imagen     ::= ("--renew" | "--rebuild" | "--update") ["--help"]
 mundo_gestion    ::= ( "--ps" | "--ls"
                      | "--kill" <patrón> | "--rm" <patrón>
                      ) ["--help"]
-mundo_ejecucion  ::= "<proyecto>" (modo_tui | modo_web) ["--help"]
+mundo_ejecucion  ::= "<proyecto>" ["--no-climb"] (modo_tui | modo_web) ["--help"]
 
 modo_tui         ::= "--tui" *tui_option
 tui_option       ::= "-config" "<ruta>" | "--network-host" | "--network_host"
@@ -115,6 +120,7 @@ Restricciones adicionales:
 - Cualquier flag IMAGEN con cualquier flag GESTIÓN o EJECUCIÓN es **error de sintaxis**.
 - Cualquier flag GESTIÓN con cualquier flag IMAGEN o EJECUCIÓN es **error de sintaxis**.
 - `--tui` **excluye** el uso de `--port` (no hay servidor).
+- `--no-climb` (alias `--no-search-git`) solo aplica con `<proyecto>`; en otros mundos se ignora o produce error de sintaxis.
 - En `modo_web`, `--network-host` omite el flag `-p` de `podman run` (podman lo ignora con `--network host` y emite warning).
 - Contenedores TUI: nombre `opencode-tuiN` con N = `max(existentes) + 1` (no rellena huecos).
 - Contenedores web: nombre `opencode-<puerto>`.

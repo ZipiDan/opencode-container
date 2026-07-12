@@ -1,6 +1,6 @@
 # opencode-container
 
-Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecuta opencode dentro de un contenedor Debian aislado por proyecto, con separación estricta de datos y configuración global compartida. El contenedor es un entorno de desarrollo completo listo para tareas de desarrollo Python y Node.js, diagnóstico de redes, devops, automatización, seguridad y análisis asistido por IA — sin instalar nada adicional.
+Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecuta opencode dentro de un contenedor Debian aislado por proyecto, con separación estricta de datos y configuración global compartida. El contenedor es un entorno de desarrollo y administración de sistema completo listo para tareas de desarrollo Python y Node.js, diagnóstico de redes, devops, automatización, seguridad, implementacion de sistemas SAAS y análisis asistido por IA — sin instalar nada adicional.
 
 ## Características
 
@@ -8,9 +8,10 @@ Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecut
 - **Datos globales compartidos**: Credenciales (`auth.json`), cuentas OAuth (`db/`) y clones internos (`repos/`) se comparten entre proyectos.
 - **Identidad del agente**: Git/ssh keys separadas del usuario, almacenadas en `~/.config/opencode/identity/`.
 - **Modos de ejecución**: Web (servidor HTTP) y TUI (terminal interactiva).
-- **Gestión de imagen**: Reconstrucción con caché (`--rebuild`), actualización completa (`--update`) y renovación atómica (`--renew`).
+- **Gestión de imagen**: Reconstrucción con caché (`--rebuild`), actualización completa (`--update`) y actualización desde cero reemplazando la imagen anterior si el build es exitoso (`--renew`).
 - **Gestión de contenedores**: Listar (`--ps` / `--ls`) y detener (`--kill` / `--rm`) contenedores opencode en ejecución. Contenedores TUI se numeran automáticamente (`opencode-tuiN`).
 - **Red configurable**: Aislada por defecto; `--network-host` para acceder a servicios del host.
+- **Resolución de project root**: si pasás un subdirectorio, `opencode.sh` trepa buscando `.git` (tope en `$HOME`) y monta la raíz real. `--no-climb` (alias `--no-search-git`) lo desactiva.
 
 ## Capacidades del contenedor
 
@@ -21,7 +22,7 @@ Python 3, pip, `venv` y `python3-dev` para compilar extensiones nativas. Instal�
 Herramientas completas de red: `ping`, `traceroute` y `mtr` para verificar conectividad; `dig`, `nslookup` y `host` para resolución DNS; `ss` y `netstat` para inspeccionar conexiones activas; `nmap` para escaneo de puertos; `tcpdump` y `tshark` (Wireshark CLI) para captura y análisis de tráfico en vivo.
 
 ### 🔧 DevOps / Automatización
-Git, SSH y GPG para control de versiones y autenticación segura. Curl, wget y jq para interactuar con APIs REST y procesar JSON. Bash scripting para automatización de tareas administrativas. Iptables para configuración de firewall.
+Git, SSH y GPG para control de versiones y autenticación segura. Curl, wget y jq para interactuar con APIs REST y procesar JSON. Bash scripting para automatización de tareas administrativas. Iptables para configuración de firewall. Ansible para aplicar configuraciones estándar sobre hosts remotos (playbooks, roles y módulos).
 
 ### 🤖 Inteligencia Artificial
 OpenCode integrado con acceso a 75+ proveedores de LLM para análisis, generación, refactorización y debugging de código asistido por IA.
@@ -59,6 +60,12 @@ chmod +x opencode.sh
 
 # Datos del proyecto en ubicación personalizada
 ./opencode.sh /ruta/a/tu/proyecto -config /mnt/opencode-data
+
+# Subcarpeta de un proyecto git (resuelve la raíz buscando .git hacia arriba)
+./opencode.sh /ruta/a/tu/proyecto/subdir
+
+# Forzar a trabajar exactamente en la subcarpeta sin buscar .git
+./opencode.sh /ruta/a/tu/proyecto/subdir --no-climb
 ```
 
 ### Comandos de gestión de imagen
@@ -67,7 +74,7 @@ chmod +x opencode.sh
 |--------|---------|
 | Reconstruir imagen (con caché) | `./opencode.sh --rebuild` |
 | Actualizar imagen (no-cache + pull base) | `./opencode.sh --update` |
-| Renovar atómicamente (build + swap solo si exitoso) | `./opencode.sh --renew` |
+| Actualizar imagen desde cero, reemplazando la anterior si el build es exitoso | `./opencode.sh --renew` |
 | Compartir red del host | `./opencode.sh /path/to/project --network-host` |
 
 > `--renew` y `--rebuild` son mutuamente excluyentes.
@@ -102,7 +109,8 @@ Los flags de un mundo **no se cruzan** con los del otro. La referencia formal co
 
 parámetros
 │
-├── --renew                          reconstruye imagen atómicamente
+├── --renew                          actualiza la imagen reconstruyendo desde cero;
+│                                    elimina la anterior si el build es exitoso
 │
 ├── --rebuild                        reconstruye imagen usando caché
 │
@@ -114,6 +122,9 @@ parámetros
 │       (patrón: opencode-tui2, opencode-4096, tui2, 2, 4096)
 │
 └── <proyecto>                       lanza opencode en el proyecto
+    │
+    ├── --no-climb                   desactiva la búsqueda de .git hacia atrás
+    │                                (también: --no-search-git)
     │
     ├── --tui                        arranca terminal interactiva
     │   ├── -config <ruta>
@@ -132,6 +143,7 @@ parámetros
 - `--renew` y `--rebuild` son mutuamente excluyentes (error del script).
 - `--ps`/`--ls` y `--kill`/`--rm` son mutuamente excluyentes entre sí.
 - `--tui` ignora `--port` (no hay servidor web).
+- `--no-climb` (alias `--no-search-git`) desactiva la resolución automática de `.git` hacia arriba; útil para trabajar en una subcarpeta aislada.
 - `--network-host` omite `-p` en modo web (podman lo publica vía el host).
 - Contenedores TUI se nombran `opencode-tuiN` (numeración `max+1`).
 - Contenedores web se nombran `opencode-<puerto>`.
@@ -152,6 +164,8 @@ parámetros
 
 # Mundo EJECUCIÓN — web
 ./opencode.sh /ruta/proyecto
+./opencode.sh /ruta/proyecto/subdir         # busca .git hacia arriba para encontrar la raíz del proyecto
+./opencode.sh /ruta/proyecto/subdir --no-climb  # no busca la raíz; trabaja en la subcarpeta
 ./opencode.sh /ruta/proyecto --port 4097 --network-host
 ./opencode.sh /ruta/proyecto -config /mnt/data
 
@@ -263,4 +277,5 @@ La migración es manual para evitar sobrescribir datos. Ejecútala una vez por p
 - Herramientas de diagnóstico de red disponibles dentro del contenedor: nmap, tcpdump, tshark, iperf, etc.
 - `PYTHONUSERBASE=/home/opencode/.pythonuser` — los installs pip `--user` van al volumen de python montado.
 - La identidad git/ssh del agente vive en `~/.config/opencode/identity/` y se symlinea a `/root/` al iniciar el contenedor.
+- Para proyectos sin `.git` ni `opencode.json(c)`, `opencode.sh` crea `opencode.jsonc` en el project root (contenido tuneable vía `PROJECT_ANCHOR_CONTENT`) para fijar el root dentro del contenedor. La creación es idempotente.
 - opencode organiza sesiones y snapshots por `projectID` (derivado del hash del commit raíz de git). Los montajes anidados proveen un aislamiento físico adicional entre proyectos.

@@ -42,7 +42,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mtr-tiny \
     iptables \
     bind9-host \
-    && rm -rf /var/lib/apt/lists/*
+    ansible \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*.bin /var/cache/debconf/*-old
 
 # Create a fake xdg-open
 RUN printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/xdg-open && chmod +x /usr/local/bin/xdg-open
@@ -55,10 +57,13 @@ RUN mkdir -p /home/opencode/.config \
 
 # Instalar opencode mediante el instalador oficial
 RUN curl -fsSL https://opencode.ai/install | bash \
-    && ln -sf /root/.opencode/bin/opencode /usr/local/bin/opencode
+    && ln -sf /root/.opencode/bin/opencode /usr/local/bin/opencode \
+    && rm -rf /tmp/* /var/tmp/*
 
 # Instalar pyright (LSP de Python por defecto de OpenCode) vía npm
-RUN npm install -g pyright
+RUN npm install -g pyright \
+    && npm cache clean --force \
+    && rm -rf /root/.npm /root/.cache
 
 # Copiar y preparar el entrypoint que decide entre modo web y TUI
 COPY entrypoint.sh /usr/local/bin/opencode-entrypoint.sh

@@ -10,11 +10,13 @@ Container-based opencode launcher using Podman. Entrypoint is `opencode.sh`; it 
 |--------|---------|
 | Launch web (default port 4096) | `./opencode.sh /path/to/project` |
 | Launch TUI (no web server) | `./opencode.sh /path/to/project --tui` |
+| Resolve project root from a subdirectory | `./opencode.sh /path/to/project/subdir` |
+| Force working inside a subdirectory (no climb) | `./opencode.sh /path/to/project/subdir --no-climb` |
 | Custom port | `./opencode.sh /path/to/project --port 4097` |
 | Custom project data dir | `./opencode.sh /path/to/project -config /custom/path` |
 | Rebuild image (cached) | `./opencode.sh --rebuild` |
 | Rebuild image (no-cache + pull) | `./opencode.sh --update` |
-| Atomic replace (build + swap on success) | `./opencode.sh --renew` |
+| Update image from scratch, replacing the previous one if the build succeeds | `./opencode.sh --renew` |
 | Share host network | `./opencode.sh /path/to/project --network-host` |
 
 `--renew` and `--rebuild` are mutually exclusive.
@@ -25,7 +27,7 @@ By default the container uses Podman's own network namespace (slirp4netns/pasta)
 
 ## Architecture
 
-- `Containerfile` — Debian stable-backports base, installs dev/network tools, opencode (via official install script), and pyright.
+- `Containerfile` — Debian stable-backports base, installs dev/network tools, Ansible, opencode (via official install script), and pyright.
 - `entrypoint.sh` — Container CMD, dispatches to `opencode` (web mode with args) or `opencode` (TUI mode) based on `OPENCODE_MODE`. Also sets up the agent's git/ssh identity via symlinks to `/root/.identity`.
 - `opencode.sh` — Host-side launcher: resolves paths, creates dirs, sets up mounts, runs Podman.
 
@@ -128,6 +130,7 @@ Migration is manual by design to avoid overwriting data. Run it once per existin
 - Network diagnostic tools are available inside the container (nmap, tcpdump, tshark, iperf, etc.).
 - `PYTHONUSERBASE=/home/opencode/.pythonuser` — pip `--user` installs go to the mounted python volume.
 - The agent's git/ssh identity lives in `~/.config/opencode/identity/` and is symlinked into `/root/` at container startup by `entrypoint.sh`. This keeps the agent's commits/pushes separate from the user's own git identity.
+- `opencode.sh` resolves the project root by climbing upward from the given path looking for `.git` (directory or file, supports worktrees), stopping at `$HOME` to avoid capturing a dotfiles repository. If the project has no `.git` and no `opencode.json(c)`, it creates an idempotent `opencode.jsonc` anchor in the project root to fix opencode's root detection inside the container. Use `--no-climb` (alias `--no-search-git`) to disable root resolution and work exactly in the given directory.
 - opencode organizes sessions and snapshots internally by `projectID` (derived from the git root commit hash). The nested bind mounts provide an additional physical guarantee of isolation between projects.
 
 ## Git policy (STRICT)

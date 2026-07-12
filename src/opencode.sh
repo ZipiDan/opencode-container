@@ -6,8 +6,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="1.5.0"
-TAG_RELEASE="v1.5.0"
+VERSION="1.6.0"
+TAG_RELEASE="v1.6.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -17,6 +17,12 @@ GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
 GLOBAL_DATA_DIR="${GLOBAL_CONFIG_DIR}/share"
 # Subdirectorio por defecto para datos del proyecto (state, data, python)
 DEFAULT_PROJECT_DATA_SUBDIR=".opencode"
+# Contenido del anchor opencode.jsonc creado en proyectos sin .git ni config
+# per-project. Fija el project root dentro del contenedor. Editable por el usuario.
+PROJECT_ANCHOR_CONTENT='{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": true
+}'
 CONTAINER_NAME="opencode"
 # Rutas internas del contenedor (XDG Base Directory Specification)
 XDG_CONFIG_HOME_IN_CONTAINER="/home/opencode/.config"
@@ -117,7 +123,7 @@ check_podman() {
 
 show_help() {
   cat <<EOF
-${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tui] [--rebuild] [--update] [--network-host]
+${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tui] [--no-climb] [--rebuild] [--update] [--network-host]
        $0 --rebuild
        $0 --update
        $0 --renew
@@ -129,7 +135,13 @@ ${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tu
 ${BLUE}Descripción:${NC}
      opencode.sh ${VERSION} (${TAG_RELEASE})
      Lanza opencode en un contenedor Podman (basado en Debian stable-backports),
-     montando el proyecto y separando los datos en dos ámbitos:
+     montando el proyecto y separando los datos en dos ámbitos.
+
+     Resolución de project root: si <ruta_del_proyecto> es un subdirectorio
+     de un repo git, el launcher trepa buscando .git (tope en $HOME) y monta
+     la raíz real. Usá --no-climb (alias --no-search-git) para desactivarlo.
+     Si el proyecto no tiene .git ni opencode.json(c), se crea un anchor
+     opencode.jsonc idempotente para fijar el root dentro del contenedor.
 
        Global (siempre en ~/.config/opencode/):
          opencode.json      → API keys, proveedores, modelos, permisos.
@@ -167,6 +179,10 @@ ${BLUE}Parámetros:${NC}
                                  en 127.0.0.1). Se pierde el aislamiento de
                                  red. En modo web el puerto se publica
                                  automáticamente (se omite -p).
+
+    --no-climb, --no-search-git  Desactiva la resolución del project root.
+                                 Si pasás una subcarpeta de un proyecto,
+                                 opencode trabaja exactamente en esa ruta.
     --rebuild                    Reconstruye la imagen desde el Containerfile
                                  (usando caché de capas).
     --update                     Reconstruye la imagen desde cero:
@@ -196,7 +212,8 @@ ${BLUE}Combinaciones de parámetros:${NC}
     Árbol de combinaciones válidas (-h es compatible con cualquier rama):
 
     parámetros
-    ├── --renew                reconstruye imagen atómicamente
+    ├── --renew                actualiza la imagen reconstruyendo desde cero;
+    │                          elimina la anterior si el build es exitoso
     ├── --rebuild              reconstruye imagen usando caché
     ├── --update               actualiza imagen desde cero
     ├── --ps | --ls            muestra contenedores opencode en ejecución
@@ -205,6 +222,8 @@ ${BLUE}Combinaciones de parámetros:${NC}
     │                 o forma corta: tui2 / 2 / 4096
     │       Si el patrón no matchea o matchea varios, no se actúa.
     └── <proyecto>             lanza opencode en el proyecto
+        ├── --no-climb         desactiva la búsqueda de .git hacia atrás
+        │                      (también: --no-search-git)
         ├── --tui              arranca terminal interactiva (nombre: opencode-tuiN)
         │   ├── -config <ruta>
         │   └── --network-host
@@ -221,6 +240,8 @@ ${BLUE}Combinaciones de parámetros:${NC}
 
 ${BLUE}Ejemplos:${NC}
     $0 /home/usuario/mi-proyecto
+    $0 ./proyecto/subdir      # busca .git hacia arriba para encontrar la raíz del proyecto
+    $0 ./proyecto/subdir --no-climb  # no busca la raíz; trabaja en la subcarpeta
     $0 ./proyecto -config /mnt/opencode-data
     $0 ./proyecto --port 4097
     $0 ./proyecto --tui
@@ -236,6 +257,9 @@ ${BLUE}Nota:${NC}
     Datos del proyecto (sesiones, etc) → controlado por -config
     --network-host rompe el aislamiento de red del contenedor (uso de red
     del host). Úsalo solo cuando necesites alcanzar servicios del host.
+    --no-climb impide la resolución automática de .git hacia arriba.
+    Proyectos sin .git ni config reciben un anchor opencode.jsonc en el
+    project root para fijar el root dentro del contenedor (idempotente).
 EOF
 }
 
@@ -296,6 +320,24 @@ setup_project_dirs() {
     done
     echo -e "${GREEN}[OK]${NC} Estructura del proyecto creada correctamente."
   fi
+}
+
+# Resuelve el project root trepando hacia atrás buscando .git (dir o archivo,
+# soporta worktrees). Nunca elige $HOME como root, para evitar que un repo de
+# dotfiles en $HOME capture subdirectorios sueltos.
+# Si no encuentra .git antes de / o $HOME, devuelve el path original.
+resolve_project_root() {
+  local path="$1" home_norm cur
+  home_norm="$(realpath -m "$HOME")"
+  cur="$(realpath -m "$path")"
+  while [[ "$cur" != "/" && "$cur" != "$home_norm" ]]; do
+    if [[ -e "${cur}/.git" ]]; then
+      printf '%s\n' "$cur"
+      return 0
+    fi
+    cur="$(dirname "$cur")"
+  done
+  printf '%s\n' "$(realpath -m "$path")"
 }
 
 # ==========================
@@ -518,6 +560,7 @@ UPDATE=false
 RENEW=false
 PROJECT_DATA_DIR=""
 NETWORK_HOST=false
+NO_CLIMB=false
 PS_MODE=false
 KILL_MODE=false
 KILL_PATTERN=""
@@ -562,6 +605,10 @@ while [[ $# -gt 0 ]]; do
     ;;
   --network-host | --network_host)
     NETWORK_HOST=true
+    shift
+    ;;
+  --no-climb | --no-search-git)
+    NO_CLIMB=true
     shift
     ;;
   --ps | --ls)
@@ -610,7 +657,7 @@ if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" ]]; then
   fi
   if [[ "$RENEW" == "true" || "$REBUILD" == "true" || "$UPDATE" == "true" \
       || -n "$PROJECT_PATH" || "$TUI_MODE" == "true" || "$NETWORK_HOST" == "true" \
-      || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" ]]; then
+      || "$NO_CLIMB" == "true" || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" ]]; then
     error_exit "Las opciones --ps/--ls/--kill/--rm (mundo GESTIÓN) no pueden combinarse con flags de otros mundos (IMAGEN/EJECUCIÓN)."
   fi
   # Ejecutar y salir (no requieren <proyecto> ni imagen)
@@ -651,6 +698,17 @@ if [[ ! -d "$PROJECT_PATH" ]]; then
   error_exit "El directorio del proyecto no existe: $PROJECT_PATH"
 fi
 
+# Resolución automática del project root: si se pasa un subdirectorio de un
+# repo git, trepar hacia atrás (tope en $HOME) para montar la raíz real.
+if [[ "$NO_CLIMB" == "false" ]]; then
+  resolved_root="$(resolve_project_root "$PROJECT_PATH")"
+  if [[ "$resolved_root" != "$PROJECT_PATH" ]]; then
+    echo -e "${YELLOW}[INFO]${NC} Project root resuelto a: ${resolved_root} (se encontró .git en un ancestro)."
+    echo -e "${YELLOW}[INFO]${NC} Para usar exactamente ${PROJECT_PATH} pasá --no-climb (alias --no-search-git)."
+    PROJECT_PATH="$resolved_root"
+  fi
+fi
+
 if [[ -z "$PROJECT_DATA_DIR" ]]; then
   PROJECT_DATA_DIR="${PROJECT_PATH}/${DEFAULT_PROJECT_DATA_SUBDIR}"
 fi
@@ -673,6 +731,16 @@ elif [[ "$UPDATE" == "true" ]]; then
   update_image
 else
   check_image
+fi
+
+# Anchor de project root para proyectos sin .git ni config per-project.
+# Idempotente: sólo crea si falta .git y ambos opencode.json/.jsonc.
+if [[ ! -e "${PROJECT_PATH}/.git" ]] \
+   && [[ ! -f "${PROJECT_PATH}/opencode.json" ]] \
+   && [[ ! -f "${PROJECT_PATH}/opencode.jsonc" ]]; then
+  printf '%s\n' "$PROJECT_ANCHOR_CONTENT" >"${PROJECT_PATH}/opencode.jsonc" \
+    || error_exit "No se pudo crear el anchor ${PROJECT_PATH}/opencode.jsonc"
+  echo -e "${GREEN}[OK]${NC} Anchor opencode.jsonc creado en: ${PROJECT_PATH}"
 fi
 
 MOUNTS=(

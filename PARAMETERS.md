@@ -18,24 +18,26 @@ Los flags de un mundo **no se cruzan** con los del otro. Si se mezclan, el resul
 
 ```
                   MUNDO IMAGEN              MUNDO GESTIÓN            MUNDO EJECUCIÓN
-               ┌──────┬──────┬──────┬──────┬──────────┬─────────┬──────┬──────────┬───────┬──────┬─────────┐
-               │renew │rebuild│update│--ps  │ --kill   │<proyecto>│-config│--no-climb│--port│--tui│--network│
-┌──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼──────────┼───────┼──────┼─────────┤
-│ --renew      │  —   │  ❌  │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
-│ --rebuild    │  ❌  │  —   │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
-│ --update     │  🔴  │  🔴  │  —   │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
-│ --ps         │  🔴  │  🔴  │  🔴  │  —   │   ❌    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
-│ --kill       │  🔴  │  🔴  │  🔴  │  ❌  │   —     │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │
-├──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼──────────┼───────┼──────┼─────────┤
-│ <proyecto>   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   —    │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │
-│ -config      │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  —   │    ✅    │  ✅  │  ✅  │   ✅   │
-│ --no-climb   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    —     │  ✅  │  ✅  │   ✅   │
-│ --port       │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  —   │  🔴  │   ✅   │
-│ --tui        │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  🔴  │  —   │   ✅   │
-│ --network    │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   —    │
-│ -h, --help   │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │
-│ --version    │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │
-└──────────────┴──────┴──────┴──────┴──────┴──────────┴─────────┴──────┴──────────┴───────┴──────┴─────────┘
+               ┌──────┬──────┬──────┬──────┬──────────┬─────────┬──────┬──────────┬───────┬──────┬─────────┬──────────┬────────┐
+               │renew │rebuild│update│--ps  │ --kill   │<proyecto>│-config│--no-climb│--port│--tui│--network│--password│--user  │
+┌──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼──────────┼───────┼──────┼─────────┼──────────┼────────┤
+│ --renew      │  —   │  ❌  │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
+│ --rebuild    │  ❌  │  —   │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
+│ --update     │  🔴  │  🔴  │  —   │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
+│ --ps         │  🔴  │  🔴  │  🔴  │  —   │   ❌    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
+│ --kill       │  🔴  │  🔴  │  🔴  │  ❌  │   —     │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
+├──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼──────────┼───────┼──────┼─────────┼──────────┼────────┤
+│ <proyecto>   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   —    │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
+│ -config      │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  —   │    ✅    │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
+│ --no-climb   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    —     │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
+│ --port       │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  —   │  🔴  │   ✅   │   ✅    │   ✅   │
+│ --tui        │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  🔴  │  —   │   ✅   │   🔴    │   🔴   │
+│ --network    │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   —    │   ✅    │   ✅   │
+│ --password   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  ✅  │  🔴  │   ✅   │   —     │   ✅   │
+│ --user       │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  ✅  │  🔴  │   ✅   │   ✅    │   —    │
+│ -h, --help   │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
+│ --version    │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
+└──────────────┴──────┴──────┴──────┴──────┴──────────┴─────────┴──────┴──────────┴───────┴──────┴─────────┴──────────┴────────┘
 ```
 
 Leyenda:
@@ -82,6 +84,8 @@ parámetros
     └── web (sin --tui, default)     arranca servidor web
         ├── --port <1-65535>
         │   └── default: 4096
+        ├── --password <pwd>         activa auth básica web
+        ├── --user <usuario>         usuario de la auth (default: opencode)
         ├── -config <ruta>
         └── --network-host
 ```
@@ -108,6 +112,8 @@ tui_option       ::= "-config" "<ruta>" | "--network-host" | "--network_host"
 
 modo_web         ::= *web_option
 web_option       ::= "--port" "<1-65535>"
+                   | "--password" "<pwd>"
+                   | "--user" "<usuario>"
                    | "-config" "<ruta>"
                    | "--network-host"
                    | "--network_host"
@@ -120,6 +126,8 @@ Restricciones adicionales:
 - Cualquier flag IMAGEN con cualquier flag GESTIÓN o EJECUCIÓN es **error de sintaxis**.
 - Cualquier flag GESTIÓN con cualquier flag IMAGEN o EJECUCIÓN es **error de sintaxis**.
 - `--tui` **excluye** el uso de `--port` (no hay servidor).
+- `--tui` **excluye** `--password`/`--user` (la auth básica es solo web; se avisa y se ignoran).
+- `--password`/`--user` tienen prioridad sobre las env vars `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` del host; si no se pasan flags, se usan las env vars si existen.
 - `--no-climb` (alias `--no-search-git`) solo aplica con `<proyecto>`; en otros mundos se ignora o produce error de sintaxis.
 - En `modo_web`, `--network-host` omite el flag `-p` de `podman run` (podman lo ignora con `--network host` y emite warning).
 - Contenedores TUI: nombre `opencode-tuiN` con N = `max(existentes) + 1` (no rellena huecos).
@@ -138,6 +146,8 @@ Estado de cada regla en el parser actual de `opencode.sh`:
 | `--ps` lista contenedores con formato extendido | ✅ Implementado | Ninguna |
 | Contenedores TUI: nombre `opencode-tuiN` con N=max+1 | ✅ Implementado | Ninguna |
 | `--tui` ignora `--port` | ⚠️ No lo valida, solo lo silencia al armar `PORT_ARGS` | Validar y advertir |
+| `--password`/`--user` solo en web | ✅ Avisa en TUI y los ignora (no pasa env vars de auth) | Ninguna |
+| `--password`/`--user` prioridad sobre env del host | ✅ Implementado (flag > env) | Ninguna |
 | `--network-host` omite `-p` en web | ✅ Ya lo hace | Ninguna |
 
 ## Optimizaciones sugeridas para el parser

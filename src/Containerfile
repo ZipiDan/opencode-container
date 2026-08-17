@@ -42,6 +42,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mtr-tiny \
     iptables \
     bind9-host \
+    pkg-config \
+    musl-tools \
     ansible \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*.bin /var/cache/debconf/*-old
@@ -64,6 +66,21 @@ RUN curl -fsSL https://opencode.ai/install | bash \
 RUN npm install -g pyright \
     && npm cache clean --force \
     && rm -rf /root/.npm /root/.cache
+
+# Instalar toolchain de Rust vía rustup (estable) + objetivo musl para binarios estáticos.
+# RUSTUP_HOME queda en la imagen (/root/.rustup); en runtime opencode.sh monta el proyecto
+# y entrypoint.sh re-expone los binarios dentro del CARGO_HOME per-proyecto (<proyecto>/rust).
+# CARGO_HOME/CARGO_TARGET_DIR apuntan a /workspace/rust: registry/, target/ y bin/ viven ahí,
+# aislados por proyecto y fuera del árbol del workspace.
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && /root/.cargo/bin/rustup target add x86_64-unknown-linux-musl \
+    && /root/.cargo/bin/rustup component remove rust-docs \
+    && rm -rf /root/.rustup/tmp /root/.rustup/downloads /root/.npm /root/.cache /tmp/* /var/tmp/*
+
+ENV RUSTUP_HOME=/root/.rustup \
+    CARGO_HOME=/workspace/rust \
+    CARGO_TARGET_DIR=/workspace/rust/target \
+    PATH="/root/.cargo/bin:${PATH}"
 
 # Copiar y preparar el entrypoint que decide entre modo web y TUI
 COPY entrypoint.sh /usr/local/bin/opencode-entrypoint.sh

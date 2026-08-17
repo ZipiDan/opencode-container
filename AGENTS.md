@@ -13,6 +13,8 @@ Container-based opencode launcher using Podman. Entrypoint is `opencode.sh`; it 
 | Resolve project root from a subdirectory | `./opencode.sh /path/to/project/subdir` |
 | Force working inside a subdirectory (no climb) | `./opencode.sh /path/to/project/subdir --no-climb` |
 | Custom port | `./opencode.sh /path/to/project --port 4097` |
+| Web basic auth (password) | `./opencode.sh /path/to/project --password "pwd"` |
+| Web basic auth (password + user) | `./opencode.sh /path/to/project --password "pwd" --user "admin"` |
 | Custom project data dir | `./opencode.sh /path/to/project -config /custom/path` |
 | Rebuild image (cached) | `./opencode.sh --rebuild` |
 | Rebuild image (no-cache + pull) | `./opencode.sh --update` |
@@ -54,6 +56,7 @@ Opencode stores data in three XDG scopes. The launcher splits them into **global
 | `<project>/.opencode/data/` | Per-project `XDG_DATA_HOME/opencode/` mount: `opencode.db`, sessions, messages, project metadata, snapshots, logs, tool-output (isolated) |
 | `<project>/.opencode/state/` | File locks (ephemeral, `XDG_STATE_HOME`) |
 | `<project>/.opencode/python/` | pip `--user` packages (`PYTHONUSERBASE`) |
+| `<project>/rust/` | Cargo per-project dir (`CARGO_HOME`/`CARGO_TARGET_DIR`): `registry/`, `target/`, `bin/` (isolated). Created automatically and added to `.gitignore` |
 
 ## Mounts (container side)
 
@@ -87,9 +90,14 @@ The global share mount must exist before the symlinks are created.
 | `XDG_STATE_HOME` | `/home/opencode/.local/state` | State root (file locks) |
 | `XDG_DATA_HOME` | `/home/opencode/.local/share` | Data root (auth, storage, snapshots) |
 | `PYTHONUSERBASE` | `/home/opencode/.pythonuser` | pip `--user` install target |
+| `CARGO_HOME` | `/workspace/rust` | Cargo registry/bin per project |
+| `CARGO_TARGET_DIR` | `/workspace/rust/target` | Cargo build artifacts per project |
+| `RUSTUP_HOME` | `/root/.rustup` | Rust toolchain (in image, global) |
 | `AGENT_GIT_NAME` | `OpenCode Agent` | Git author name for agent commits |
 | `AGENT_GIT_EMAIL` | `agent@opencode.local` | Git author email for agent commits |
 | `OPENCODE_MODE` | `web` / `tui` | Selected by `--tui`/`--no-web` |
+
+Web basic auth: `--password`/`--user` flags on `opencode.sh` win over the host env vars `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` (which are read from the host when the flags are absent). Only applies to web mode; ignored (with a warning) in TUI mode. The launcher passes the resolved values to the container as `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME`.
 
 ## Migrating from the old layout
 
@@ -123,6 +131,12 @@ Migration is manual by design to avoid overwriting data. Run it once per existin
 ## Plugin dependency
 
 `@opencode-ai/plugin` is installed in `.opencode/node_modules/` inside the project. The `.opencode/.gitignore` excludes `node_modules`, `package.json`, `package-lock.json` — these are internal/expected, not user project files.
+
+## Custom agents (sync with `agents_update.sh`)
+
+The canonical copies of the custom agents live in `src/agents/<agent>/` — one subfolder per agent (even multi-file agents such as `investigador`, which also ships subagents) — each `.md` carrying an integer `version:` in its frontmatter. `agents_update.sh` deploy PRESERVES the folder tree into the host's global config (`~/.config/opencode/agents/<rel>`). OpenCode scans `{agent,agents}/**/*.md` recursively — no registry entry needed in `opencode.json`. Each file can fix its agent name with the `name:` frontmatter field (the loader applies the frontmatter over the path-derived name), so agents get clean names (`investigador`, `investigador-en`…) even though their files live in subfolders.
+
+`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It scans `src/agents/` recursively, skips README files, and rejects duplicate agent names (case-insensitive, in case the destination filesystem is case-insensitive). It compares the repo files against the installed copies using `version:` + `sha256sum` (plain files on disk, no git or network), shows the changed agents, warns that local modifications will be overwritten on confirmation, and asks for confirmation (`Y`/`s`). It **only manages** the files under `src/agents/` — the default OpenCode agents (`build`, `plan`) and any other user agents are never touched or deleted. See `src/agents/README.md` for the agent registry and update procedure.
 
 ## Notes
 

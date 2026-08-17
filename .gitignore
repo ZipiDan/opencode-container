@@ -17,3 +17,5 @@ Thumbs.db
 *.tmp
 *.swp
 *~
+rust/
+python/

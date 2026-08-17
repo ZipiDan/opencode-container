@@ -34,6 +34,18 @@ ln -sf /home/opencode/.local/share/opencode-global/auth.json /home/opencode/.loc
 ln -sf /home/opencode/.local/share/opencode-global/db   /home/opencode/.local/share/opencode/db
 ln -sf /home/opencode/.local/share/opencode-global/repos /home/opencode/.local/share/opencode/repos
 
+# Rust: el toolchain (rustup) vive en /root/.cargo/bin (imagen). El CARGO_HOME
+# del proyecto (/workspace/rust) es un volumen montado vacío, así que se
+# re-exponen los binarios de cargo/rustc/rustup dentro de él y se agrega su
+# carpeta bin al PATH. Así `cargo install` y el toolchain funcionan por proyecto.
+if [[ -d /root/.cargo/bin && -n "${CARGO_HOME:-}" ]]; then
+    mkdir -p "${CARGO_HOME}/bin"
+    for f in /root/.cargo/bin/*; do
+        [[ -e "$f" ]] && ln -sf "$f" "${CARGO_HOME}/bin/$(basename "$f")"
+    done
+    export PATH="${CARGO_HOME}/bin:${PATH}"
+fi
+
 MODE="${OPENCODE_MODE:-web}"
 
 case "$MODE" in

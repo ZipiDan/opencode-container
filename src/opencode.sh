@@ -6,8 +6,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="1.6.0"
-TAG_RELEASE="v1.6.0"
+VERSION="1.8.0"
+TAG_RELEASE="v1.8.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -123,7 +123,7 @@ check_podman() {
 
 show_help() {
   cat <<EOF
-${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tui] [--no-climb] [--rebuild] [--update] [--network-host]
+${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tui] [--no-climb] [--rebuild] [--update] [--network-host] [--password <pwd>] [--user <usuario>]
        $0 --rebuild
        $0 --update
        $0 --renew
@@ -159,6 +159,11 @@ ${BLUE}Descripción:${NC}
          data/snapshot/     → snapshots de git para undo/revert (aislado).
          data/log/          → logs de ejecución (aislado).
          python/            → paquetes pip instalados con --user (aislado).
+         rust/              → CARGO_HOME/CARGO_TARGET_DIR per-proyecto:
+                              registry/, target/ y bin/ de cargo (aislado).
+                            Se crea en la raíz del proyecto y se agrega al
+                            .gitignore automáticamente (junto con python/ y
+                            los temporales).
 
      Usa -config <ruta> para redirigir state/, data/ y python/
      a una ubicación personalizada.
@@ -183,6 +188,13 @@ ${BLUE}Parámetros:${NC}
     --no-climb, --no-search-git  Desactiva la resolución del project root.
                                  Si pasás una subcarpeta de un proyecto,
                                  opencode trabaja exactamente en esa ruta.
+    --password <pwd>             Activa auth básica en el servidor web con el
+                                 password indicado (solo web, se ignora en TUI).
+                                 Si no se pasa, se usa la variable de entorno
+                                 OPENCODE_SERVER_PASSWORD del host (si existe).
+    --user <usuario>             Usuario para la auth básica web. Por defecto
+                                 opencode usa 'opencode'. Prioridad: flag --user
+                                 > OPENCODE_SERVER_USERNAME del host.
     --rebuild                    Reconstruye la imagen desde el Containerfile
                                  (usando caché de capas).
     --update                     Reconstruye la imagen desde cero:
@@ -208,6 +220,7 @@ ${BLUE}Combinaciones de parámetros:${NC}
       • Mundo IMAGEN:    --renew | --rebuild | --update   (gestionan la imagen)
       • Mundo GESTIÓN:  --ps/--ls (listar) | --kill/--rm <patrón> (detener)
       • Mundo EJECUCIÓN:  <proyecto> + [-config] [--port] [--tui] [--network-host]
+                          [--password <pwd>] [--user <usuario>]
 
     Árbol de combinaciones válidas (-h es compatible con cualquier rama):
 
@@ -229,6 +242,8 @@ ${BLUE}Combinaciones de parámetros:${NC}
         │   └── --network-host
         └── web (sin --tui)   arranca servidor web (nombre: opencode-<puerto>)
             ├── --port <1-65535>   (default ${DEFAULT_PORT})
+            ├── --password <pwd>   activa auth básica web
+            ├── --user <usuario>   usuario de la auth (default: opencode)
             ├── -config <ruta>
             └── --network-host
 
@@ -237,6 +252,9 @@ ${BLUE}Combinaciones de parámetros:${NC}
       • --renew y --rebuild son mutuamente excluyentes.
       • --ps/--ls y --kill/--rm son mutuamente excluyentes entre sí.
       • --tui ignora --port (no hay servidor web).
+      • --password/--user aplican solo a web; en TUI se avisan y se ignoran.
+      • Prioridad auth: flag --password/--user > env OPENCODE_SERVER_PASSWORD/
+        OPENCODE_SERVER_USERNAME del host.
 
 ${BLUE}Ejemplos:${NC}
     $0 /home/usuario/mi-proyecto
@@ -246,6 +264,8 @@ ${BLUE}Ejemplos:${NC}
     $0 ./proyecto --port 4097
     $0 ./proyecto --tui
     $0 ./proyecto --network-host
+    $0 ./proyecto --password "secreto"
+    $0 ./proyecto --password "secreto" --user "admin"
     $0 --update
     $0 --renew
     $0 --ps
@@ -260,6 +280,11 @@ ${BLUE}Nota:${NC}
     --no-climb impide la resolución automática de .git hacia arriba.
     Proyectos sin .git ni config reciben un anchor opencode.jsonc en el
     project root para fijar el root dentro del contenedor (idempotente).
+    El .gitignore del proyecto se completa automáticamente con rust/,
+    python/ y los temporales (*.tmp, *.swp, *~) si faltan.
+    --password/--user activan auth básica HTTP en el servidor web (env vars
+    OPENCODE_SERVER_PASSWORD/OPENCODE_SERVER_USERNAME al contenedor). La TUI
+    no usa auth; los flags se ignoran en modo TUI.
 EOF
 }
 
@@ -319,6 +344,54 @@ setup_project_dirs() {
       mkdir -p "${base}/${sub}" || error_exit "No se pudo crear ${base}/${sub}"
     done
     echo -e "${GREEN}[OK]${NC} Estructura del proyecto creada correctamente."
+  fi
+}
+
+# Agrega una entrada al .gitignore si no existe. Devuelve 0 si la agregó.
+ensure_gitignore_entry() {
+  local file="$1" entry="$2"
+  if ! grep -qxF "$entry" "$file"; then
+    printf '%s\n' "$entry" >>"$file"
+    return 0
+  fi
+  return 1
+}
+
+# Gestiona el .gitignore del proyecto: crea uno por defecto si no existe (con
+# rust/, python/ y la sección de archivos temporales); si existe, agrega las
+# entradas faltantes. Idempotente.
+setup_project_gitignore() {
+  local project="$1"
+  local gitignore="${project}/.gitignore"
+  local changed=false
+
+  if [[ ! -f "$gitignore" ]]; then
+    cat >"$gitignore" <<'EOF'
+rust/
+python/
+
+# Archivos temporales
+*.tmp
+*.swp
+*~
+EOF
+    echo -e "${GREEN}[OK]${NC} .gitignore creado en: ${project}"
+    return 0
+  fi
+
+  ensure_gitignore_entry "$gitignore" "rust/" && changed=true
+  ensure_gitignore_entry "$gitignore" "python/" && changed=true
+
+  if ! grep -qxF "# Archivos temporales" "$gitignore"; then
+    printf '\n# Archivos temporales\n' >>"$gitignore"
+    changed=true
+  fi
+  ensure_gitignore_entry "$gitignore" "*.tmp" && changed=true
+  ensure_gitignore_entry "$gitignore" "*.swp" && changed=true
+  ensure_gitignore_entry "$gitignore" "*~" && changed=true
+
+  if [[ "$changed" == "true" ]]; then
+    echo -e "${GREEN}[OK]${NC} .gitignore actualizado en: ${project}"
   fi
 }
 
@@ -565,6 +638,10 @@ PS_MODE=false
 KILL_MODE=false
 KILL_PATTERN=""
 PASSED_PORT_SET=false
+SERVER_PASSWORD=""
+SERVER_USERNAME=""
+PASSWORD_SET=false
+USER_SET=false
 
 # Parseo de argumentos
 while [[ $# -gt 0 ]]; do
@@ -610,6 +687,22 @@ while [[ $# -gt 0 ]]; do
   --no-climb | --no-search-git)
     NO_CLIMB=true
     shift
+    ;;
+  --password)
+    if [[ -z "$2" ]]; then
+      error_exit "La opción --password requiere un valor como argumento."
+    fi
+    SERVER_PASSWORD="$2"
+    PASSWORD_SET=true
+    shift 2
+    ;;
+  --user)
+    if [[ -z "$2" ]]; then
+      error_exit "La opción --user requiere un valor como argumento."
+    fi
+    SERVER_USERNAME="$2"
+    USER_SET=true
+    shift 2
     ;;
   --ps | --ls)
     PS_MODE=true
@@ -657,7 +750,8 @@ if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" ]]; then
   fi
   if [[ "$RENEW" == "true" || "$REBUILD" == "true" || "$UPDATE" == "true" \
       || -n "$PROJECT_PATH" || "$TUI_MODE" == "true" || "$NETWORK_HOST" == "true" \
-      || "$NO_CLIMB" == "true" || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" ]]; then
+      || "$NO_CLIMB" == "true" || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" \
+      || "$PASSWORD_SET" == "true" || "$USER_SET" == "true" ]]; then
     error_exit "Las opciones --ps/--ls/--kill/--rm (mundo GESTIÓN) no pueden combinarse con flags de otros mundos (IMAGEN/EJECUCIÓN)."
   fi
   # Ejecutar y salir (no requieren <proyecto> ni imagen)
@@ -723,6 +817,17 @@ setup_global_config "$GLOBAL_CONFIG_DIR"
 # Datos del proyecto: state, data, python
 setup_project_dirs "$PROJECT_DATA_DIR"
 
+# Directorio rust/ en la raíz del proyecto: CARGO_HOME per-proyecto donde cargo
+# guarda registry/, target/ y bin/. Creado idempotentemente en el host.
+if [[ ! -d "${PROJECT_PATH}/rust" ]]; then
+  mkdir -p "${PROJECT_PATH}/rust" || error_exit "No se pudo crear ${PROJECT_PATH}/rust"
+  echo -e "${GREEN}[OK]${NC} Directorio rust/ creado en: ${PROJECT_PATH}"
+fi
+
+# .gitignore del proyecto: crea uno por defecto si no existe e incorpora rust/
+# y python/ (los dirs de datos per-proyecto en la raíz) más los temporales.
+setup_project_gitignore "$PROJECT_PATH"
+
 if [[ "$RENEW" == "true" ]]; then
   renew_image
 elif [[ "$REBUILD" == "true" ]]; then
@@ -762,6 +867,8 @@ ENV_VARS=(
   -e "XDG_STATE_HOME=${XDG_STATE_HOME_IN_CONTAINER}"
   -e "XDG_DATA_HOME=${XDG_DATA_HOME_IN_CONTAINER}"
   -e "PYTHONUSERBASE=${PYTHONUSERBASE_IN_CONTAINER}"
+  -e "CARGO_HOME=/workspace/rust"
+  -e "CARGO_TARGET_DIR=/workspace/rust/target"
   -e "AGENT_GIT_NAME=${AGENT_GIT_NAME}"
   -e "AGENT_GIT_EMAIL=${AGENT_GIT_EMAIL}"
 )
@@ -773,8 +880,17 @@ if [[ "$NETWORK_HOST" == "true" ]]; then
   echo -e "${YELLOW}[AVISO]${NC} Se pierde el aislamiento de red (acceso a todos los puertos/servicios del host)."
 fi
 
+# Auth básica web: el flag --password/--user del launcher tiene prioridad
+# sobre las variables de entorno OPENCODE_SERVER_PASSWORD/OPENCODE_SERVER_USERNAME
+# del host. Solo aplica al entorno web (serve/web de opencode), nunca a la TUI.
+AUTH_PASSWORD="${SERVER_PASSWORD:-${OPENCODE_SERVER_PASSWORD:-}}"
+AUTH_USERNAME="${SERVER_USERNAME:-${OPENCODE_SERVER_USERNAME:-}}"
+
 if [[ "$TUI_MODE" == "true" ]]; then
   RUN_NAME=$(next_tui_name)
+  if [[ "$PASSWORD_SET" == "true" || "$USER_SET" == "true" ]]; then
+    echo -e "${YELLOW}[AVISO]${NC} --password/--user se ignoran en modo TUI (la auth básica es solo web)."
+  fi
   echo -e "${BLUE}[INFO]${NC} Modo TUI activado (contenedor: ${RUN_NAME}, --port se ignora)"
   PORT_ARGS=()
   ENV_VARS+=(-e "OPENCODE_MODE=tui")
@@ -789,6 +905,15 @@ else
   else
     echo -e "${BLUE}[INFO]${NC} Servidor web activo en puerto ${PORT} (contenedor: ${RUN_NAME}, hostname 0.0.0.0)"
     PORT_ARGS=(-p "${PORT}:${PORT}")
+  fi
+  if [[ -n "$AUTH_PASSWORD" ]]; then
+    ENV_VARS+=(-e "OPENCODE_SERVER_PASSWORD=${AUTH_PASSWORD}")
+    if [[ -n "$AUTH_USERNAME" ]]; then
+      ENV_VARS+=(-e "OPENCODE_SERVER_USERNAME=${AUTH_USERNAME}")
+      echo -e "${BLUE}[INFO]${NC} Auth básica web activada (usuario: ${AUTH_USERNAME})."
+    else
+      echo -e "${BLUE}[INFO]${NC} Auth básica web activada (usuario por defecto: opencode)."
+    fi
   fi
   EXTRA_ARGS=(web --port "${PORT}" --hostname 0.0.0.0)
 fi

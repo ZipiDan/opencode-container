@@ -18,6 +18,9 @@ Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecut
 ### 🐍 Desarrollo Python
 Python 3, pip, `venv` y `python3-dev` para compilar extensiones nativas. Instalá dependencias, creá entornos virtuales, corré tests y usá pyright como LSP para type checking, todo dentro del contenedor.
 
+### 🦀 Desarrollo Rust
+Toolchain de Rust vía rustup (estable) + objetivo `x86_64-unknown-linux-musl` para compilar binarios estáticos (con `musl-tools` y `pkg-config`). Creá y gestioná proyectos con `cargo new`, `cargo build`, `cargo test`, etc. El `CARGO_HOME` y el `CARGO_TARGET_DIR` apuntan a `<proyecto>/rust/` (registry, target y bin), aislados por proyecto y agregados al `.gitignore` automáticamente.
+
 ### 🌐 Diagnóstico y debugging de red
 Herramientas completas de red: `ping`, `traceroute` y `mtr` para verificar conectividad; `dig`, `nslookup` y `host` para resolución DNS; `ss` y `netstat` para inspeccionar conexiones activas; `nmap` para escaneo de puertos; `tcpdump` y `tshark` (Wireshark CLI) para captura y análisis de tráfico en vivo.
 
@@ -58,6 +61,12 @@ chmod +x opencode.sh
 # Puerto personalizado
 ./opencode.sh /ruta/a/tu/proyecto --port 4097
 
+# Auth básica web (password, usuario por defecto: opencode)
+./opencode.sh /ruta/a/tu/proyecto --password "mi-secreto"
+
+# Auth básica web (password + usuario custom)
+./opencode.sh /ruta/a/tu/proyecto --password "mi-secreto" --user "admin"
+
 # Datos del proyecto en ubicación personalizada
 ./opencode.sh /ruta/a/tu/proyecto -config /mnt/opencode-data
 
@@ -76,6 +85,8 @@ chmod +x opencode.sh
 | Actualizar imagen (no-cache + pull base) | `./opencode.sh --update` |
 | Actualizar imagen desde cero, reemplazando la anterior si el build es exitoso | `./opencode.sh --renew` |
 | Compartir red del host | `./opencode.sh /path/to/project --network-host` |
+| Auth básica web (password) | `./opencode.sh /path/to/project --password "pwd"` |
+| Auth básica web (password + user) | `./opencode.sh /path/to/project --password "pwd" --user "admin"` |
 
 > `--renew` y `--rebuild` son mutuamente excluyentes.
 
@@ -182,6 +193,7 @@ parámetros
 |---------|-------------------|-----------|
 | **Global** | `~/.config/opencode/` | `opencode.json` (API keys), `agents/`, `commands/`, `identity/`, `share/` |
 | **Por proyecto** | `<project>/.opencode/` | `data/` (opencode.db, sesiones, snapshots, logs), `state/` (locks), `python/` (paquetes pip) |
+| **Por proyecto (raíz)** | `<project>/rust/` | `CARGO_HOME`/`CARGO_TARGET_DIR`: `registry/`, `target/`, `bin/` de cargo (aislado, gitignoreado) |
 
 ### Montajes en el contenedor
 
@@ -219,6 +231,33 @@ La configuración global vive en `~/.config/opencode/` y no se ve afectada por `
 | `share/db/` | Cuentas OAuth (GitHub, GitLab, Copilot, etc.) |
 | `share/repos/` | Clones internos |
 
+## Agentes personalizados
+
+Los agentes personalizados viven como **copia canónica** en `src/agents/<agente>/` (fuente de verdad, versionada en git; una subcarpeta por agente) y se propagan a la configuración global (`~/.config/opencode/agents/`) con `src/agents_update.sh`. El script se ejecuta **solo desde el repo** (resuelve su propia ruta, no necesita instalación) y **no modifica `opencode.sh`**.
+
+**Deploy (estándar OpenCode):** el script **preserva el árbol de subcarpetas**: `src/agents/investigador/investigador-en.md` se copia a `~/.config/opencode/agents/investigador/investigador-en.md`. OpenCode escanea `{agent,agents}/**/*.md` **recursivamente** y cada archivo fija su nombre con el campo `name:` del frontmatter (soportado por el loader), de modo que se tienen **nombres limpios** (`investigador`, `investigador-en`…) aunque los archivos estén en subcarpetas. **No hace falta registro** en `opencode.json`: el directorio global `agents/` se lee solo.
+
+Reglas del script:
+- Solo gestiona los agentes bajo `src/agents/` (todos con `version: N` en el frontmatter). **Nunca** toca los agentes por defecto de OpenCode (`build`, `plan`, etc.) ni borra otros agentes que tengas instalados.
+- Compara contra las copias instaladas usando `version:` + `sha256sum` (archivos en disco, sin git ni red).
+- Muestra primero qué agentes cambiaron, advierte que se reemplazarán (las ediciones locales se pierden, el respaldo es responsabilidad del usuario) y pide confirmación (`Y`/`s`).
+
+```bash
+# Instalar/actualizar agentes (pide confirmación)
+./src/agents_update.sh
+
+# Ver qué cambiaría, sin tocar nada
+./src/agents_update.sh --check
+
+# Aplicar sin confirmación (deploy desatendido)
+./src/agents_update.sh --force
+
+# Ayuda
+./src/agents_update.sh --help
+```
+
+Para actualizar un agente: editá los `.md` en `src/agents/<agente>/`, subí su `version:` y corré el script. El registro completo está en `src/agents/README.md`.
+
 ## Variables de entorno del contenedor
 
 | Variable | Valor | Propósito |
@@ -227,9 +266,14 @@ La configuración global vive en `~/.config/opencode/` y no se ve afectada por `
 | `XDG_STATE_HOME` | `/home/opencode/.local/state` | Raíz de estado (locks) |
 | `XDG_DATA_HOME` | `/home/opencode/.local/share` | Raíz de datos (auth, storage, snapshots) |
 | `PYTHONUSERBASE` | `/home/opencode/.pythonuser` | Destino de installs pip `--user` |
+| `CARGO_HOME` | `/workspace/rust` | Registry/bin de cargo por proyecto |
+| `CARGO_TARGET_DIR` | `/workspace/rust/target` | Artefactos de build de cargo por proyecto |
+| `RUSTUP_HOME` | `/root/.rustup` | Toolchain de Rust (en la imagen, global) |
 | `AGENT_GIT_NAME` | `OpenCode Agent` | Nombre git del agente |
 | `AGENT_GIT_EMAIL` | `agent@opencode.local` | Email git del agente |
 | `OPENCODE_MODE` | `web` / `tui` | Modo de ejecución |
+| `OPENCODE_SERVER_PASSWORD` | — | Password de auth básica web (si no se usa `--password`) |
+| `OPENCODE_SERVER_USERNAME` | `opencode` | Usuario de auth básica web (si no se usa `--user`) |
 
 ## Red
 
@@ -238,6 +282,16 @@ Por defecto, el contenedor usa el namespace de red propio de Podman (slirp4netns
 Usa `--network-host` para agregar `--network host` a `podman run`: el contenedor comparte la red del host y `localhost` dentro del contenedor resuelve al host. Esto **rompe el aislamiento de red**, así que úsalo solo cuando sea necesario.
 
 En modo web con `--network-host`, el puerto se publica automáticamente vía la red del host, por lo que se omite el flag `-p`.
+
+## Auth básica web
+
+El servidor web de opencode soporta HTTP basic auth. `opencode.sh` expone `--password <pwd>` y `--user <usuario>` (solo modo web; en TUI se avisan y se ignoran):
+
+- Sin `--password` ni env var → no hay auth (comportamiento por defecto).
+- `--password <pwd>` → activa auth con usuario por defecto `opencode`.
+- `--password <pwd> --user <usuario>` → auth con usuario custom.
+- Si no se pasan flags, se usan las env vars del host `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` si existen.
+- Precedencia: flag `--password`/`--user` > env var del host.
 
 ## Migración desde versiones anteriores
 
@@ -276,6 +330,8 @@ La migración es manual para evitar sobrescribir datos. Ejecútala una vez por p
 - El contenedor corre como root. `xdg-open` está stubbed con un script no-op.
 - Herramientas de diagnóstico de red disponibles dentro del contenedor: nmap, tcpdump, tshark, iperf, etc.
 - `PYTHONUSERBASE=/home/opencode/.pythonuser` — los installs pip `--user` van al volumen de python montado.
+- `CARGO_HOME`/`CARGO_TARGET_DIR=/workspace/rust` — cargo guarda registry, target y bin en `<proyecto>/rust/`. `opencode.sh` crea el directorio y completa el `.gitignore` con `rust/`, `python/` y los temporales (`*.tmp`, `*.swp`, `*~`) si faltan.
+- Auth web: `--password`/`--user` (o env vars `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` del host) activan HTTP basic auth; solo web, ignorado en TUI.
 - La identidad git/ssh del agente vive en `~/.config/opencode/identity/` y se symlinea a `/root/` al iniciar el contenedor.
 - Para proyectos sin `.git` ni `opencode.json(c)`, `opencode.sh` crea `opencode.jsonc` en el project root (contenido tuneable vía `PROJECT_ANCHOR_CONTENT`) para fijar el root dentro del contenedor. La creación es idempotente.
 - opencode organiza sesiones y snapshots por `projectID` (derivado del hash del commit raíz de git). Los montajes anidados proveen un aislamiento físico adicional entre proyectos.

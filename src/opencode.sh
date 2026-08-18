@@ -6,8 +6,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="1.8.0"
-TAG_RELEASE="v1.8.0"
+VERSION="1.9.0"
+TAG_RELEASE="v1.9.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -28,7 +28,6 @@ CONTAINER_NAME="opencode"
 XDG_CONFIG_HOME_IN_CONTAINER="/home/opencode/.config"
 XDG_STATE_HOME_IN_CONTAINER="/home/opencode/.local/state"
 XDG_DATA_HOME_IN_CONTAINER="/home/opencode/.local/share"
-PYTHONUSERBASE_IN_CONTAINER="/home/opencode/.pythonuser"
 # Identidad git del agente por defecto, luego puedes cambiar estos valores dentro del ~/.config/opencode/identity/
 AGENT_GIT_NAME="OpenCode Agent"
 AGENT_GIT_EMAIL="agent@opencode.local"
@@ -158,20 +157,25 @@ ${BLUE}Descripción:${NC}
          data/storage/      → sesiones, mensajes, metadatos (aislado).
          data/snapshot/     → snapshots de git para undo/revert (aislado).
          data/log/          → logs de ejecución (aislado).
-         python/            → paquetes pip instalados con --user (aislado).
          rust/              → CARGO_HOME/CARGO_TARGET_DIR per-proyecto:
                               registry/, target/ y bin/ de cargo (aislado).
                             Se crea en la raíz del proyecto y se agrega al
                             .gitignore automáticamente (junto con python/ y
                             los temporales).
 
-     Usa -config <ruta> para redirigir state/, data/ y python/
+       Python (venv-first): el venv canónico del proyecto vive en la carpeta
+       python/ de la raíz (<proyecto>/python/). El entrypoint lo crea
+       automáticamente en el primer arranque (si falta) y lo activa en cada
+       arranque. Ya está ignorado por el .gitignore (entrada python/).
+       No se usa pip --user ni PYTHONUSERBASE.
+
+     Usa -config <ruta> para redirigir state/ y data/
      a una ubicación personalizada.
 
 ${BLUE}Parámetros:${NC}
     <ruta_del_proyecto>          Ruta al directorio del proyecto.
                                  Obligatorio salvo con --rebuild, --update o --renew.
-    -config <ruta>               Ruta para state/, data/, python/.
+    -config <ruta>               Ruta para state/ y data/.
                                  Por defecto: <proyecto>/${DEFAULT_PROJECT_DATA_SUBDIR}/
     --port <puerto>              Puerto donde se servirá opencode web.
                                  Por defecto: ${DEFAULT_PORT}
@@ -281,7 +285,8 @@ ${BLUE}Nota:${NC}
     Proyectos sin .git ni config reciben un anchor opencode.jsonc en el
     project root para fijar el root dentro del contenedor (idempotente).
     El .gitignore del proyecto se completa automáticamente con rust/,
-    python/ y los temporales (*.tmp, *.swp, *~) si faltan.
+    python/ (directorio del venv en la raíz) y los temporales
+    (*.tmp, *.swp, *~) si faltan.
     --password/--user activan auth básica HTTP en el servidor web (env vars
     OPENCODE_SERVER_PASSWORD/OPENCODE_SERVER_USERNAME al contenedor). La TUI
     no usa auth; los flags se ignoran en modo TUI.
@@ -326,7 +331,7 @@ setup_project_dirs() {
   # data/ se monta directamente como XDG_DATA_HOME/opencode/ dentro del
   # contenedor, por lo que storage/, snapshot/, log/ y opencode.db viven
   # ahí de forma aislada por proyecto.
-  local subdirs=("data" "state" "python")
+  local subdirs=("data" "state")
   local all_exist=true
 
   for sub in "${subdirs[@]}"; do
@@ -825,7 +830,7 @@ if [[ ! -d "${PROJECT_PATH}/rust" ]]; then
 fi
 
 # .gitignore del proyecto: crea uno por defecto si no existe e incorpora rust/
-# y python/ (los dirs de datos per-proyecto en la raíz) más los temporales.
+# y python/ (directorio del venv en la raíz) más los temporales.
 setup_project_gitignore "$PROJECT_PATH"
 
 if [[ "$RENEW" == "true" ]]; then
@@ -859,14 +864,12 @@ MOUNTS=(
   # al proyecto mediante symlinks creados en entrypoint.sh.
   -v "${GLOBAL_DATA_DIR}:${XDG_DATA_HOME_IN_CONTAINER}/opencode-global:Z"
   -v "${PROJECT_DATA_DIR}/state:${XDG_STATE_HOME_IN_CONTAINER}:Z"
-  -v "${PROJECT_DATA_DIR}/python:${PYTHONUSERBASE_IN_CONTAINER}:Z"
 )
 
 ENV_VARS=(
   -e "XDG_CONFIG_HOME=${XDG_CONFIG_HOME_IN_CONTAINER}"
   -e "XDG_STATE_HOME=${XDG_STATE_HOME_IN_CONTAINER}"
   -e "XDG_DATA_HOME=${XDG_DATA_HOME_IN_CONTAINER}"
-  -e "PYTHONUSERBASE=${PYTHONUSERBASE_IN_CONTAINER}"
   -e "CARGO_HOME=/workspace/rust"
   -e "CARGO_TARGET_DIR=/workspace/rust/target"
   -e "AGENT_GIT_NAME=${AGENT_GIT_NAME}"

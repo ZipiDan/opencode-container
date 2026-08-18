@@ -16,7 +16,7 @@ Lanzador containerizado de [opencode](https://opencode.ai) usando Podman. Ejecut
 ## Capacidades del contenedor
 
 ### 🐍 Desarrollo Python
-Python 3, pip, `venv` y `python3-dev` para compilar extensiones nativas. Instalá dependencias, creá entornos virtuales, corré tests y usá pyright como LSP para type checking, todo dentro del contenedor.
+Python 3, pip y `python3-dev` para compilar extensiones nativas, más `venv` para entornos aislados. El contenedor es **venv-first**: el venv canónico del proyecto vive en `python/` de la raíz (ignorado por git) y es auto-activado por `entrypoint.sh` al arrancar. Creá dependencias, corré tests y usá pyright como LSP para type checking, todo dentro del contenedor.
 
 ### 🦀 Desarrollo Rust
 Toolchain de Rust vía rustup (estable) + objetivo `x86_64-unknown-linux-musl` para compilar binarios estáticos (con `musl-tools` y `pkg-config`). Creá y gestioná proyectos con `cargo new`, `cargo build`, `cargo test`, etc. El `CARGO_HOME` y el `CARGO_TARGET_DIR` apuntan a `<proyecto>/rust/` (registry, target y bin), aislados por proyecto y agregados al `.gitignore` automáticamente.
@@ -192,7 +192,8 @@ parámetros
 | Alcance | Ubicación (host) | Contenido |
 |---------|-------------------|-----------|
 | **Global** | `~/.config/opencode/` | `opencode.json` (API keys), `agents/`, `commands/`, `identity/`, `share/` |
-| **Por proyecto** | `<project>/.opencode/` | `data/` (opencode.db, sesiones, snapshots, logs), `state/` (locks), `python/` (paquetes pip) |
+| **Por proyecto** | `<project>/.opencode/` | `data/` (opencode.db, sesiones, snapshots, logs), `state/` (locks) |
+| **Por proyecto (raíz)** | `<project>/python/` | Venv canónico (venv-first, auto-creado/activado por `entrypoint.sh`, gitignoreado) |
 | **Por proyecto (raíz)** | `<project>/rust/` | `CARGO_HOME`/`CARGO_TARGET_DIR`: `registry/`, `target/`, `bin/` de cargo (aislado, gitignoreado) |
 
 ### Montajes en el contenedor
@@ -205,7 +206,6 @@ parámetros
 | `~/.config/opencode/share/` | `/home/opencode/.local/share/opencode-global/` | Global |
 | `<project>/.opencode/data/` | `/home/opencode/.local/share/opencode/` | Proyecto |
 | `<project>/.opencode/state/` | `/home/opencode/.local/state` | Proyecto |
-| `<project>/.opencode/python/` | `/home/opencode/.pythonuser` | Proyecto |
 
 ### Symlinks internos (creados por entrypoint.sh)
 
@@ -265,7 +265,7 @@ Para actualizar un agente: editá los `.md` en `src/agents/<agente>/`, subí su 
 | `XDG_CONFIG_HOME` | `/home/opencode/.config` | Raíz de configuración |
 | `XDG_STATE_HOME` | `/home/opencode/.local/state` | Raíz de estado (locks) |
 | `XDG_DATA_HOME` | `/home/opencode/.local/share` | Raíz de datos (auth, storage, snapshots) |
-| `PYTHONUSERBASE` | `/home/opencode/.pythonuser` | Destino de installs pip `--user` |
+| `VIRTUAL_ENV` | `/workspace/python` | Venv del proyecto (lo setea `entrypoint.sh` si `python/` es un venv) |
 | `CARGO_HOME` | `/workspace/rust` | Registry/bin de cargo por proyecto |
 | `CARGO_TARGET_DIR` | `/workspace/rust/target` | Artefactos de build de cargo por proyecto |
 | `RUSTUP_HOME` | `/root/.rustup` | Toolchain de Rust (en la imagen, global) |
@@ -329,7 +329,7 @@ La migración es manual para evitar sobrescribir datos. Ejecútala una vez por p
 
 - El contenedor corre como root. `xdg-open` está stubbed con un script no-op.
 - Herramientas de diagnóstico de red disponibles dentro del contenedor: nmap, tcpdump, tshark, iperf, etc.
-- `PYTHONUSERBASE=/home/opencode/.pythonuser` — los installs pip `--user` van al volumen de python montado.
+- Python es **venv-first**: el venv canónico vive en `<proyecto>/python/` (ignorado por git). `entrypoint.sh` lo crea automáticamente en el primer arranque si falta y lo activa en cada arranque. No se usa `pip --user` ni `PYTHONUSERBASE`.
 - `CARGO_HOME`/`CARGO_TARGET_DIR=/workspace/rust` — cargo guarda registry, target y bin en `<proyecto>/rust/`. `opencode.sh` crea el directorio y completa el `.gitignore` con `rust/`, `python/` y los temporales (`*.tmp`, `*.swp`, `*~`) si faltan.
 - Auth web: `--password`/`--user` (o env vars `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` del host) activan HTTP basic auth; solo web, ignorado en TUI.
 - La identidad git/ssh del agente vive en `~/.config/opencode/identity/` y se symlinea a `/root/` al iniciar el contenedor.

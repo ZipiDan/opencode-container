@@ -46,6 +46,21 @@ if [[ -d /root/.cargo/bin && -n "${CARGO_HOME:-}" ]]; then
     export PATH="${CARGO_HOME}/bin:${PATH}"
 fi
 
+# Python (venv-first): si la carpeta python/ de la raíz del proyecto es un venv,
+# se activa en este proceso (opencode y sus hijos heredan PATH/VIRTUAL_ENV).
+# Siendo un export a nivel de proceso, no depende de que los shells no
+# interactivos lean .bashrc. No se usa pip --user ni PYTHONUSERBASE.
+# Si python/ no existe, se crea el venv (idempotente, persiste en el volumen).
+# Si python/ existe pero NO parece un venv (p. ej. código fuente), no se toca.
+if [[ ! -d /workspace/python ]]; then
+    python3 -m venv /workspace/python
+fi
+if [[ -x /workspace/python/bin/python && -f /workspace/python/pyvenv.cfg ]]; then
+    export VIRTUAL_ENV=/workspace/python
+    export PATH="/workspace/python/bin:${PATH}"
+    unset PIP_USER
+fi
+
 MODE="${OPENCODE_MODE:-web}"
 
 case "$MODE" in

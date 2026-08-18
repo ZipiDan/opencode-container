@@ -1,7 +1,6 @@
 FROM docker.io/debian:stable-backports
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PIP_USER=true
 
 # Pre-configurar tshark para que no requiera setuid (ejecutamos como root en el contenedor)
 RUN echo "wireshark-common wireshark-common/install-setuid boolean false" | debconf-set-selections
@@ -51,11 +50,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create a fake xdg-open
 RUN printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/xdg-open && chmod +x /usr/local/bin/xdg-open
 
-# Crear la estructura de directorios usada por opencode.sh para XDG y PYTHONUSERBASE
+# Crear la estructura de directorios usada por opencode.sh para XDG
 RUN mkdir -p /home/opencode/.config \
              /home/opencode/.local/state \
-             /home/opencode/.local/share \
-             /home/opencode/.pythonuser
+             /home/opencode/.local/share
 
 # Instalar opencode mediante el instalador oficial
 RUN curl -fsSL https://opencode.ai/install | bash \
@@ -85,9 +83,6 @@ ENV RUSTUP_HOME=/root/.rustup \
 # Copiar y preparar el entrypoint que decide entre modo web y TUI
 COPY entrypoint.sh /usr/local/bin/opencode-entrypoint.sh
 RUN chmod +x /usr/local/bin/opencode-entrypoint.sh
-
-# Base para paquetes Python instalados por el usuario (persistente mediante volumen)
-ENV PYTHONUSERBASE=/home/opencode/.pythonuser
 
 # Directorio de trabajo por defecto: coincide con el volumen montado en opencode.sh
 WORKDIR /workspace

@@ -55,7 +55,7 @@ Opencode stores data in three XDG scopes. The launcher splits them into **global
 |-------------|---------|
 | `<project>/.opencode/data/` | Per-project `XDG_DATA_HOME/opencode/` mount: `opencode.db`, sessions, messages, project metadata, snapshots, logs, tool-output (isolated) |
 | `<project>/.opencode/state/` | File locks (ephemeral, `XDG_STATE_HOME`) |
-| `<project>/.opencode/python/` | pip `--user` packages (`PYTHONUSERBASE`) |
+| `<project>/python/` | Canonical venv (venv-first): created automatically by `entrypoint.sh` on first start, auto-activated on every start, added to `.gitignore` |
 | `<project>/rust/` | Cargo per-project dir (`CARGO_HOME`/`CARGO_TARGET_DIR`): `registry/`, `target/`, `bin/` (isolated). Created automatically and added to `.gitignore` |
 
 ## Mounts (container side)
@@ -70,7 +70,6 @@ Opencode stores data in three XDG scopes. The launcher splits them into **global
 | `~/.config/opencode/share/` | `/home/opencode/.local/share/opencode-global/` | global |
 | `<project>/.opencode/data/` | `/home/opencode/.local/share/opencode/` | project |
 | `<project>/.opencode/state/` | `/home/opencode/.local/state` | project |
-| `<project>/.opencode/python/` | `/home/opencode/.pythonuser` | project |
 
 Inside the container, `entrypoint.sh` creates the following symlinks inside `/home/opencode/.local/share/opencode/`:
 
@@ -89,7 +88,7 @@ The global share mount must exist before the symlinks are created.
 | `XDG_CONFIG_HOME` | `/home/opencode/.config` | Config root |
 | `XDG_STATE_HOME` | `/home/opencode/.local/state` | State root (file locks) |
 | `XDG_DATA_HOME` | `/home/opencode/.local/share` | Data root (auth, storage, snapshots) |
-| `PYTHONUSERBASE` | `/home/opencode/.pythonuser` | pip `--user` install target |
+| `VIRTUAL_ENV` | `/workspace/python` | Project venv (set by `entrypoint.sh` when `python/` is a venv) |
 | `CARGO_HOME` | `/workspace/rust` | Cargo registry/bin per project |
 | `CARGO_TARGET_DIR` | `/workspace/rust/target` | Cargo build artifacts per project |
 | `RUSTUP_HOME` | `/root/.rustup` | Rust toolchain (in image, global) |
@@ -142,7 +141,7 @@ The canonical copies of the custom agents live in `src/agents/<agent>/` — one 
 
 - Container runs as root. `xdg-open` is stubbed with a no-op script.
 - Network diagnostic tools are available inside the container (nmap, tcpdump, tshark, iperf, etc.).
-- `PYTHONUSERBASE=/home/opencode/.pythonuser` — pip `--user` installs go to the mounted python volume.
+- Python is **venv-first**: the canonical venv lives in `<project>/python/` (project root, git-ignored). `entrypoint.sh` creates it automatically on first start (if missing) and activates it on every container start. No `pip --user` / `PYTHONUSERBASE` is used.
 - The agent's git/ssh identity lives in `~/.config/opencode/identity/` and is symlinked into `/root/` at container startup by `entrypoint.sh`. This keeps the agent's commits/pushes separate from the user's own git identity.
 - `opencode.sh` resolves the project root by climbing upward from the given path looking for `.git` (directory or file, supports worktrees), stopping at `$HOME` to avoid capturing a dotfiles repository. If the project has no `.git` and no `opencode.json(c)`, it creates an idempotent `opencode.jsonc` anchor in the project root to fix opencode's root detection inside the container. Use `--no-climb` (alias `--no-search-git`) to disable root resolution and work exactly in the given directory.
 - opencode organizes sessions and snapshots internally by `projectID` (derived from the git root commit hash). The nested bind mounts provide an additional physical guarantee of isolation between projects.

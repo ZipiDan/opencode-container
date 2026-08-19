@@ -6,8 +6,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="1.9.0"
-TAG_RELEASE="v1.9.0"
+VERSION="1.9.5"
+TAG_RELEASE="v1.9.5"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -284,8 +284,8 @@ ${BLUE}Nota:${NC}
     --no-climb impide la resolución automática de .git hacia arriba.
     Proyectos sin .git ni config reciben un anchor opencode.jsonc en el
     project root para fijar el root dentro del contenedor (idempotente).
-    El .gitignore del proyecto se completa automáticamente con rust/,
-    python/ (directorio del venv en la raíz) y los temporales
+    El .gitignore del proyecto se completa automáticamente con .opencode/,
+    rust/, python/ (directorio del venv en la raíz) y los temporales
     (*.tmp, *.swp, *~) si faltan.
     --password/--user activan auth básica HTTP en el servidor web (env vars
     OPENCODE_SERVER_PASSWORD/OPENCODE_SERVER_USERNAME al contenedor). La TUI
@@ -372,6 +372,7 @@ setup_project_gitignore() {
 
   if [[ ! -f "$gitignore" ]]; then
     cat >"$gitignore" <<'EOF'
+.opencode/
 rust/
 python/
 
@@ -384,6 +385,7 @@ EOF
     return 0
   fi
 
+  ensure_gitignore_entry "$gitignore" ".opencode/" && changed=true
   ensure_gitignore_entry "$gitignore" "rust/" && changed=true
   ensure_gitignore_entry "$gitignore" "python/" && changed=true
 

@@ -17,27 +17,29 @@ Los flags de un mundo **no se cruzan** con los del otro. Si se mezclan, el resul
 ## Tabla única de combinaciones
 
 ```
-                  MUNDO IMAGEN              MUNDO GESTIÓN            MUNDO EJECUCIÓN
-               ┌──────┬──────┬──────┬──────┬──────────┬─────────┬──────┬──────────┬───────┬──────┬─────────┬──────────┬────────┐
-               │renew │rebuild│update│--ps  │ --kill   │<proyecto>│-config│--no-climb│--port│--tui│--network│--password│--user  │
-┌──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼──────────┼───────┼──────┼─────────┼──────────┼────────┤
-│ --renew      │  —   │  ❌  │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
-│ --rebuild    │  ❌  │  —   │  🔴  │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
-│ --update     │  🔴  │  🔴  │  —   │  🔴  │   🔴    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
-│ --ps         │  🔴  │  🔴  │  🔴  │  —   │   ❌    │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
-│ --kill       │  🔴  │  🔴  │  🔴  │  ❌  │   —     │   🔴   │  🔴  │    🔴    │  🔴  │  🔴  │   🔴   │   🔴    │   🔴   │
-├──────────────┼──────┼──────┼──────┼──────┼──────────┼─────────┼──────┼──────────┼───────┼──────┼─────────┼──────────┼────────┤
-│ <proyecto>   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   —    │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
-│ -config      │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  —   │    ✅    │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
-│ --no-climb   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    —     │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
-│ --port       │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  —   │  🔴  │   ✅   │   ✅    │   ✅   │
-│ --tui        │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  🔴  │  —   │   ✅   │   🔴    │   🔴   │
-│ --network    │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   —    │   ✅    │   ✅   │
-│ --password   │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  ✅  │  🔴  │   ✅   │   —     │   ✅   │
-│ --user       │  🔴  │  🔴  │  🔴  │  🔴  │   🔴    │   ✅   │  ✅  │    ✅    │  ✅  │  🔴  │   ✅   │   ✅    │   —    │
-│ -h, --help   │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
-│ --version    │  ✅  │  ✅  │  ✅  │  ✅  │   ✅    │   ✅   │  ✅  │    ✅    │  ✅  │  ✅  │   ✅   │   ✅    │   ✅   │
-└──────────────┴──────┴──────┴──────┴──────┴──────────┴─────────┴──────┴──────────┴───────┴──────┴─────────┴──────────┴────────┘
+ ┌──────────────┬──────┬───────┬──────┬──────┬──────────┬──────────┬───────┬──────────┬──────┬─────┬─────────┬──────────┬────────┬──────┐
+ │              │ renew│ rebuild│ update│ --ps │ --kill   │ <proyecto>│ -config│ --no-climb│ --port│ --tui│ --network│ --password│ --user │ --auto│
+ ├──────────────┼──────┼───────┼──────┼──────┼──────────┼──────────┼───────┼──────────┼──────┼─────┼─────────┼──────────┼────────┼──────┤
+ │ --renew      │ —    │ ❌     │ 🔴    │ 🔴    │ 🔴        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
+ │ --rebuild    │ ❌    │ —     │ 🔴    │ 🔴    │ 🔴        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
+ │ --update     │ 🔴    │ 🔴     │ —    │ 🔴    │ 🔴        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
+ │ --ps         │ 🔴    │ 🔴     │ 🔴    │ —    │ ❌        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
+ │ --kill       │ 🔴    │ 🔴     │ 🔴    │ ❌    │ —        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
+ ├──────────────┼──────┼───────┼──────┼──────┼──────────┼──────────┼───────┼──────────┼──────┼─────┼─────────┼──────────┼────────┼──────┤
+ │ <proyecto>   │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ —        │ ✅     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
+ │ -config      │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ —     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
+ │ --no-climb   │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ —        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
+ │ --port       │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ —    │ 🔴   │ ✅       │ ✅        │ ✅      │ ✅    │
+ │ --tui        │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ 🔴    │ —   │ ✅       │ 🔴        │ 🔴      │ ✅    │
+ │ --network    │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ ✅    │ ✅   │ —       │ ✅        │ ✅      │ ✅    │
+ │ --password   │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ ✅    │ 🔴   │ ✅       │ —        │ ✅      │ ✅    │
+ │ --user       │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ ✅    │ 🔴   │ ✅       │ ✅        │ —      │ ✅    │
+ ├──────────────┼──────┼───────┼──────┼──────┼──────────┼──────────┼───────┼──────────┼──────┼─────┼─────────┼──────────┼────────┼──────┤
+ │ --auto       │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ —    │
+ ├──────────────┼──────┼───────┼──────┼──────┼──────────┼──────────┼───────┼──────────┼──────┼─────┼─────────┼──────────┼────────┼──────┤
+ │ -h, --help   │ ✅    │ ✅     │ ✅    │ ✅    │ ✅        │ ✅        │ ✅     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
+ │ --version    │ ✅    │ ✅     │ ✅    │ ✅    │ ✅        │ ✅        │ ✅     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
+ └──────────────┴──────┴───────┴──────┴──────┴──────────┴──────────┴───────┴──────────┴──────┴─────┴─────────┴──────────┴────────┴──────┘
 ```
 
 Leyenda:
@@ -77,6 +79,9 @@ parámetros
     ├── --no-climb                   desactiva la búsqueda de .git hacia atrás
     │                                (también: --no-search-git)
     │
+    ├── --auto | --no-auto           auto-aprueba permisos de opencode
+    │                                (default: --auto; --no-auto vuelve a pedir)
+    │
     ├── --tui                        arranca terminal interactiva
     │   ├── -config <ruta>
     │   └── --network-host
@@ -105,7 +110,8 @@ mundo_imagen     ::= ("--renew" | "--rebuild" | "--update") ["--help"]
 mundo_gestion    ::= ( "--ps" | "--ls"
                      | "--kill" <patrón> | "--rm" <patrón>
                      ) ["--help"]
-mundo_ejecucion  ::= "<proyecto>" ["--no-climb"] (modo_tui | modo_web) ["--help"]
+mundo_ejecucion  ::= "<proyecto>" ["--no-climb"] ["--auto" | "--no-auto"]
+                     (modo_tui | modo_web) ["--help"]
 
 modo_tui         ::= "--tui" *tui_option
 tui_option       ::= "-config" "<ruta>" | "--network-host" | "--network_host"
@@ -129,6 +135,7 @@ Restricciones adicionales:
 - `--tui` **excluye** `--password`/`--user` (la auth básica es solo web; se avisa y se ignoran).
 - `--password`/`--user` tienen prioridad sobre las env vars `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` del host; si no se pasan flags, se usan las env vars si existen.
 - `--no-climb` (alias `--no-search-git`) solo aplica con `<proyecto>`; en otros mundos se ignora o produce error de sintaxis.
+- `--auto`/`--no-auto` solo aplican con `<proyecto>`; en otros mundos se ignoran o producen error de sintaxis. Default: `--auto` (el contenedor auto-aprueba permisos). La env var `OPENCODE_PERMISSION` del host tiene prioridad sobre ambos flags.
 - En `modo_web`, `--network-host` omite el flag `-p` de `podman run` (podman lo ignora con `--network host` y emite warning).
 - Contenedores TUI: nombre `opencode-tuiN` con N = `max(existentes) + 1` (no rellena huecos).
 - Contenedores web: nombre `opencode-<puerto>`.
@@ -149,6 +156,7 @@ Estado de cada regla en el parser actual de `opencode.sh`:
 | `--password`/`--user` solo en web | ✅ Avisa en TUI y los ignora (no pasa env vars de auth) | Ninguna |
 | `--password`/`--user` prioridad sobre env del host | ✅ Implementado (flag > env) | Ninguna |
 | `--network-host` omite `-p` en web | ✅ Ya lo hace | Ninguna |
+| `--auto`/`--no-auto` (auto-aprueba permisos) | ✅ Implementado; default `--auto`; env `OPENCODE_PERMISSION` del host tiene prioridad | Ninguna |
 
 ## Optimizaciones sugeridas para el parser
 

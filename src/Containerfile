@@ -28,6 +28,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-venv \
+    python3-markdown \
+    weasyprint \
     nodejs \
     npm \
     iputils-ping \
@@ -49,6 +51,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create a fake xdg-open
 RUN printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/xdg-open && chmod +x /usr/local/bin/xdg-open
+
+# Comando md2pdf: convierte un informe Markdown a PDF (usa el python del sistema,
+# que ve los paquetes apt python3-markdown y weasyprint; no toca el venv del proyecto)
+COPY tools/md2pdf.py /usr/local/bin/md2pdf
+RUN chmod +x /usr/local/bin/md2pdf
 
 # Crear la estructura de directorios usada por opencode.sh para XDG
 RUN mkdir -p /home/opencode/.config \

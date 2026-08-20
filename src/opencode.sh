@@ -6,8 +6,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="1.9.5"
-TAG_RELEASE="v1.9.5"
+VERSION="2.0.0"
+TAG_RELEASE="v2.0.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -122,7 +122,7 @@ check_podman() {
 
 show_help() {
   cat <<EOF
-${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tui] [--no-climb] [--rebuild] [--update] [--network-host] [--password <pwd>] [--user <usuario>]
+${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tui] [--no-climb] [--rebuild] [--update] [--network-host] [--password <pwd>] [--user <usuario>] [--auto|--no-auto]
        $0 --rebuild
        $0 --update
        $0 --renew
@@ -192,6 +192,14 @@ ${BLUE}Parámetros:${NC}
     --no-climb, --no-search-git  Desactiva la resolución del project root.
                                  Si pasás una subcarpeta de un proyecto,
                                  opencode trabaja exactamente en esa ruta.
+    --auto                       Auto-aprueba los permisos de opencode
+                                 (sin prompts; es el valor por defecto en el
+                                 contenedor). Se inyecta OPENCODE_PERMISSION.
+    --no-auto                    Desactiva la auto-aprobación: opencode vuelve
+                                 a pedir confirmación (p. ej. para acceder a
+                                 carpetas fuera del workspace).
+                                 El env OPENCODE_PERMISSION del host tiene
+                                 prioridad sobre ambos flags.
     --password <pwd>             Activa auth básica en el servidor web con el
                                  password indicado (solo web, se ignora en TUI).
                                  Si no se pasa, se usa la variable de entorno
@@ -224,7 +232,7 @@ ${BLUE}Combinaciones de parámetros:${NC}
       • Mundo IMAGEN:    --renew | --rebuild | --update   (gestionan la imagen)
       • Mundo GESTIÓN:  --ps/--ls (listar) | --kill/--rm <patrón> (detener)
       • Mundo EJECUCIÓN:  <proyecto> + [-config] [--port] [--tui] [--network-host]
-                          [--password <pwd>] [--user <usuario>]
+                          [--password <pwd>] [--user <usuario>] [--auto|--no-auto]
 
     Árbol de combinaciones válidas (-h es compatible con cualquier rama):
 
@@ -241,6 +249,7 @@ ${BLUE}Combinaciones de parámetros:${NC}
     └── <proyecto>             lanza opencode en el proyecto
         ├── --no-climb         desactiva la búsqueda de .git hacia atrás
         │                      (también: --no-search-git)
+        ├── --auto | --no-auto auto-aprueba permisos (default: --auto)
         ├── --tui              arranca terminal interactiva (nombre: opencode-tuiN)
         │   ├── -config <ruta>
         │   └── --network-host
@@ -290,6 +299,11 @@ ${BLUE}Nota:${NC}
     --password/--user activan auth básica HTTP en el servidor web (env vars
     OPENCODE_SERVER_PASSWORD/OPENCODE_SERVER_USERNAME al contenedor). La TUI
     no usa auth; los flags se ignoran en modo TUI.
+    --auto/--no-auto controlan la auto-aprobación de permisos de opencode.
+    Por defecto el contenedor auto-aprueba (sandbox aislado): no pide permiso
+    para acceder a carpetas ni ejecutar herramientas. Usá --no-auto si querés
+    que opencode vuelva a pedir confirmación, u OPENCODE_PERMISSION del host
+    para reglas de permisos personalizadas (JSON inline).
 EOF
 }
 
@@ -649,6 +663,12 @@ SERVER_PASSWORD=""
 SERVER_USERNAME=""
 PASSWORD_SET=false
 USER_SET=false
+# Auto-aprobación de permisos en el contenedor (por defecto ON: el contenedor
+# es un sandbox aislado y no debería pedir permiso para acceder a carpetas).
+# --auto la fuerza; --no-auto la desactiva; el env OPENCODE_PERMISSION del host
+# tiene prioridad si está seteado.
+AUTO_APPROVE=true
+AUTO_SET=false
 
 # Parseo de argumentos
 while [[ $# -gt 0 ]]; do
@@ -693,6 +713,16 @@ while [[ $# -gt 0 ]]; do
     ;;
   --no-climb | --no-search-git)
     NO_CLIMB=true
+    shift
+    ;;
+  --auto)
+    AUTO_APPROVE=true
+    AUTO_SET=true
+    shift
+    ;;
+  --no-auto)
+    AUTO_APPROVE=false
+    AUTO_SET=true
     shift
     ;;
   --password)
@@ -758,7 +788,7 @@ if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" ]]; then
   if [[ "$RENEW" == "true" || "$REBUILD" == "true" || "$UPDATE" == "true" \
       || -n "$PROJECT_PATH" || "$TUI_MODE" == "true" || "$NETWORK_HOST" == "true" \
       || "$NO_CLIMB" == "true" || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" \
-      || "$PASSWORD_SET" == "true" || "$USER_SET" == "true" ]]; then
+      || "$PASSWORD_SET" == "true" || "$USER_SET" == "true" || "$AUTO_SET" == "true" ]]; then
     error_exit "Las opciones --ps/--ls/--kill/--rm (mundo GESTIÓN) no pueden combinarse con flags de otros mundos (IMAGEN/EJECUCIÓN)."
   fi
   # Ejecutar y salir (no requieren <proyecto> ni imagen)
@@ -877,6 +907,23 @@ ENV_VARS=(
   -e "AGENT_GIT_NAME=${AGENT_GIT_NAME}"
   -e "AGENT_GIT_EMAIL=${AGENT_GIT_EMAIL}"
 )
+
+# Permisos del contenedor: auto-aprobación por defecto (sandbox aislado).
+# Prioridad: env OPENCODE_PERMISSION del host > flag --auto/--no-auto.
+# OPENCODE_PERMISSION es config de permisos inline JSON (ver docs de opencode);
+# con '{"*": "allow"}' no se pide aprobación salvo reglas deny explícitas.
+PERMISSION_JSON=""
+if [[ -n "${OPENCODE_PERMISSION:-}" ]]; then
+  PERMISSION_JSON="${OPENCODE_PERMISSION}"
+elif [[ "$AUTO_APPROVE" == "true" ]]; then
+  PERMISSION_JSON='{"*": "allow"}'
+fi
+if [[ -n "$PERMISSION_JSON" ]]; then
+  ENV_VARS+=(-e "OPENCODE_PERMISSION=${PERMISSION_JSON}")
+  if [[ "$AUTO_SET" == "true" ]]; then
+    echo -e "${BLUE}[INFO]${NC} Auto-aprobación de permisos: $([ "$AUTO_APPROVE" == "true" ] && echo 'activada' || echo 'desactivada') (OPENCODE_PERMISSION)."
+  fi
+fi
 
 NETWORK_ARGS=()
 if [[ "$NETWORK_HOST" == "true" ]]; then

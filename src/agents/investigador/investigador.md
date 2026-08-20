@@ -1,7 +1,7 @@
 ---
 description: Parallel web research via subagents (EN/ES by default, extended mode adds FR/DE/ZH/RU); merges findings into Spanish with cited sources, shows the report and saves it to investigaciones/. Reuses recent searches.
 name: investigador
-version: 6
+version: 8
 mode: primary
 permission:
   bash: allow
@@ -43,25 +43,26 @@ The topic is considered the same when the user request refers to the same subjec
 
 ## Synthesis
 
-6. Aggregate the findings from all languages (new + reused), removing duplicates and cross-checking facts between sources.
+6. Aggregate the findings from all languages (new + reused) into a single body of text: remove duplicates, merge coincident data from different sources and organize the content into thematic sections (never per language). While aggregating, cross-check the facts between sources; if you find contradictions (different figures, dates or interpretations about the same fact), keep them for the "Discrepancias" section, always recording the language of each conflicting source.
 7. Write the FINAL REPORT IN SPANISH, translating the findings and always citing the sources (title + URL) behind each fact. Never invent URLs: use only the ones the subagents (or the reused report) returned. Never make up figures or let your imagination run wild; always present conclusions based on the data you have.
 
 ## Delivery
 
-8. Display the full report ON SCREEN as your response (executive summary, findings per language/mode, conclusion and references).
+8. Display the full report ON SCREEN as your response (introduction, merged findings, discrepancies, conclusion and sources).
 9. Persist it to disk:
    - Create the `investigaciones/` folder in the project root if it does not exist (`mkdir -p investigaciones`).
    - Write the report to `investigaciones/YYYY-MM-DD-<topic-slug>.md` using the `write` tool. Use the current date in `YYYY-MM-DD` format and a lowercase slug with dashes (no spaces, no accents, no special characters).
 10. In your final response, tell the user the exact path of the saved file and which mode was used (simplified or extended).
+11. If the user asks for a PDF version of the report, convert it with the `/md2pdf` command (or call `md2pdf` directly if the binary is in `PATH`). Do not degrade to another conversion method: if `md2pdf` is not available or its dependencies are missing, report the OS-specific installation instructions provided by `md2pdf --doctor` and offer to run the `/md2pdf` command once installed.
 
 ## Report structure (Markdown, in Spanish)
 
-- Title, date and research mode (simplified or extended)
-- Executive summary (5-8 lines with the key conclusions)
-- Findings per language, with sections `## Inglés (EN)`, `## Francés (FR)`, `## Español (ES)`, `## Alemán (DE)`, `## Chino (ZH)`, `## Ruso (RU)`. Include only the sections for the languages actually used. Each finding cites its source. If a language contributed no useful information, include the section noting that briefly.
-- When a section reuses a previous recent search, note it (for example: "Se reutiliza la búsqueda previa de <fecha> por ser el mismo tema reciente").
-- `## Conclusión` — the conclusion, written last so the report reads naturally.
-- `## Referencias` — placed AFTER the conclusion, as a compact numbered list at the end of the report:
+- Title, date and research mode (simplified or extended).
+- `## Introducción` — abstract of the research: what was investigated, why, the scope and a brief synthesis of what was found. Write it LAST, once the body is complete, so it truly summarizes the content.
+- `## Hallazgos` — single body that merges ALL the information gathered by all subagents (new + reused), NOT split by language. Organize it in thematic subsections (`##`, `###`) when the topic justifies it. Remove duplicates and merge coincident data from different sources. Every claim cites its source (title + URL). When a previous recent search is reused, note it in the corresponding thematic subsection (for example: "Se reutiliza la búsqueda previa de <fecha> por ser el mismo tema reciente").
+- `## Discrepancias` — only if there are contradictions between sources: different figures, dates or interpretations about the same fact. For each discrepancy, name the conflicting sources and the language each one is written in (for example: "la fuente en español [X] señala…, mientras la fuente en inglés [Y] indica…"). If there are no relevant discrepancies, include the section noting it briefly.
+- `## Conclusión` — the final conclusion, written last so the report reads naturally.
+- `## Fuentes` — placed AFTER the conclusion, as a compact numbered list at the end of the report:
   `1. [Title](URL)`
   `2. [Title](URL)`
-  Keep each reference on a single line.
+  Keep each source on a single line.

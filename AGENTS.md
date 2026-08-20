@@ -20,8 +20,16 @@ Container-based opencode launcher using Podman. Entrypoint is `opencode.sh`; it 
 | Rebuild image (no-cache + pull) | `./opencode.sh --update` |
 | Update image from scratch, replacing the previous one if the build succeeds | `./opencode.sh --renew` |
 | Share host network | `./opencode.sh /path/to/project --network-host` |
+| Auto-approve permissions (default: on) | `./opencode.sh /path/to/project` — add `--no-auto` to disable |
 
 `--renew` and `--rebuild` are mutually exclusive.
+
+## Permissions
+
+By default the container **auto-approves opencode permissions** (the container is an isolated sandbox): no approval prompts when accessing folders or running tools. The launcher injects `OPENCODE_PERMISSION='{"*": "allow"}'` into the container. To change this:
+
+- `--no-auto` → opencode asks again (defaults of opencode: `external_directory` asks when touching paths outside `/workspace`).
+- Host env `OPENCODE_PERMISSION` (JSON inline permissions config) → takes precedence over `--auto`/`--no-auto` for custom rules (e.g. `OPENCODE_PERMISSION='{"bash": "deny"}' ./opencode.sh ...`).
 
 ## Network
 
@@ -135,7 +143,17 @@ Migration is manual by design to avoid overwriting data. Run it once per existin
 
 The canonical copies of the custom agents live in `src/agents/<agent>/` — one subfolder per agent (even multi-file agents such as `investigador`, which also ships subagents) — each `.md` carrying an integer `version:` in its frontmatter. `agents_update.sh` deploy PRESERVES the folder tree into the host's global config (`~/.config/opencode/agents/<rel>`). OpenCode scans `{agent,agents}/**/*.md` recursively — no registry entry needed in `opencode.json`. Each file can fix its agent name with the `name:` frontmatter field (the loader applies the frontmatter over the path-derived name), so agents get clean names (`investigador`, `investigador-en`…) even though their files live in subfolders.
 
-`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It scans `src/agents/` recursively, skips README files, and rejects duplicate agent names (case-insensitive, in case the destination filesystem is case-insensitive). It compares the repo files against the installed copies using `version:` + `sha256sum` (plain files on disk, no git or network), shows the changed agents, warns that local modifications will be overwritten on confirmation, and asks for confirmation (`Y`/`s`). It **only manages** the files under `src/agents/` — the default OpenCode agents (`build`, `plan`) and any other user agents are never touched or deleted. See `src/agents/README.md` for the agent registry and update procedure.
+`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It manages **three stages**, each in three sub-steps (agents → tools → commands), showing a per-stage summary and asking one confirmation per stage. Use `--no-tools` to skip the tools stage (e.g. when a tool like `md2pdf` is already baked into the container image) and `--no-commands` to skip the commands stage:
+
+| Stage | Source (repo) | Destino (global) | Detección de cambios |
+|-------|---------------|------------------|----------------------|
+| agents | `src/agents/**/*.md` | `~/.config/opencode/agents/<rel>` | `version:` (frontmatter) + `sha256sum` |
+| tools | `src/tools/*` | `~/.config/opencode/scripts/` | `sha256sum` |
+| commands | `src/commands/*.md` | `~/.config/opencode/commands/` | `sha256sum` |
+
+For agents it scans recursively, skips README files, and rejects duplicate agent names (case-insensitive, in case the destination filesystem is case-insensitive). It compares the repo files against the installed copies (plain files on disk, no git or network), shows the changed files, warns that local modifications will be overwritten on confirmation, and asks for confirmation (`Y`/`s`). It **only manages** the files under `src/agents/`, `src/tools/` and `src/commands/` — the default OpenCode agents (`build`, `plan`), user commands and any other user files are never touched or deleted. `--check` shows what would change without applying. See `src/agents/README.md` for the agent registry and update procedure.
+
+Custom commands are deployed to `~/.config/opencode/commands/` (e.g. the `/md2pdf` PDF converter) and custom tools to `~/.config/opencode/scripts/` (e.g. `md2pdf.py`). Because `~/.config/opencode/` is bind-mounted into every container (`opencode.sh` mounts it at `/home/opencode/.config/opencode/`), both commands and tools are available inside the container **and** on any host opencode install, keeping behavior consistent across environments.
 
 ## Notes
 

@@ -14,7 +14,7 @@ Este directorio (`src/agents/investigador/`) contiene todos los archivos del age
 
 | Archivo (repo) | Archivo desplegado | Agente (via `name:`) | Modo | Versión | Idioma |
 |----------------|--------------------|----------------------|------|---------|--------|
-| `investigador.md` | `agents/investigador/investigador.md` | `investigador` | primary | 6 | — (orquesta) |
+| `investigador.md` | `agents/investigador/investigador.md` | `investigador` | primary | 8 | — (orquesta) |
 | `investigador-en.md` | `agents/investigador/investigador-en.md` | `investigador-en` | subagent | 2 | EN |
 | `investigador-fr.md` | `agents/investigador/investigador-fr.md` | `investigador-fr` | subagent | 2 | FR |
 | `investigador-es.md` | `agents/investigador/investigador-es.md` | `investigador-es` | subagent | 2 | ES |
@@ -26,7 +26,8 @@ Este directorio (`src/agents/investigador/`) contiene todos los archivos del age
 
 - Seleccionar el agente **investigador** en el selector de agentes (Tab) y darle el tema.
 - Pedir el modo extendido explícitamente ("extendido", "extended", "todos los idiomas") si se quiere más allá de EN/ES.
-- El informe final se redacta en español con fuentes citadas, se muestra con la conclusión seguida de una lista numerada compacta de referencias, y se guarda en `investigaciones/YYYY-MM-DD-<tema>.md` del proyecto.
+- El informe final se redacta en español con fuentes citadas: **introducción** (tipo abstract), **cuerpo unificado** con los hallazgos de todos los subagentes organizados por temas (no por idioma), **discrepancias** entre fuentes cuando existen (con el idioma de cada fuente), **conclusión** y una **lista numerada compacta de fuentes** al final. Se muestra en pantalla y se guarda en `investigaciones/YYYY-MM-DD-<tema>.md` del proyecto.
+- Si el usuario pide la versión **PDF** del informe, el agente la genera con el comando global `/md2pdf` (o `md2pdf` si está en `PATH`). No degrada a otro método de conversión: si falta la herramienta o sus dependencias, reporta las instrucciones de instalación por OS de `md2pdf --doctor` y ofrece ejecutar `/md2pdf` cuando esté instalada.
 
 ## Mantenimiento
 

@@ -34,7 +34,7 @@ El deploy **preserva el árbol de subcarpetas**: cada archivo `src/agents/<rel>`
 
 | Agente (agrupación) | Subcarpeta | Versión primario | Rol |
 |---------------------|------------|------------------|------|
-| `investigador` | `src/agents/investigador/` | 6 | Investigación web por subagentes con dos modos (simplificado EN/ES y extendido EN/FR/ES/DE/ZH/RU); reutiliza búsquedas recientes; informe en español, citado, y guardado en `investigaciones/` |
+| `investigador` | `src/agents/investigador/` | 8 | Investigación web por subagentes con dos modos (simplificado EN/ES y extendido EN/FR/ES/DE/ZH/RU); reutiliza búsquedas recientes; informe en español citado (introducción, cuerpo unificado por temas, discrepancias, conclusión y fuentes), guardado en `investigaciones/` y convertible a PDF con `/md2pdf` |
 
 ## Política de versiones
 

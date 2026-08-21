@@ -143,17 +143,20 @@ Migration is manual by design to avoid overwriting data. Run it once per existin
 
 The canonical copies of the custom agents live in `src/agents/<agent>/` — one subfolder per agent (even multi-file agents such as `investigador`, which also ships subagents) — each `.md` carrying an integer `version:` in its frontmatter. `agents_update.sh` deploy PRESERVES the folder tree into the host's global config (`~/.config/opencode/agents/<rel>`). OpenCode scans `{agent,agents}/**/*.md` recursively — no registry entry needed in `opencode.json`. Each file can fix its agent name with the `name:` frontmatter field (the loader applies the frontmatter over the path-derived name), so agents get clean names (`investigador`, `investigador-en`…) even though their files live in subfolders.
 
-`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It manages **three stages**, each in three sub-steps (agents → tools → commands), showing a per-stage summary and asking one confirmation per stage. Use `--no-tools` to skip the tools stage (e.g. when a tool like `md2pdf` is already baked into the container image) and `--no-commands` to skip the commands stage:
+`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It manages **four stages** (agents → styles → commands, plus tools on demand), showing a per-stage summary and asking one confirmation per stage. Use `--no-styles` to skip the styles stage, `--no-commands` to skip the commands stage, and `--install-tools [dir]` to install the tool scripts (e.g. `md2pdf.py`) into the user's local bin (only needed for host-only opencode installs):
 
 | Stage | Source (repo) | Destino (global) | Detección de cambios |
 |-------|---------------|------------------|----------------------|
 | agents | `src/agents/**/*.md` | `~/.config/opencode/agents/<rel>` | `version:` (frontmatter) + `sha256sum` |
-| tools | `src/tools/*` | `~/.config/opencode/scripts/` | `sha256sum` |
+| styles | `src/tools/css-styles/**` | `~/.config/opencode/css-styles/` | `sha256sum` |
+| tools | `src/tools/*` (raíz, p. ej. `md2pdf.py`) | `~/.local/bin` (solo con `--install-tools`) | `sha256sum` |
 | commands | `src/commands/*.md` | `~/.config/opencode/commands/` | `sha256sum` |
 
 For agents it scans recursively, skips README files, and rejects duplicate agent names (case-insensitive, in case the destination filesystem is case-insensitive). It compares the repo files against the installed copies (plain files on disk, no git or network), shows the changed files, warns that local modifications will be overwritten on confirmation, and asks for confirmation (`Y`/`s`). It **only manages** the files under `src/agents/`, `src/tools/` and `src/commands/` — the default OpenCode agents (`build`, `plan`), user commands and any other user files are never touched or deleted. `--check` shows what would change without applying. See `src/agents/README.md` for the agent registry and update procedure.
 
 Custom commands are deployed to `~/.config/opencode/commands/` (e.g. the `/md2pdf` PDF converter) and custom tools to `~/.config/opencode/scripts/` (e.g. `md2pdf.py`). Because `~/.config/opencode/` is bind-mounted into every container (`opencode.sh` mounts it at `/home/opencode/.config/opencode/`), both commands and tools are available inside the container **and** on any host opencode install, keeping behavior consistent across environments.
+
+The `md2pdf` tool ships with alternate CSS styles in `src/tools/css-styles/` (`github.css`, `pandoc.css`, `newsprint.css`, `notion.css`, `paper.css`), selectable with `md2pdf <entrada.md> --style <nombre>`; `--html` generates an HTML file instead of PDF, `--custom-css <archivo.css>` overrides the style with a custom CSS, and `--list-styles` lists the detected styles. The styles are resolved by precedence: config global of the user (`~/.config/opencode/css-styles/`, deployed by `agents_update.sh` and mounted into the container) wins over the ones baked into the image (`/usr/local/share/md2pdf/css-styles/`); if none is found, the embedded default CSS is used. `--install-tools` copies only the root files of `src/tools/` (e.g. `md2pdf.py`) and never the `css-styles/` folder, which travels via the styles stage and the image.
 
 ## Notes
 

@@ -1,13 +1,35 @@
 #!/usr/bin/python3
-"""Genera un PDF estilizado a partir de un informe Markdown.
+"""Genera un PDF (o HTML) estilizado a partir de un informe Markdown.
 
 Uso:
-  md2pdf <entrada.md> [salida.pdf]   Genera el PDF (con 1 argumento deriva el .pdf)
-  md2pdf --doctor                    Diagnostica dependencias y PATH; instrucciones por OS
-  md2pdf --install [dir]             Se copia a ~/.local/bin/md2pdf (u otro dir) para
-                                     dejarlo accesible en el PATH (pide confirmación)
-  md2pdf --install --yes [dir]       Igual que --install pero sin confirmación
-  md2pdf --help                      Muestra esta ayuda
+  md2pdf <entrada.md> [salida]           Genera el PDF (con 1 argumento deriva el .pdf)
+  md2pdf <entrada.md> --style <nombre>   Usa un estilo CSS de la carpeta css-styles
+  md2pdf <entrada.md> --custom-css <archivo.css>  Usa un CSS personalizado
+  md2pdf <entrada.md> --html             Genera HTML en lugar de PDF (deriva el .html)
+  md2pdf --list-styles                   Lista los estilos disponibles y detectados
+  md2pdf --doctor                        Diagnostica dependencias y PATH; instrucciones por OS
+  md2pdf --install [dir]                 Se copia a ~/.local/bin/md2pdf (u otro dir) para
+                                         dejarlo accesible en el PATH (pide confirmación)
+  md2pdf --install --yes [dir]           Igual que --install pero sin confirmación
+  md2pdf --help                          Muestra esta ayuda
+
+Flags opcionales:
+  --style <nombre>       Estilo CSS detectado en las carpetas de estilos (ver más
+                         abajo). Si no se indica, se usa el CSS embebido por defecto.
+  --custom-css <archivo> CSS propio (ruta absoluta o relativa). Tiene prioridad
+                         sobre --style.
+  --html                 Genera un archivo HTML autocontenido en lugar de PDF.
+  --list-styles          Lista los estilos detectados (no requiere dependencias).
+
+Búsqueda de estilos (orden de precedencia):
+  1. --custom-css <archivo> (ruta explícita, prioridad absoluta)
+  2. $MD2PDF_STYLES_DIR (variable de entorno)
+  3. $XDG_CONFIG_HOME/opencode/css-styles/ (config global del usuario;
+     montada dentro del contenedor, gana sobre la imagen)
+  4. /usr/local/share/md2pdf/css-styles/ (horneado en la imagen del contenedor)
+  5. <dir del script>/css-styles/ (repo/desarrollo o instalación local)
+  6. relativo al directorio del .md de entrada (fallback local)
+  Si el estilo no se encuentra en ninguna, se usa el CSS embebido por defecto.
 
 Requiere los paquetes de Python 'markdown' y 'weasyprint' en el intérprete con el
 que se ejecuta (python del sistema, p. ej. /usr/bin/python3). NO hay fallback
@@ -21,7 +43,7 @@ import shutil
 import stat
 import sys
 
-VERSION = 1
+VERSION = "1.2"
 
 CSS = """
 @page {
@@ -31,9 +53,10 @@ CSS = """
 }
 body {
     font-family: 'DejaVu Sans', 'Noto Sans', Helvetica, Arial, sans-serif;
-    font-size: 11pt;
+    font-size: 10px;
     line-height: 1.6;
     color: #1a1a1a;
+    text-align: justify;
 }
 h1 {
     font-size: 20pt;
@@ -241,40 +264,125 @@ def install_to_path(target_dir=None, yes=False):
     sys.exit(0)
 
 
-def convert(md_path, pdf_path):
-    if not os.path.isfile(md_path):
-        print(f"ERROR: el archivo '{md_path}' no existe.", file=sys.stderr)
-        sys.exit(1)
+def style_search_dirs(md_path=None):
+    """Carpetas de estilos en orden de precedencia (lista de rutas)."""
+    dirs = []
+    env_dir = os.environ.get("MD2PDF_STYLES_DIR")
+    if env_dir:
+        dirs.append(env_dir)
+    config_home = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    dirs.append(os.path.join(config_home, "opencode", "css-styles"))
+    dirs.append("/usr/local/share/md2pdf/css-styles")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dirs.append(os.path.join(script_dir, "css-styles"))
+    dirs.append(script_dir)
+    if md_path:
+        md_dir = os.path.dirname(os.path.abspath(md_path))
+        dirs.append(os.path.join(md_dir, "css-styles"))
+        dirs.append(md_dir)
+    return dirs
 
-    deps = check_deps()
-    missing = [name for name, ok in deps.items() if not ok]
-    if missing:
-        print("ERROR: faltan dependencias para generar el PDF: " + ", ".join(missing))
-        print("Para ejecutar este comando se deben instalar las librerías")
-        print("'python3-markdown' y 'weasyprint'. Ejecutá 'md2pdf --doctor' para ver")
-        print("las instrucciones de instalación según el sistema operativo del anfitrión.")
-        sys.exit(1)
 
+def find_style_css(style, md_path=None):
+    """Localiza el CSS de un estilo por nombre (devuelve la ruta o None)."""
+    if not style:
+        return None
+    fname = style if style.endswith(".css") else style + ".css"
+    for base in style_search_dirs(md_path):
+        candidate = os.path.join(base, fname)
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def list_styles():
+    """Lista los estilos detectados en las carpetas de búsqueda (sin duplicados)."""
+    found = {}
+    for base in style_search_dirs():
+        if not os.path.isdir(base):
+            continue
+        try:
+            for name in sorted(os.listdir(base)):
+                if not name.endswith(".css"):
+                    continue
+                style = name[:-4]
+                if style not in found:
+                    found[style] = os.path.join(base, name)
+        except OSError:
+            continue
+    print("Estilos disponibles:")
+    print(f"  default   (embebido en md2pdf.py)")
+    for style in sorted(found):
+        print(f"  {style:<10} ({found[style]})")
+    print()
+    print("Uso: md2pdf <entrada.md> --style <nombre>")
+    print("     md2pdf <entrada.md> --custom-css <archivo.css> (CSS propio)")
+    sys.exit(0)
+
+
+def load_css(style=None, custom_css=None, md_path=None):
+    """Devuelve el CSS a usar. Prioridad: --custom-css > --style > CSS embebido."""
+    if custom_css:
+        if not os.path.isfile(custom_css):
+            print(f"ERROR: el archivo CSS '{custom_css}' no existe.", file=sys.stderr)
+            sys.exit(1)
+        with open(custom_css, encoding="utf-8") as f:
+            return f.read()
+    if style:
+        path = find_style_css(style, md_path)
+        if not path:
+            print(f"ERROR: no se encontró el estilo '{style}'.", file=sys.stderr)
+            print("Estilos disponibles: github, pandoc, newsprint, notion, paper.", file=sys.stderr)
+            print("Usá 'md2pdf --help' para más ayuda.", file=sys.stderr)
+            sys.exit(1)
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    return CSS
+
+
+def build_full_html(md_text, css):
+    """Convierte el Markdown a HTML completo con el CSS embebido (autocontenido)."""
     import markdown
-    from weasyprint import HTML
-
-    with open(md_path, "r", encoding="utf-8") as f:
-        md_text = f.read()
-
     html_body = markdown.markdown(
         md_text,
         extensions=["tables", "fenced_code", "toc", "smarty"],
         output_format="html",
     )
-
-    full_html = f"""<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><style>{CSS}</style></head>
+<head><meta charset="utf-8"><style>{css}</style></head>
 <body>{html_body}</body>
 </html>"""
 
-    HTML(string=full_html).write_pdf(pdf_path)
-    print(f"PDF generado: {pdf_path}")
+
+def convert(md_path, output_path, css=None, as_html=False):
+    if not os.path.isfile(md_path):
+        print(f"ERROR: el archivo '{md_path}' no existe.", file=sys.stderr)
+        sys.exit(1)
+
+    deps = check_deps()
+    need = ["markdown"] if as_html else ["markdown", "weasyprint"]
+    missing = [name for name in need if not deps.get(name)]
+    if missing:
+        print("ERROR: faltan dependencias: " + ", ".join(missing))
+        print("Para ejecutar este comando se deben instalar las librerías")
+        print("'python3-markdown' y 'weasyprint'. Ejecutá 'md2pdf --doctor' para ver")
+        print("las instrucciones de instalación según el sistema operativo del anfitrión.")
+        sys.exit(1)
+
+    with open(md_path, "r", encoding="utf-8") as f:
+        md_text = f.read()
+
+    full_html = build_full_html(md_text, css or CSS)
+
+    if as_html:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(full_html)
+        print(f"HTML generado: {output_path}")
+    else:
+        from weasyprint import HTML
+        HTML(string=full_html).write_pdf(output_path)
+        print(f"PDF generado: {output_path}")
 
 
 def main():
@@ -293,20 +401,54 @@ def main():
         rest = [a for a in rest if a not in ("--yes", "-y")]
         install_to_path(rest[0] if rest else None, yes=yes)
 
-    if len(args) not in (1, 2):
+    if args and args[0] in ("--list-styles", "-ls"):
+        list_styles()
+
+    positional = []
+    style_name = None
+    custom_css = None
+    as_html = False
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--style":
+            if i + 1 >= len(args):
+                print("ERROR: --style requiere un nombre de estilo.", file=sys.stderr)
+                sys.exit(1)
+            style_name = args[i + 1]
+            i += 2
+        elif a == "--custom-css":
+            if i + 1 >= len(args):
+                print("ERROR: --custom-css requiere la ruta de un archivo .css.", file=sys.stderr)
+                sys.exit(1)
+            custom_css = args[i + 1]
+            i += 2
+        elif a == "--html":
+            as_html = True
+            i += 1
+        elif a.startswith("-"):
+            print(f"ERROR: opción desconocida: {a}", file=sys.stderr)
+            sys.exit(1)
+        else:
+            positional.append(a)
+            i += 1
+
+    if len(positional) not in (1, 2):
         print(HELP, file=sys.stderr)
         sys.exit(1)
 
-    md_path = args[0]
-    if len(args) == 2:
-        pdf_path = args[1]
+    md_path = positional[0]
+    if len(positional) == 2:
+        output_path = positional[1]
     else:
         if not md_path.lower().endswith(".md"):
-            print("ERROR: la salida se deriva del nombre de entrada; usá 'md2pdf <entrada.md> [salida.pdf]'.", file=sys.stderr)
+            print("ERROR: la salida se deriva del nombre de entrada; usá 'md2pdf <entrada.md> [salida]'.", file=sys.stderr)
             sys.exit(1)
-        pdf_path = os.path.splitext(md_path)[0] + ".pdf"
+        ext = ".html" if as_html else ".pdf"
+        output_path = os.path.splitext(md_path)[0] + ext
 
-    convert(md_path, pdf_path)
+    css = load_css(style_name, custom_css, md_path)
+    convert(md_path, output_path, css=css, as_html=as_html)
 
 
 if __name__ == "__main__":

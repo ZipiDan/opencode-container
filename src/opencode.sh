@@ -6,8 +6,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="2.0.0"
-TAG_RELEASE="v2.0.0"
+VERSION="2.1.0"
+TAG_RELEASE="v2.1.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -446,7 +446,7 @@ next_tui_name() {
     [[ -z "$name" ]] && continue
     if [[ "$name" =~ opencode-tui([0-9]+)$ ]]; then
       n="${BASH_REMATCH[1]}"
-      (( n > max )) && max=$n
+      ((n > max)) && max=$n
     fi
   done < <(podman ps --filter "name=opencode-tui" --format "{{.Names}}" 2>/dev/null)
   echo "opencode-tui$((max + 1))"
@@ -471,11 +471,14 @@ list_opencode_containers() {
     status=$(podman ps --filter "name=^${name}\$" --format "{{.Status}}" 2>/dev/null | head -n1)
 
     if [[ "$name" =~ opencode-tui([0-9]+)$ ]]; then
-      mode="tui"; port="-"
+      mode="tui"
+      port="-"
     elif [[ "$name" =~ opencode-([0-9]+)$ ]]; then
-      mode="web"; port="${BASH_REMATCH[1]}"
+      mode="web"
+      port="${BASH_REMATCH[1]}"
     else
-      mode="?"; port="?"
+      mode="?"
+      port="?"
     fi
 
     # Proyecto: buscar el mount cuyo destino sea /workspace
@@ -785,10 +788,10 @@ if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" ]]; then
   if [[ "$PS_MODE" == "true" && "$KILL_MODE" == "true" ]]; then
     error_exit "Las opciones --ps/--ls y --kill/--rm son mutuamente excluyentes."
   fi
-  if [[ "$RENEW" == "true" || "$REBUILD" == "true" || "$UPDATE" == "true" \
-      || -n "$PROJECT_PATH" || "$TUI_MODE" == "true" || "$NETWORK_HOST" == "true" \
-      || "$NO_CLIMB" == "true" || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" \
-      || "$PASSWORD_SET" == "true" || "$USER_SET" == "true" || "$AUTO_SET" == "true" ]]; then
+  if [[ "$RENEW" == "true" || "$REBUILD" == "true" || "$UPDATE" == "true" ||
+    -n "$PROJECT_PATH" || "$TUI_MODE" == "true" || "$NETWORK_HOST" == "true" ||
+    "$NO_CLIMB" == "true" || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" ||
+    "$PASSWORD_SET" == "true" || "$USER_SET" == "true" || "$AUTO_SET" == "true" ]]; then
     error_exit "Las opciones --ps/--ls/--kill/--rm (mundo GESTIÓN) no pueden combinarse con flags de otros mundos (IMAGEN/EJECUCIÓN)."
   fi
   # Ejecutar y salir (no requieren <proyecto> ni imagen)
@@ -877,11 +880,11 @@ fi
 
 # Anchor de project root para proyectos sin .git ni config per-project.
 # Idempotente: sólo crea si falta .git y ambos opencode.json/.jsonc.
-if [[ ! -e "${PROJECT_PATH}/.git" ]] \
-   && [[ ! -f "${PROJECT_PATH}/opencode.json" ]] \
-   && [[ ! -f "${PROJECT_PATH}/opencode.jsonc" ]]; then
-  printf '%s\n' "$PROJECT_ANCHOR_CONTENT" >"${PROJECT_PATH}/opencode.jsonc" \
-    || error_exit "No se pudo crear el anchor ${PROJECT_PATH}/opencode.jsonc"
+if [[ ! -e "${PROJECT_PATH}/.git" ]] &&
+  [[ ! -f "${PROJECT_PATH}/opencode.json" ]] &&
+  [[ ! -f "${PROJECT_PATH}/opencode.jsonc" ]]; then
+  printf '%s\n' "$PROJECT_ANCHOR_CONTENT" >"${PROJECT_PATH}/opencode.jsonc" ||
+    error_exit "No se pudo crear el anchor ${PROJECT_PATH}/opencode.jsonc"
   echo -e "${GREEN}[OK]${NC} Anchor opencode.jsonc creado en: ${PROJECT_PATH}"
 fi
 

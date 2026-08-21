@@ -57,6 +57,10 @@ RUN printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/xdg-open && chmod +x /usr/loca
 COPY tools/md2pdf.py /usr/local/bin/md2pdf
 RUN chmod +x /usr/local/bin/md2pdf
 
+# Estilos CSS para md2pdf (fallback del sistema; la config global del usuario
+# montada en ~/.config/opencode/css-styles/ tiene prioridad)
+COPY tools/css-styles/ /usr/local/share/md2pdf/css-styles/
+
 # Crear la estructura de directorios usada por opencode.sh para XDG
 RUN mkdir -p /home/opencode/.config \
              /home/opencode/.local/state \

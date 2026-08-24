@@ -99,20 +99,31 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin: 12px 0;
-    font-size: 10pt;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    table-layout: fixed;
+    page-break-inside: auto;
 }
+thead { display: table-header-group; }
 th {
     background: #1a1a1a;
     color: white;
-    padding: 8px 12px;
+    padding: 6px 10px;
     text-align: left;
     font-weight: 600;
+    page-break-inside: avoid;
 }
 td {
-    padding: 7px 12px;
+    padding: 5px 10px;
     border-bottom: 1px solid #e0e0e0;
+    vertical-align: top;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
 }
+tr { page-break-inside: avoid; }
 tr:nth-child(even) td { background: #f5f9ff; }
+th:first-child, td:first-child { width: 14%; }
 .meta { font-size: 10pt; color: #555; margin-bottom: 16px; }
 .meta strong { color: #333; }
 """

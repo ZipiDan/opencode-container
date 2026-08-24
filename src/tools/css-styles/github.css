@@ -102,20 +102,34 @@ table {
     border-collapse: collapse;
     margin: 1em 0;
     font-variant: tabular-nums;
-    font-size: 10pt;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    table-layout: fixed;
+    page-break-inside: auto;
 }
+
+thead { display: table-header-group; }
 
 th, td {
     padding: 6px 13px;
     border: 1px solid #d1d9e0;
+    vertical-align: top;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
 }
 
 th {
     font-weight: 600;
     background-color: #f6f8fa;
+    page-break-inside: avoid;
 }
 
+tr { page-break-inside: avoid; }
+
 tr:nth-child(2n) { background-color: #f6f8fa; }
+
+th:first-child, td:first-child { width: 14%; }
 
 img { max-width: 100%; }
 

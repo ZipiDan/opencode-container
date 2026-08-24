@@ -14,8 +14,20 @@ src/agents/
 └── <agente>/
     ├── README.md             ← descripción del agente (opcional)
     ├── <agente>.md           ← agente primario
-    └── <agente>-xx.md        ← subagentes
+    ├── <agente>-xx.md        ← subagentes
+    └── skills/               ← skills propias del agente (opcional)
+        └── <skill>/SKILL.md  ← se despliega a ~/.config/opencode/skills/<skill>/
 ```
+
+Los agentes pueden llevar su **propia carpeta `skills/`**: `src/agents/<agente>/skills/<skill>/SKILL.md`
+se despliega a `~/.config/opencode/skills/<skill>/` (opencode detecta las skills como
+`skills/<nombre>/SKILL.md`, un nivel). Los `.md` dentro de `skills/` **no** se tratan como
+agentes. Los meta-archivos de procedimiento (p. ej. `upgrade-heinzel.md`, sin `mode:`) tampoco
+se despliegan.
+
+> **Nota sobre despliegue de skills:** las skills de un agente terminan en el registro **global**
+> de skills de opencode (es el único lugar donde opencode las detecta). No es "memoria del agente":
+> el estado operacional del agente (servidores, políticas) vive 100% en `<proyecto>/memory/`.
 
 ## Deploy (estándar OpenCode)
 
@@ -35,6 +47,16 @@ El deploy **preserva el árbol de subcarpetas**: cada archivo `src/agents/<rel>`
 | Agente (agrupación) | Subcarpeta | Versión primario | Rol |
 |---------------------|------------|------------------|------|
 | `investigador` | `src/agents/investigador/` | 8 | Investigación web por subagentes con dos modos (simplificado EN/ES y extendido EN/FR/ES/DE/ZH/RU); reutiliza búsquedas recientes; informe en español citado (introducción, cuerpo unificado por temas, discrepancias, conclusión y fuentes), guardado en `investigaciones/` y convertible a PDF con `/md2pdf` |
+| `sysadmin` | `src/agents/sysadmin/` | 1 | Sysadmin disciplinado (ruleset **heinzel** adaptado a opencode): gestión de servidores Linux/FreeBSD/macOS vía SSH o local, con guardarraíles de seguridad, memoria 100% por proyecto (`<proyecto>/memory/`, un cliente por proyecto), disambiguación por cliente y skills on-demand (`heinzel-rules`, `heinzel-housekeeping`, `heinzel-security`, `heinzel-email`, `heinzel-fleet-audit`). Actualización desde upstream: ver `upgrade-heinzel.md` (meta-archivo, no se despliega) |
+
+## Actualización de heinzel (agente sysadmin)
+
+El agente `sysadmin` vendoriza el ruleset de [`wintermeyer/heinzel`](https://github.com/wintermeyer/heinzel):
+las reglas viven en `src/agents/sysadmin/skills/heinzel-rules/references/` y las 4 skills en
+`src/agents/sysadmin/skills/`. No hay flag `--download` en `agents_update.sh`: la actualización se
+hace siguiendo el **procedimiento guiado** `src/agents/sysadmin/upgrade-heinzel.md` (fetch de
+upstream → diff estructurado → re-vendorizar con mapa de reescrituras Claude-Code→opencode →
+plegar cambios a `sysadmin.md` y bumpear `version:` → validación → deploy).
 
 ## Política de versiones
 

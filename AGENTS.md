@@ -143,16 +143,23 @@ Migration is manual by design to avoid overwriting data. Run it once per existin
 
 The canonical copies of the custom agents live in `src/agents/<agent>/` — one subfolder per agent (even multi-file agents such as `investigador`, which also ships subagents) — each `.md` carrying an integer `version:` in its frontmatter. `agents_update.sh` deploy PRESERVES the folder tree into the host's global config (`~/.config/opencode/agents/<rel>`). OpenCode scans `{agent,agents}/**/*.md` recursively — no registry entry needed in `opencode.json`. Each file can fix its agent name with the `name:` frontmatter field (the loader applies the frontmatter over the path-derived name), so agents get clean names (`investigador`, `investigador-en`…) even though their files live in subfolders.
 
-`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It manages **four stages** (agents → styles → commands, plus tools on demand), showing a per-stage summary and asking one confirmation per stage. Use `--no-styles` to skip the styles stage, `--no-commands` to skip the commands stage, and `--install-tools [dir]` to install the tool scripts (e.g. `md2pdf.py`) into the user's local bin (only needed for host-only opencode installs):
+`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It manages **five stages** (agents → skills → styles → commands, plus tools on demand), showing a per-stage summary and asking one confirmation per stage. Use `--no-skills` to skip the skills stage, `--no-styles` to skip the styles stage, `--no-commands` to skip the commands stage, and `--install-tools [dir]` to install the tool scripts (e.g. `md2pdf.py`) into the user's local bin (only needed for host-only opencode installs):
 
 | Stage | Source (repo) | Destino (global) | Detección de cambios |
 |-------|---------------|------------------|----------------------|
 | agents | `src/agents/**/*.md` | `~/.config/opencode/agents/<rel>` | `version:` (frontmatter) + `sha256sum` |
+| skills | `src/agents/*/skills/<nombre>/**` | `~/.config/opencode/skills/<nombre>/` | `sha256sum` |
 | styles | `src/tools/css-styles/**` | `~/.config/opencode/css-styles/` | `sha256sum` |
 | tools | `src/tools/*` (raíz, p. ej. `md2pdf.py`) | `~/.local/bin` (solo con `--install-tools`) | `sha256sum` |
 | commands | `src/commands/*.md` | `~/.config/opencode/commands/` | `sha256sum` |
 
+The skills stage deploys each agent's `skills/<nombre>/` folder to the **global** opencode skills directory (`skills/<nombre>/SKILL.md`, one level — opencode requires unique skill names across all locations, so duplicates are rejected). The `.md` files under `*/skills/` are never treated as agents, and meta-docs without `mode:` (e.g. `upgrade-heinzel.md`) are not deployed.
+
 For agents it scans recursively, skips README files, and rejects duplicate agent names (case-insensitive, in case the destination filesystem is case-insensitive). It compares the repo files against the installed copies (plain files on disk, no git or network), shows the changed files, warns that local modifications will be overwritten on confirmation, and asks for confirmation (`Y`/`s`). It **only manages** the files under `src/agents/`, `src/tools/` and `src/commands/` — the default OpenCode agents (`build`, `plan`), user commands and any other user files are never touched or deleted. `--check` shows what would change without applying. See `src/agents/README.md` for the agent registry and update procedure.
+
+### Agente `sysadmin` (heinzel) y su actualización
+
+`src/agents/sysadmin/` vendoriza el ruleset de [`wintermeyer/heinzel`](https://github.com/wintermeyer/heinzel): el agente `sysadmin.md` (cerebro adaptado a opencode, memoria 100% por proyecto en `<proyecto>/memory/`), sus 5 skills en `skills/` y la biblioteca de reglas `skills/heinzel-rules/references/`. **No hay flag `--download`**: la actualización desde upstream sigue el procedimiento guiado `src/agents/sysadmin/upgrade-heinzel.md` (fetch → diff → re-vendorizar con mapa de reescrituras Claude-Code→opencode → plegar cambios a `sysadmin.md` y bumpear `version:` → validación → deploy con `agents_update.sh`).
 
 Custom commands are deployed to `~/.config/opencode/commands/` (e.g. the `/md2pdf` PDF converter) and custom tools to `~/.config/opencode/scripts/` (e.g. `md2pdf.py`). Because `~/.config/opencode/` is bind-mounted into every container (`opencode.sh` mounts it at `/home/opencode/.config/opencode/`), both commands and tools are available inside the container **and** on any host opencode install, keeping behavior consistent across environments.
 

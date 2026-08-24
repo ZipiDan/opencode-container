@@ -10,6 +10,19 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [2.4.0] — 2026-08-24
+
+### Added
+- **`--kill-all` / `--killall`** en `opencode.sh` (mundo GESTIÓN): detiene **todos** los contenedores opencode en ejecución (web y TUI) con un solo `podman stop` (paralelo interno de Podman). Pide confirmación interactiva (procede avisando si no hay TTY) y filtra por prefijo `^opencode` para no tocar contenedores ajenos. Verificación post-stop y reporte de errores por remanente.
+- **Agente `cyberseguridad`**: auditor de ciberseguridad con arquitectura **router + catálogo a demanda** — 29 metodologías vendorizadas de [`briiirussell/cybersecurity-skills`](https://github.com/briiirussell/cybersecurity-skills) (MIT) organizadas en 7 familias, cargadas solo cuando se necesitan (`references/<skill>.md`, renombradas para no escanearse como skills). Generador `build-catalog.mjs` (regeneración idempotente del vendorizado) y procedimiento `upgrade-briiirussell.md`.
+- **Permisos de solo auditoría** para `cyberseguridad`: `edit` limitado a `reports/**` y `tmp/**` (matcher relativo al workspace, por eso también `../tmp/**`); `bash`/`read`/`task` habilitados; `edit` denegado en el resto.
+- **Tablas en `md2pdf`**: parches en los 5 estilos CSS (`table-layout: fixed`, `overflow-wrap`, `thead` repetido, `page-break-inside`, primera columna angosta) para que las tablas anchas entren en A4 sin desbordes; verificado en los 6 estilos.
+- **`BITACORA.md`**: bitácora del proyecto (hitos por timestamp).
+- **`reports/`**: directorio de salida de informes del agente `cyberseguridad`.
+
+### Changed
+- `opencode.sh` bumpeado a 2.4.0.
+
 ## [2.1.0] — 2026-08-21
 
 ### Added
@@ -90,6 +103,7 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ---
 
+[2.4.0]: #240--2026-08-24
 [2.1.0]: #210--2026-08-21
 [2.0.0]: #200--2026-08-20
 [1.9.5]: #195--2026-08-19

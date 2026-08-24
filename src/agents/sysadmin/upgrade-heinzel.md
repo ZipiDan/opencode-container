@@ -1,0 +1,184 @@
+# Upgrade heinzel — procedimiento de actualización del agente sysadmin
+
+> **Meta-archivo: NO se despliega.** `agents_update.sh` solo copia archivos `.md`
+> con `mode:` en el frontmatter (stage agents) y las skills bajo `skills/`
+> (stage skills). Este archivo no tiene `mode:` ni vive en `skills/`, así que
+> queda en el repo como documento de procedimiento. No le agregues `mode:`.
+
+Este procedimiento lo ejecuta B.J. (o el operador) cuando el proyecto upstream
+[`wintermeyer/heinzel`](https://github.com/wintermeyer/heinzel) publica
+cambios. Es deliberadamente un **procedimiento guiado**, no un script: upstream
+reestructura secciones y agrega reglas que pueden chocar con nuestra
+adaptación a opencode (memoria por proyecto, entorno del contenedor,
+disambiguación por cliente), y eso requiere criterio, no un `sed` ciego.
+
+## Cuándo correrlo
+
+- Cuando el operador lo pida ("actualizá el agente sysadmin a la última de
+  heinzel").
+- Cuando `VERSION` / `CHANGELOG.md` de upstream muestre cambios relevantes
+  (reglas de seguridad nuevas, skills nuevas, reorganización de `rules/`).
+- Sugerencia: revisar cada tanto con `git ls-remote
+  https://github.com/wintermeyer/heinzel.git HEAD` comparado con el vendor.
+
+## Limpieza del clon temporal
+
+Todo el trabajo de este procedimiento usa el clon temporal **`$TMP`**
+(`/tmp/opencode/heinzel`). Ese directorio **se elimina al terminar**:
+
+- **Al completar el upgrade:** Paso 8 (obligatorio) borra `$TMP`.
+- **Si algo falla o se interrumpe a mitad:** también hay que limpiar antes de
+  re-correr (el Paso 1 ya borra clones viejos antes de clonar, pero conviene
+  hacerlo explícito). Nunca dejar `$TMP` huérfano: `/tmp` puede sobrevivir
+  entre reinicios en algunos sistemas.
+- **Ejecución no interactiva (opcional):** si se corre toda la secuencia en un
+  solo comando, se puede envolver con un `trap` para limpieza automática:
+
+  ```bash
+  TMP=/tmp/opencode/heinzel
+  trap 'rm -rf "$TMP"' EXIT
+  # ... pasos 1-7 ...
+  ```
+
+  Así `$TMP` se elimina al salir del shell, incluso si el procedimiento aborta
+  con error. En ejecución interactiva paso a paso, la limpieza es el Paso 8.
+
+## Paso 0 — prerrequisitos
+
+- Correr desde el repo (`/workspace`).
+- `git`, `curl` y red disponible en el host.
+- Definir el directorio temporal y recordar limpiarlo al final:
+
+  ```bash
+  TMP=/tmp/opencode/heinzel
+  ```
+
+## Paso 1 — fetch upstream
+
+```bash
+rm -rf "$TMP" && \
+git clone --depth 1 https://github.com/wintermeyer/heinzel.git "$TMP"
+```
+
+(También sirve `curl -fsSL
+https://codeload.github.com/wintermeyer/heinzel/tar.gz/refs/heads/main | tar xz`.)
+
+## Paso 2 — diff estructurado
+
+Comparar el vendor actual contra upstream:
+
+```bash
+diff -ru src/agents/sysadmin/skills/heinzel-rules/references \
+     "$TMP/rules" | head -200
+diff -ru src/agents/sysadmin/skills/heinzel-housekeeping \
+     "$TMP/.claude/skills/heinzel-housekeeping" | head -100
+# idem para heinzel-security, heinzel-email, heinzel-fleet-audit
+cat "$TMP/VERSION" "$TMP/CHANGELOG.md"
+```
+
+Leer `CHANGELOG.md` para detectar cambios estructurales (nuevas reglas,
+renombres, cambios de rutas `memory/`).
+
+## Paso 3 — re-vendorizar skills y reglas
+
+Copiar el contenido upstream a las rutas del vendor, **aplicando el mapa de
+reescrituras del Paso 4**:
+
+```bash
+SRC="$TMP"
+V=src/agents/sysadmin/skills
+cp -r $SRC/.claude/skills/heinzel-housekeeping $V/
+cp -r $SRC/.claude/skills/heinzel-security    $V/
+cp -r $SRC/.claude/skills/heinzel-email       $V/
+cp -r $SRC/.claude/skills/heinzel-fleet-audit $V/
+cp $SRC/rules/*.md $V/heinzel-rules/references/
+```
+
+Borrar del vendor cualquier skill/regla que haya desaparecido upstream.
+
+## Paso 4 — mapa de reescrituras (aplicar SIEMPRE)
+
+1. **Frontmatter de skills:** quitar `argument-hint:` (campo no reconocido
+   por opencode; los desconocidos se ignoran, pero se limpia). Verificar que
+   `name:` coincide con la carpeta y es `^[a-z0-9]+(-[a-z0-9]+)*$`.
+2. **En las 4 skills heinzel-\* (SKILL.md y references/):**
+   `` `rules/<x>.md` `` → `` `heinzel-rules` -> `x.md` `` (la regla ahora vive
+   en la biblioteca `heinzel-rules`; el agente la lee cargando esa skill).
+3. **En `heinzel-rules/references/*.md`:** `` `rules/<x>.md` `` → `` `./x.md` ``
+   (referencias relativas dentro del mismo `references/`).
+4. **`CLAUDE.md`** → `` the `sysadmin` agent prompt `` (el "cerebro" de heinzel
+   es ahora el prompt del agente).
+5. **Tramos específicos del harness de Claude Code** — adaptar a opencode a
+   mano (no con sed): `.claude/settings.json` → permisos de `opencode.json`
+   (`permission.bash`); `.claude/hooks/guard-taboos.sh` → nota de que opencode
+   no tiene hook mecánico (remitir al plugin `heinzel-guard` opcional);
+   `claude -p` / `--permission-mode auto` → `opencode run --agent sysadmin
+   --auto`; `~/.claude` → `~/.config/opencode`. (Ver los ya adaptados:
+   `scheduled-housekeeping.md` y la sección harness de `service-reload.md`.)
+6. **`memory/` queda igual**: nuestra memoria es 100% por proyecto en la raíz
+   del workspace, igual que la `memory/` de heinzel. No reescribir esas rutas.
+
+## Paso 5 — actualizar el cerebro (`sysadmin.md`)
+
+`sysadmin.md` es código nuestro (opencode-específico), no se auto-genera.
+Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
+
+- Nuevas reglas de seguridad críticas → sección "Critical safety rules".
+- Cambios de procedimiento → secciones correspondientes.
+- Conservar SIEMPRE el bloque custom: memoria 100% por proyecto, entorno del
+  contenedor (Podman, `/root/.ssh`, `--network-host`), disambiguación por
+  cliente (`Client:`), registro de skills.
+- Bumpear `version:` en el frontmatter (es lo que hace visible el UPDATE en
+  el stage agents de `agents_update.sh`).
+
+## Paso 6 — validación previa al deploy
+
+- Frontmatter de `sysadmin.md` parseable: `name`, `mode: primary`,
+  `description`, `version` entero.
+- Cada skill referenciada existe en `skills/` y su `name:` coincide con la
+  carpeta.
+- Sin directivas solo-Claude-Code sin adaptar en las skills (`rg -n
+  'claude|\.claude|AskUserQuestion|--permission-mode' src/agents/sysadmin`).
+- Sin referencias `rules/` rotas (`rg -n 'rules/' src/agents/sysadmin`).
+- `./src/agents_update.sh --check` muestra agentes + skills correctos.
+
+## Paso 7 — deploy
+
+```bash
+./src/agents_update.sh --check   # revisar el diff
+./src/agents_update.sh           # confirmar y aplicar
+```
+
+## Paso 8 — limpieza (obligatorio)
+
+Eliminar el clon temporal antes de dar por terminado el upgrade:
+
+```bash
+rm -rf "$TMP"
+```
+
+Verificar que quedó limpio:
+
+```bash
+test ! -e "$TMP" && echo "clon temporal eliminado"
+```
+
+> Si el procedimiento se interrumpió antes del Paso 8, borrar `$TMP` antes de
+> re-correr: `rm -rf /tmp/opencode/heinzel`. El clon no debe quedar huérfano.
+
+## Rollback
+
+Todo el contenido del agente está versionado en git:
+
+```bash
+git checkout -- src/agents/sysadmin && ./src/agents_update.sh --force
+```
+
+## Nota sobre el guard mecánico (opcional)
+
+Upstream protege los tabúes con `.claude/hooks/guard-taboos.sh` (hook
+PreToolUse de Claude Code). opencode no lee esos hooks, así que en nuestro
+entorno los tabúes viven en el prompt del agente + permisos. Si se quiere una
+barrera mecánica, portar la lógica del guard a un plugin opencode
+(`tool.execute.before`, que vete comandos tabú) y documentarlo aquí. No es
+requisito para v1.

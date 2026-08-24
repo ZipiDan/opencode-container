@@ -7,6 +7,7 @@
 #
 # Stages:
 #   agents    src/agents/**         → ~/.config/opencode/agents/**     (por defecto: SÍ)
+#   skills    src/agents/*/skills/** → ~/.config/opencode/skills/**    (por defecto: SÍ)
 #   styles    src/tools/css-styles/** → ~/.config/opencode/css-styles/** (por defecto: SÍ)
 #   commands  src/commands/**       → ~/.config/opencode/commands/**   (por defecto: SÍ)
 #   tools     src/tools/* (solo la raíz, p. ej. md2pdf.py)
@@ -30,6 +31,10 @@
 # de forma recursiva (sin registro previo) y nombra a cada agente según su ruta
 # relativa (p. ej. agents/investigador/investigador-en.md → investigador/investigador-en).
 # Cada archivo puede fijar su nombre con el campo 'name:' del frontmatter.
+# Los .md que no tienen 'mode:' (p. ej. README.md o el meta-doc upgrade-heinzel.md)
+# NO se despliegan como agentes. Las skills viven en subcarpetas
+# src/agents/<agente>/skills/<nombre>/ y se despliegan a
+# ~/.config/opencode/skills/<nombre>/ (opencode las detecta como skills/*/SKILL.md).
 #
 # Los commands y los estilos se despliegan a la config global (~/.config/opencode/).
 # Esa carpeta es leída por opencode local Y se monta dentro del contenedor (ver
@@ -58,7 +63,10 @@ AGENTS_SRC="${SCRIPT_DIR}/agents"
 TOOLS_SRC="${SCRIPT_DIR}/tools"
 STYLES_SRC="${TOOLS_SRC}/css-styles"
 COMMANDS_SRC="${SCRIPT_DIR}/commands"
-DEST_DIR="${HOME}/.config/opencode/agents"
+# Raíz de config de opencode: respetar XDG_CONFIG_HOME si está definido (si no, ~/.config).
+CONFIG_ROOT="${XDG_CONFIG_HOME:-${HOME}/.config}/opencode"
+DEST_DIR="${CONFIG_ROOT}/agents"
+SKILLS_DEST="$(dirname "${DEST_DIR}")/skills"
 STYLES_DEST="$(dirname "${DEST_DIR}")/css-styles"
 COMMANDS_DEST="$(dirname "${DEST_DIR}")/commands"
 
@@ -66,6 +74,7 @@ CHECK_MODE=false
 FORCE_MODE=false
 SKIP_COMMANDS=false
 SKIP_STYLES=false
+SKIP_SKILLS=false
 INSTALL_TOOLS=false
 TOOLS_DEST=""
 
@@ -79,6 +88,7 @@ environment.
 
 Stages:
   src/agents/...            → ${DEST_DIR}/...           (deployed by default)
+  src/agents/*/skills/...   → ${SKILLS_DEST}/...        (deployed by default)
   src/tools/css-styles/...  → ${STYLES_DEST}/...        (deployed by default)
   src/commands/...          → ${COMMANDS_DEST}/...      (deployed by default)
   src/tools/* (root only)   → NOT installed by default.
@@ -89,10 +99,13 @@ Stages:
 
 OpenCode scans {agent,agents}/**/*.md recursively with no registry entry. The
 global config directory is read by any local opencode AND is mounted inside the
-launcher container, so one sync covers both environments.
+launcher container, so one sync covers both environments. Skills are detected
+at skills/<name>/SKILL.md; each agent can carry its own skills under
+src/agents/<agent>/skills/<name>/ which deploy to the global skills directory
+(skill names must be unique across all locations).
 
 Comparison: agents use the frontmatter 'version:' field plus a sha256 checksum;
-styles, tools and commands (no version field) are compared by checksum only.
+skills, styles, tools and commands (no version field) are compared by checksum only.
 Only the files under src/agents/, src/tools/ and src/commands/ are managed here;
 default OpenCode agents (build, plan, etc.) are never touched.
 
@@ -100,7 +113,8 @@ Options:
   --check                     Show what would change, without writing anything.
   --force                     Apply the changes without asking for confirmation.
   --no-commands               Skip the commands stage.
-  --no-styles                 Skip the styles stage (deploy agents+commands only).
+  --no-styles                 Skip the styles stage (deploy agents+skills+commands only).
+  --no-skills                 Skip the skills stage (deploy agents+styles+commands only).
   --install-tools [<dir>]     Install ONLY the tool scripts from the root of
                               src/tools/ (e.g. md2pdf.py) into <dir> and do
                               nothing else. If <dir> is omitted, installs into
@@ -112,9 +126,10 @@ Options:
 
 Examples:
   $0 --check                  # preview only
-  $0                          # preview + confirmation, then apply (agents+styles+commands)
+  $0                          # preview + confirmation, then apply (agents+skills+styles+commands)
   $0 --force                  # apply without confirmation
-  $0 --no-styles              # deploy agents+commands only
+  $0 --no-skills              # deploy agents+styles+commands only
+  $0 --no-styles              # deploy agents+skills+commands only
   $0 --install-tools          # install tools into ~/.local/bin (nothing else)
   $0 --install-tools ~/bin    # install tools into ~/bin (nothing else)
 EOF
@@ -127,6 +142,7 @@ while [[ $# -gt 0 ]]; do
     --force) FORCE_MODE=true; shift ;;
     --no-commands) SKIP_COMMANDS=true; shift ;;
     --no-styles) SKIP_STYLES=true; shift ;;
+    --no-skills) SKIP_SKILLS=true; shift ;;
     --install-tools)
       INSTALL_TOOLS=true
       # Parámetro opcional de directorio: el siguiente argumento si no es una opción.
@@ -142,6 +158,7 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       DEST_DIR="$2"
+      SKILLS_DEST="$(dirname "${DEST_DIR}")/skills"
       STYLES_DEST="$(dirname "${DEST_DIR}")/css-styles"
       COMMANDS_DEST="$(dirname "${DEST_DIR}")/commands"
       shift 2
@@ -229,7 +246,7 @@ fi
 # Las tools NO se instalan por defecto.
 # ============================================================================
 
-mkdir -p "$DEST_DIR" "$STYLES_DEST" "$COMMANDS_DEST"
+mkdir -p "$DEST_DIR" "$SKILLS_DEST" "$STYLES_DEST" "$COMMANDS_DEST"
 
 # Devuelve la 'version:' entera del frontmatter de un archivo (0 si no existe).
 agent_version() {
@@ -259,6 +276,11 @@ queue_change() {
 
 echo "Checking custom files in the repo against your installed copies..."
 echo "  Agents:   $AGENTS_SRC -> $DEST_DIR"
+if [[ "$SKIP_SKILLS" == "true" ]]; then
+  echo "  Skills:   (skipped --no-skills)"
+else
+  echo "  Skills:   $AGENTS_SRC/*/skills/ -> $SKILLS_DEST"
+fi
 if [[ "$SKIP_STYLES" == "true" ]]; then
   echo "  Styles:   (skipped --no-styles)"
 else
@@ -277,6 +299,8 @@ declare -a managed_rel=() managed_src=()
 while IFS= read -r src; do
   is_agent_file "$src" || continue
   rel="$(realpath --relative-to="$AGENTS_SRC" "$src")"
+  # Las skills viven bajo <agente>/skills/ y NO son agentes (deploy a skills/).
+  [[ "$rel" == *"/skills/"* ]] && continue
   managed_rel+=("$rel")
   managed_src+=("$src")
 done < <(find "$AGENTS_SRC" -type f -iname '*.md' ! -iname 'readme.md' | sort)
@@ -352,6 +376,49 @@ sync_plain() {
   done < <(find "$src_dir" -type f | sort)
 }
 
+# --- Stage 2: skills (checksum sha256) ---
+# Las skills viven en src/agents/<agente>/skills/<nombre>/ y se despliegan a
+# ~/.config/opencode/skills/<nombre>/. OpenCode las detecta como skills/*/SKILL.md
+# (un nivel: cada carpeta <nombre> debe contener SKILL.md) y exige nombres de
+# skill únicos en todos los ámbitos, así que se detectan duplicados.
+skills_stage() {
+  local src_dir="$1" dst_dir="$2"
+  [[ -d "$src_dir" ]] || return 0
+  declare -a skill_files=()
+  while IFS= read -r f; do skill_files+=("$f"); done \
+    < <(find "$src_dir" -type f -path '*/skills/*/SKILL.md' | sort)
+  [[ ${#skill_files[@]} -eq 0 ]] && return 0
+
+  declare -A seen_skill=()
+  local rel skill lower
+  for f in "${skill_files[@]}"; do
+    rel="${f##*/skills/}"
+    skill="${rel%%/*}"
+    lower="$(printf '%s' "$skill" | tr '[:upper:]' '[:lower:]')"
+    if [[ -n "${seen_skill[$lower]+x}" ]]; then
+      echo "[ERROR] Duplicate skill name '$skill' found in the repo." >&2
+      echo "OpenCode requires unique skill names across all locations." >&2
+      exit 1
+    fi
+    seen_skill[$lower]=1
+  done
+
+  while IFS= read -r src; do
+    rel="${src##*/skills/}"
+    dst="${dst_dir}/${rel}"
+    src_hash="$(sha256sum "$src" | awk '{print $1}')"
+    if [[ ! -f "$dst" ]]; then
+      queue_change "skills" "$rel" "$src" "$dst" "INSTALL" "(checksum)"
+    else
+      dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
+      if [[ "$src_hash" != "$dst_hash" ]]; then
+        queue_change "skills" "$rel" "$src" "$dst" "UPDATE" "(checksum)"
+      fi
+    fi
+  done < <(find "$src_dir" -type f -path '*/skills/*' | sort)
+}
+
+[[ "$SKIP_SKILLS" == "true" ]] || skills_stage "$AGENTS_SRC" "$SKILLS_DEST"
 [[ "$SKIP_STYLES" == "true" ]] || sync_plain "styles" "$STYLES_SRC" "$STYLES_DEST" 1
 [[ "$SKIP_COMMANDS" == "true" ]] || sync_plain "commands" "$COMMANDS_SRC" "$COMMANDS_DEST" 0
 
@@ -361,7 +428,7 @@ if [[ "$CHECK_MODE" == "true" ]]; then
 fi
 
 if [[ "$changed" -eq 0 ]]; then
-  echo "All custom agents, styles and commands are up to date. Nothing to do."
+  echo "All custom agents, skills, styles and commands are up to date. Nothing to do."
   echo "(Tools are not installed by default; use --install-tools to install them.)"
   exit 0
 fi
@@ -392,8 +459,8 @@ echo "${YELLOW}will be lost. It is your responsibility to back them up first if 
 echo "${YELLOW}to keep them.${NC}"
 echo ""
 echo "Only the files under src/agents/, src/tools/ (incl. css-styles/) and"
-echo "src/commands/ are managed by this script. The default OpenCode agents"
-echo "(build, plan) and any other user files are never touched."
+echo "src/commands/ are managed by this script (skills via src/agents/*/skills/)."
+echo "The default OpenCode agents (build, plan) and any other user files are never touched."
 
 if [[ "$CHECK_MODE" == "true" ]]; then
   echo ""
@@ -404,6 +471,13 @@ fi
 if [[ "$FORCE_MODE" == "true" ]]; then
   echo ""
   echo "[--force mode: applying changes without confirmation.]"
+elif [[ ! -t 0 ]]; then
+  # stdin no es un terminal: no hay forma de pedir confirmación. Nunca aplicar
+  # (ni cancelar) en silencio — exigir que se corra interactivo o con un modo explícito.
+  echo ""
+  echo "${RED}[ERROR] Standard input is not a terminal — cannot ask for confirmation.${NC}" >&2
+  echo "${YELLOW}Re-run interactively, or use --force to apply, or --check to preview.${NC}" >&2
+  exit 1
 else
   echo ""
   read -r -p "Do you want to continue and apply these changes? (Y/s) " answer

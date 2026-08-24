@@ -6,8 +6,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="2.1.0"
-TAG_RELEASE="v2.1.0"
+VERSION="2.4.0"
+TAG_RELEASE="v2.4.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -128,6 +128,7 @@ ${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--tu
        $0 --renew
        $0 --ps | --ls
        $0 --kill <patrón> | --rm <patrón>
+       $0 --kill-all | --killall
        $0 --version
        $0 -h | --help
 
@@ -225,12 +226,16 @@ ${BLUE}Parámetros:${NC}
                                  nombre exacto (opencode-tui2, opencode-4096),
                                  forma corta (tui2, 2, 4096). Si el patrón no
                                  encuentra exactamente 1 contenedor no actúa.
+    --kill-all                   Detiene TODOS los contenedores opencode en
+                                 ejecución (web y TUI). Pide confirmación
+                                 antes de actuar si el terminal lo permite.
+                                 Alias: --killall.
 
 ${BLUE}Combinaciones de parámetros:${NC}
     Los parámetros se separan en tres mundos mutuamente excluyentes:
 
       • Mundo IMAGEN:    --renew | --rebuild | --update   (gestionan la imagen)
-      • Mundo GESTIÓN:  --ps/--ls (listar) | --kill/--rm <patrón> (detener)
+      • Mundo GESTIÓN:  --ps/--ls (listar) | --kill/--rm <patrón> | --kill-all (detener)
       • Mundo EJECUCIÓN:  <proyecto> + [-config] [--port] [--tui] [--network-host]
                           [--password <pwd>] [--user <usuario>] [--auto|--no-auto]
 
@@ -246,6 +251,8 @@ ${BLUE}Combinaciones de parámetros:${NC}
     │       Patrones: nombre exacto (opencode-tui2, opencode-4096)
     │                 o forma corta: tui2 / 2 / 4096
     │       Si el patrón no matchea o matchea varios, no se actúa.
+    ├── --kill-all             detiene TODOS los contenedores opencode
+    │                          (web y TUI; pide confirmación; alias --killall)
     └── <proyecto>             lanza opencode en el proyecto
         ├── --no-climb         desactiva la búsqueda de .git hacia atrás
         │                      (también: --no-search-git)
@@ -263,7 +270,7 @@ ${BLUE}Combinaciones de parámetros:${NC}
     Reglas clave:
       • No mezclar flags de mundos distintos (IMAGEN/GESTIÓN/EJECUCIÓN).
       • --renew y --rebuild son mutuamente excluyentes.
-      • --ps/--ls y --kill/--rm son mutuamente excluyentes entre sí.
+      • --ps/--ls, --kill/--rm y --kill-all son mutuamente excluyentes entre sí.
       • --tui ignora --port (no hay servidor web).
       • --password/--user aplican solo a web; en TUI se avisan y se ignoran.
       • Prioridad auth: flag --password/--user > env OPENCODE_SERVER_PASSWORD/
@@ -284,6 +291,7 @@ ${BLUE}Ejemplos:${NC}
     $0 --ps
     $0 --kill tui2
     $0 --rm opencode-4096
+    $0 --kill-all
 
 ${BLUE}Nota:${NC}
     Config global (API keys, share)    → ${GLOBAL_CONFIG_DIR}/  (no afectado por -config)
@@ -561,6 +569,58 @@ kill_opencode_container() {
   fi
 }
 
+# Detiene TODOS los contenedores opencode en ejecución (web + TUI).
+# Usa un prefijo regex (^opencode) para tocar únicamente los contenedores del
+# launcher, no contenedores ajenos cuyo nombre solo contenga "opencode".
+# Pide confirmación interactiva; si stdin no es un terminal, procede avisando.
+kill_all_opencode_containers() {
+  local -a names=()
+  local name answer failed=0
+
+  while read -r name; do
+    [[ -n "$name" ]] && names+=("$name")
+  done < <(podman ps --filter "name=^opencode" --format "{{.Names}}" 2>/dev/null)
+
+  if [[ ${#names[@]} -eq 0 ]]; then
+    echo -e "${YELLOW}[INFO]${NC} No hay contenedores opencode en ejecución."
+    return 0
+  fi
+
+  echo -e "${YELLOW}[AVISO]${NC} Se detendrán ${#names[@]} contenedor(es) opencode:"
+  printf "  • %s\n" "${names[@]}"
+
+  if [[ -t 0 ]]; then
+    read -r -p "¿Detener todos? (Y/n) " answer
+    case "${answer,,}" in
+      y | s | "") ;;
+      *)
+        echo "Cancelado. No se detuvo ningún contenedor."
+        return 0
+        ;;
+    esac
+  fi
+
+  # Un solo `podman stop` con todos los nombres: podman los detiene en
+  # paralelo internamente (mismo patrón que --renew con `xargs podman stop`).
+  echo -e "${BLUE}[INFO]${NC} Deteniendo ${#names[@]} contenedores en paralelo..."
+  if ! podman stop "${names[@]}" >/dev/null 2>&1; then
+    failed=1
+  fi
+
+  # Verificar cuáles (si alguno) siguen en ejecución tras el stop
+  local remaining
+  remaining=$(podman ps --filter "name=^opencode" --format "{{.Names}}" 2>/dev/null | tr '\n' ' ')
+  if [[ -n "$remaining" ]]; then
+    echo -e "${RED}[ERROR]${NC} No se pudieron detener: $remaining" >&2
+    failed=1
+  fi
+
+  if [[ "$failed" -eq 0 ]]; then
+    echo -e "${GREEN}[OK]${NC} ${#names[@]} contenedores opencode detenidos."
+  fi
+  return "$failed"
+}
+
 # ==========================
 # FUNCIONES DE CONSTRUCCIÓN DE IMAGEN
 # ==========================
@@ -661,6 +721,7 @@ NO_CLIMB=false
 PS_MODE=false
 KILL_MODE=false
 KILL_PATTERN=""
+KILL_ALL_MODE=false
 PASSED_PORT_SET=false
 SERVER_PASSWORD=""
 SERVER_USERNAME=""
@@ -756,6 +817,10 @@ while [[ $# -gt 0 ]]; do
     KILL_PATTERN="$2"
     shift 2
     ;;
+  --kill-all | --killall)
+    KILL_ALL_MODE=true
+    shift
+    ;;
   -h | --help)
     show_help
     exit 0
@@ -782,9 +847,12 @@ if [[ "$RENEW" == "true" && "$REBUILD" == "true" ]]; then
   error_exit "Las opciones --renew y --rebuild no pueden usarse juntas."
 fi
 
-# Mundo GESTIÓN: --ps/--ls y --kill/--rm son mutuamente excluyentes entre sí
-# y con cualquier flag de los mundos IMAGEN o EJECUCIÓN.
-if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" ]]; then
+# Mundo GESTIÓN: --ps/--ls, --kill/--rm y --kill-all son mutuamente excluyentes
+# entre sí y con cualquier flag de los mundos IMAGEN o EJECUCIÓN.
+if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" || "$KILL_ALL_MODE" == "true" ]]; then
+  if [[ "$KILL_ALL_MODE" == "true" && ( "$PS_MODE" == "true" || "$KILL_MODE" == "true" ) ]]; then
+    error_exit "Las opciones --kill-all y --ps/--ls/--kill/--rm son mutuamente excluyentes."
+  fi
   if [[ "$PS_MODE" == "true" && "$KILL_MODE" == "true" ]]; then
     error_exit "Las opciones --ps/--ls y --kill/--rm son mutuamente excluyentes."
   fi
@@ -792,7 +860,7 @@ if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" ]]; then
     -n "$PROJECT_PATH" || "$TUI_MODE" == "true" || "$NETWORK_HOST" == "true" ||
     "$NO_CLIMB" == "true" || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" ||
     "$PASSWORD_SET" == "true" || "$USER_SET" == "true" || "$AUTO_SET" == "true" ]]; then
-    error_exit "Las opciones --ps/--ls/--kill/--rm (mundo GESTIÓN) no pueden combinarse con flags de otros mundos (IMAGEN/EJECUCIÓN)."
+    error_exit "Las opciones --ps/--ls/--kill/--rm/--kill-all (mundo GESTIÓN) no pueden combinarse con flags de otros mundos (IMAGEN/EJECUCIÓN)."
   fi
   # Ejecutar y salir (no requieren <proyecto> ni imagen)
   if [[ "$PS_MODE" == "true" ]]; then
@@ -801,6 +869,10 @@ if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" ]]; then
   fi
   if [[ "$KILL_MODE" == "true" ]]; then
     kill_opencode_container "$KILL_PATTERN"
+    exit $?
+  fi
+  if [[ "$KILL_ALL_MODE" == "true" ]]; then
+    kill_all_opencode_containers
     exit $?
   fi
 fi

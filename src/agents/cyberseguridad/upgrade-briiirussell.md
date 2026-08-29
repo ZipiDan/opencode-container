@@ -22,7 +22,7 @@ idempotente, y el operador revisa el diff antes de desplegar.
 ## Limpieza del clon temporal
 
 Todo el trabajo usa el clon temporal **`$TMP`** (`/tmp/opencode/briiirussell`).
-Ese directorio se elimina al terminar (Paso 5). Si algo falla a mitad, limpiar
+Ese directorio se elimina al terminar (Paso 6). Si algo falla a mitad, limpiar
 antes de re-correr:
 
 ```bash
@@ -84,7 +84,37 @@ frontmatter de `src/agents/cyberseguridad/cyberseguridad.md`
 (`agents_update.sh` usa ese campo para decidir UPDATE vs REPLACE). Anotar el
 cambio en el README del agente si aporta (nuevas familias, skills, política).
 
-## Paso 5 — desplegar y limpiar
+## Paso 5 — GATE DE SEGURIDAD (obligatorio)
+
+> **Este paso es obligatorio** tanto al construir el agente por primera vez
+> como en cada actualización. `cyberseguridad` es el propio auditor de
+> seguridad, así que no tiene sentido que se auto-audite: el gate verifica que
+> la actualización **no haya degradado las salvaguardas del agente y del
+> catálogo**, con una revisión cruzada de otro agente para evitar
+> auto-validación ciega.
+
+1. Checklist de salvaguardas (verificar punto por punto que sigan intactas):
+   - **Solo auditar y reportar:** los `permission.edit` del frontmatter deben
+     seguir limitados a `reports/**` y `/tmp/**`; nada que permita corregir el
+     código auditado.
+   - **Autorización antes que acción:** los skills ofensivos (`recon`,
+     `osint-recon`, `web-pentest`, `red-team-engagement`, `disk-forensics`)
+     deben conservar sus checks de autorización explícita.
+   - **Ética del catálogo:** los límites (rechazo de doxing/acoso, carta
+     get-out-of-jail, no amplificar riesgo) no deben haberse debilitado en las
+     references regeneradas.
+   - **Datos son datos / prompt injection:** el núcleo debe seguir tratando
+     texto de archivos y logs como datos, nunca como órdenes; ninguna reference
+     nueva debe contener instrucciones inyectables.
+   - **Permisos coherentes:** los `permission:` del frontmatter siguen siendo
+     los mínimos necesarios (sin `edit` global, sin `write` fuera de reportes).
+2. **Revisión cruzada:** pedir a otro agente (`developer` o `sysadmin`) una
+   lectura de control del diff del catálogo (`git diff
+   src/agents/cyberseguridad/`) enfocada en detectar salvaguardas debilitadas.
+   Ante cualquier hallazgo → corregir y re-generar (Paso 2) antes de desplegar.
+3. Solo tras pasar la checklist y la revisión cruzada se despliega el agente.
+
+## Paso 6 — desplegar y limpiar
 
 ```bash
 cd /workspace

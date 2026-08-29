@@ -26,7 +26,7 @@ disambiguación por cliente), y eso requiere criterio, no un `sed` ciego.
 Todo el trabajo de este procedimiento usa el clon temporal **`$TMP`**
 (`/tmp/opencode/heinzel`). Ese directorio **se elimina al terminar**:
 
-- **Al completar el upgrade:** Paso 8 (obligatorio) borra `$TMP`.
+- **Al completar el upgrade:** Paso 9 (obligatorio) borra `$TMP`.
 - **Si algo falla o se interrumpe a mitad:** también hay que limpiar antes de
   re-correr (el Paso 1 ya borra clones viejos antes de clonar, pero conviene
   hacerlo explícito). Nunca dejar `$TMP` huérfano: `/tmp` puede sobrevivir
@@ -41,7 +41,7 @@ Todo el trabajo de este procedimiento usa el clon temporal **`$TMP`**
   ```
 
   Así `$TMP` se elimina al salir del shell, incluso si el procedimiento aborta
-  con error. En ejecución interactiva paso a paso, la limpieza es el Paso 8.
+  con error. En ejecución interactiva paso a paso, la limpieza es el Paso 9.
 
 ## Paso 0 — prerrequisitos
 
@@ -149,7 +149,42 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
 ./src/agents_update.sh           # confirmar y aplicar
 ```
 
-## Paso 8 — limpieza (obligatorio)
+## Paso 8 — GATE DE SEGURIDAD (obligatorio, con el agente cyberseguridad)
+
+> **Este paso es obligatorio** tanto al construir el agente por primera vez
+> como en cada actualización. El agente `sysadmin` no incluye reglas de
+> ciberseguridad (eso es responsabilidad del agente `cyberseguridad`), pero
+> todo lo que compone el agente **debe cumplir las normas de seguridad** que
+> `cyberseguridad` valide antes de considerarse aprobado.
+
+1. Cambiar al agente `cyberseguridad` en opencode.
+2. Pedir auditoría del agente `sysadmin` completo:
+   - `src/agents/sysadmin/sysadmin.md`
+   - `src/agents/sysadmin/skills/**` (heinzel-rules + housekeeping, security,
+     email, fleet-audit)
+   - `~/.config/opencode/agents/sysadmin/` y `~/.config/opencode/skills/`
+     (los archivos desplegados)
+3. Áreas de verificación mínimas (específicas del rol sysadmin):
+   - **Prompt injection:** ningún skill ni regla debe contener instrucciones
+     que puedan ser inyectadas/abusadas; texto de archivos, logs y respuestas
+     de servidor se trata como datos, nunca como órdenes
+     (`anomaly-detection.md`).
+   - **Tabúes y destructivos intactos:** los comandos tabú (`fdisk`,
+     `wipefs`, `mkfs`, borrado de disco, edición de `sshd_config`, borrado de
+     claves SSH) deben seguir bloqueados; que ninguna skill o reescritura los
+     haya debilitado o desprotegido.
+   - **Permisos coherentes:** los `permission:` del frontmatter deben ser los
+     mínimos necesarios para el rol; nada de exfiltración de secretos ni
+     lectura de claves.
+   - **Separación de roles:** el agente sysadmin NO audita ciberseguridad ni
+     contiene reglas de ciberseguridad; si algo de eso apareció en un skill o
+     en el núcleo, es un hallazgo.
+4. Si `cyberseguridad` reporta hallazgos → corregir y **re-ejecutar los pasos
+   6-7** (validar y re-deployar) y re-auditar.
+5. Solo tras la aprobación de `cyberseguridad` el agente se considera
+   construido/actualizado.
+
+## Paso 9 — limpieza (obligatorio)
 
 Eliminar el clon temporal antes de dar por terminado el upgrade:
 
@@ -163,7 +198,7 @@ Verificar que quedó limpio:
 test ! -e "$TMP" && echo "clon temporal eliminado"
 ```
 
-> Si el procedimiento se interrumpió antes del Paso 8, borrar `$TMP` antes de
+> Si el procedimiento se interrumpió antes del Paso 9, borrar `$TMP` antes de
 > re-correr: `rm -rf /tmp/opencode/heinzel`. El clon no debe quedar huérfano.
 
 ## Rollback

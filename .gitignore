@@ -13,6 +13,9 @@ iteracion11/
 .DS_Store
 Thumbs.db
 
+# Tests locales de validación de agentes (no versionados)
+test/
+
 # Archivos temporales
 *.tmp
 *.swp

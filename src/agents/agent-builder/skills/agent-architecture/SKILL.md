@@ -54,9 +54,10 @@ permission:
 ```
 
 Rules:
-- Minimal permissions: grant only what the workflow needs. `agent-builder` never writes `src/agents/**` directly — `developer` does.
+- Minimal permissions: grant only what the workflow needs. `agent-builder` never writes `src/agents/**` directly — `developer` does (both scopes build in `/tmp`).
+- Scope: **global** (default) → deployed via `agents_update.sh` to `~/.config/opencode/{agents,skills,commands}`; **local** → copied from `/tmp` to `<proyecto>/.opencode/{agents,skills,commands}` (`/workspace/.opencode/...` inside container) after user approval, no `agents_update.sh`, versioned in project's git.
 - No `edit: allow` globally for orchestrators or auditors. See `cyberseguridad` (`reports/**,/tmp/**` only) as reference.
-- Verify `name:` matches folder and is lowercase-dashed.
+- Verify `name:` matches folder and is lowercase-dashed (both global and local).
 
 ## Prompt Structure Template
 
@@ -109,4 +110,4 @@ Apply on every vendorized repo:
 - [ ] Frontmatter parseable (`name`, `mode`, `version` int)
 - [ ] Permissions minimal, `edit/write` restricted
 - [ ] No `claude/.claude` or `--permission-mode` remnants (`rg -n 'claude|\.claude' src/agents/<new>`)
-- [ ] `agents_update.sh --check` shows expected agents+skills
+- [ ] Scope verified: global → `agents_update.sh --check` shows expected agents+skills; local → `ls -R <proyecto>/.opencode/{agents,skills,commands}` (`/workspace/...` in container) + `@<name>` mention test

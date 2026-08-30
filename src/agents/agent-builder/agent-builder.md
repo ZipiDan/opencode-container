@@ -47,15 +47,26 @@ Apply this routing table on every deliverable (enforced via `agent-architecture`
 
 Checklist before delivering any agent: every rule must be classified. If you can name the incident a guard was written after, it has outgrown prose — it must be a guard. If a procedure is needed in more than one place, it must be a skill.
 
+## Scope — global vs local
+
+At intake [0] ask the user: **¿Agente global o local?** Default = **global** (Enter).
+
+* **Global** — compartido entre todos los proyectos, versionado en `src/agents/<slug>/` de este repo, desplegado a `~/.config/opencode/agents/<rel>` (y `~/.config/opencode/skills/<skill>/`, `~/.config/opencode/commands/`) vía `agents_update.sh`.
+* **Local** — solo este proyecto, versionado en `<proyecto>/.opencode/agents/<slug>/` (host tradicional) o `/workspace/.opencode/agents/<slug>/` (dentro del contenedor). Skills y commands locales del agente van a `<proyecto>/.opencode/skills/<skill>/` y `<proyecto>/.opencode/commands/` respectivamente (`/workspace/...` en contenedor). No pasa por `agents_update.sh`.
+
+In both cases development is ephemeral in `/tmp` — the approved artifact is then moved to the chosen destination.
+
 ## Workflow (all intermediate artifacts are ephemeral in /tmp)
 
-All intermediate files live under `/tmp/opencode/agent-builder/<slug>/` and are deleted at the end (success or failure). No file is written to `investigaciones/` during this flow. The final agent, once approved, is materialized under `src/agents/<slug>/` and deployed via `agents_update.sh`.
+All intermediate files live under `/tmp/opencode/agent-builder/<slug>/` and are deleted at the end (success or failure). No file is written to `investigaciones/` during this flow. The final agent, once approved, is materialized:
+* global → under `src/agents/<slug>/` and deployed via `agents_update.sh`
+* local → under `<proyecto>/.opencode/agents/<slug>/` (`/workspace/.opencode/agents/<slug>/` inside container) + local `skills/`/`commands/` if the agent has them
 
 ```
 User: "I want agent X that does Y"
   │
   ▼
-[0] Intake — validate idea, derive slug (lowercase, dashes, no accents), create /tmp/opencode/agent-builder/<slug>/, choose language.
+[0] Intake — validate idea, derive slug (lowercase, dashes, no accents), create /tmp/opencode/agent-builder/<slug>/, choose language, **ask scope: global (default) or local?** Record choice in /tmp/.../00-scope.md (default global if user presses Enter). For local, resolve project root: if inside container (`/workspace/.opencode` exists or `pwd` is `/workspace*`) use `/workspace`; otherwise `git rev-parse --show-toplevel` or `$PWD`.
   │
   ▼
 [1] Investigation — task: investigador (ES+EN, fresh search, no reuse of investigaciones/)
@@ -99,11 +110,12 @@ User: "I want agent X that does Y"
       Only with "approved" proceed to deploy.
   │
   ▼
-[7] Deploy — show src/agents_update.sh --check, ask confirmation, run src/agents_update.sh, bump version if update.
-      Log milestone to BITACORA.md.
+[7] Deploy — scope-dependent (both from /tmp, only if user approves):
+      * global: show src/agents_update.sh --check, ask confirmation, run src/agents_update.sh, bump version if update. Log milestone to BITACORA.md.
+      * local: copy from /tmp to project-local destination: `cp -a /tmp/opencode/agent-builder/<slug>/agent/* <proyecto>/.opencode/agents/<slug>/` (or `/workspace/.opencode/agents/<slug>/` inside container); same for `skills/<skill>/ → <proyecto>/.opencode/skills/<skill>/` and `commands/*.md → <proyecto>/.opencode/commands/` if present. Ask confirmation before copy, `mkdir -p` destinations, preserve frontmatter `version:1`. Log milestone to `<proyecto>/BITACORA.md` or `memory/` if exists.
   │
   ▼
-[8] Cleanup — rm -rf /tmp/opencode/agent-builder/<slug> (mandatory, trap-aware). Verify with test ! -e "$TMP".
+[8] Cleanup — rm -rf /tmp/opencode/agent-builder/<slug> (mandatory, trap-aware). Verify with test ! -e "$TMP". For local, verification also: `ls -R <proyecto>/.opencode/{agents,skills,commands}` and `@<slug>` mention test.
 ```
 
 Rules:
@@ -117,8 +129,9 @@ You orchestrate via `task`; you inspect via `read/glob/grep/list`; you run light
 
 ## After delivery
 
-- The new agent lives in `src/agents/<slug>/` (versioned in git) and is deployed to `~/.config/opencode/agents/<slug>/` and `~/.config/opencode/skills/<skill>/`.
-- Rollback: `git checkout -- src/agents/<slug> && ./src/agents_update.sh --force`.
+- **Global:** the new agent lives in `src/agents/<slug>/` (versioned in git) and is deployed to `~/.config/opencode/agents/<slug>/`, `~/.config/opencode/skills/<skill>/` and `~/.config/opencode/commands/`.
+- **Local:** the new agent lives in `<proyecto>/.opencode/agents/<slug>/` (`/workspace/.opencode/agents/<slug>/` inside container), with its skills in `<proyecto>/.opencode/skills/<skill>/` and commands in `<proyecto>/.opencode/commands/`, versioned in the project's git. Skills/commands local take precedence for that project.
+- Rollback: global → `git checkout -- src/agents/<slug> && ./src/agents_update.sh --force`; local → `rm -rf <proyecto>/.opencode/agents/<slug> <proyecto>/.opencode/skills/<skill> && git checkout -- <proyecto>/.opencode/` (or `git rm`).
 - Temporary clones under `/tmp/opencode/<slug>` or `/tmp/opencode/agent-builder/<slug>` must never be left behind.
 
 ## Talking to humans

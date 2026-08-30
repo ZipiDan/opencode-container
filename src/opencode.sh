@@ -6,8 +6,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="2.6.2-pre1"
-TAG_RELEASE="v2.6.2-pre1"
+VERSION="2.7.0-pre1"
+TAG_RELEASE="v2.7.0-pre1"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -387,6 +387,8 @@ ensure_gitignore_entry() {
 # Gestiona el .gitignore del proyecto: crea uno por defecto si no existe (con
 # rust/, python/ y la sección de archivos temporales); si existe, agrega las
 # entradas faltantes. Idempotente.
+# Desde v2.7.0-pre1 permite versionar agentes/skills/commands locales en
+# .opencode/{agents,skills,commands}/ mediante excepciones !.
 setup_project_gitignore() {
   local project="$1"
   local gitignore="${project}/.gitignore"
@@ -394,7 +396,13 @@ setup_project_gitignore() {
 
   if [[ ! -f "$gitignore" ]]; then
     cat >"$gitignore" <<'EOF'
-.opencode/
+.opencode/*
+!.opencode/agents/
+!.opencode/agents/**
+!.opencode/skills/
+!.opencode/skills/**
+!.opencode/commands/
+!.opencode/commands/**
 rust/
 python/
 
@@ -404,24 +412,46 @@ python/
 *~
 EOF
     echo -e "${GREEN}[OK]${NC} .gitignore creado en: ${project}"
-    return 0
-  fi
-
-  ensure_gitignore_entry "$gitignore" ".opencode/" && changed=true
-  ensure_gitignore_entry "$gitignore" "rust/" && changed=true
-  ensure_gitignore_entry "$gitignore" "python/" && changed=true
-
-  if ! grep -qxF "# Archivos temporales" "$gitignore"; then
-    printf '\n# Archivos temporales\n' >>"$gitignore"
     changed=true
-  fi
-  ensure_gitignore_entry "$gitignore" "*.tmp" && changed=true
-  ensure_gitignore_entry "$gitignore" "*.swp" && changed=true
-  ensure_gitignore_entry "$gitignore" "*~" && changed=true
+  else
+    # Migrar .opencode/ legacy (no permite re-include) → .opencode/* (sí permite)
+    if grep -qxF ".opencode/" "$gitignore"; then
+      sed -i '\|^\.opencode/$|d' "$gitignore"
+      changed=true
+    fi
+    ensure_gitignore_entry "$gitignore" ".opencode/*" && changed=true
+    # Excepciones para agentes/skills/commands locales versionables (v2.7.0-pre1)
+    ensure_gitignore_entry "$gitignore" "!.opencode/agents/" && changed=true
+    ensure_gitignore_entry "$gitignore" "!.opencode/agents/**" && changed=true
+    ensure_gitignore_entry "$gitignore" "!.opencode/skills/" && changed=true
+    ensure_gitignore_entry "$gitignore" "!.opencode/skills/**" && changed=true
+    ensure_gitignore_entry "$gitignore" "!.opencode/commands/" && changed=true
+    ensure_gitignore_entry "$gitignore" "!.opencode/commands/**" && changed=true
+    ensure_gitignore_entry "$gitignore" "rust/" && changed=true
+    ensure_gitignore_entry "$gitignore" "python/" && changed=true
 
-  if [[ "$changed" == "true" ]]; then
-    echo -e "${GREEN}[OK]${NC} .gitignore actualizado en: ${project}"
+    if ! grep -qxF "# Archivos temporales" "$gitignore"; then
+      printf '\n# Archivos temporales\n' >>"$gitignore"
+      changed=true
+    fi
+    ensure_gitignore_entry "$gitignore" "*.tmp" && changed=true
+    ensure_gitignore_entry "$gitignore" "*.swp" && changed=true
+    ensure_gitignore_entry "$gitignore" "*~" && changed=true
+
+    if [[ "$changed" == "true" ]]; then
+      echo -e "${GREEN}[OK]${NC} .gitignore actualizado en: ${project}"
+    fi
   fi
+
+  # Estructura local versionable para agentes/skills/commands (idempotente)
+  for d in "${project}/.opencode/agents" "${project}/.opencode/skills" "${project}/.opencode/commands"; do
+    if [[ ! -d "$d" ]]; then
+      mkdir -p "$d" 2>/dev/null || continue
+    fi
+    if [[ -z "$(ls -A "$d" 2>/dev/null)" ]]; then
+      touch "$d/.gitkeep" 2>/dev/null || true
+    fi
+  done
 }
 
 # Resuelve el project root trepando hacia atrás buscando .git (dir o archivo,

@@ -40,7 +40,7 @@ El deploy **preserva el árbol de subcarpetas**: cada archivo `src/agents/<rel>`
 | `agents/investigador/investigador.md` | `investigador` | `investigador` |
 | `agents/investigador/investigador-en.md` | `investigador-en` | `investigador-en` |
 
-**No hace falta registrar nada** en `opencode.json`: el directorio global `~/.config/opencode/agents/` se lee automáticamente en cada inicio (`ConfigPaths.directories` siempre incluye la config global).
+**No hace falta registrar nada** en `opencode.json`: el directorio global `~/.config/opencode/agents/` se lee automáticamente en cada inicio (`ConfigPaths.directories` siempre incluye la config global). Desde v2.7.0-pre1 también se soporta **alcance local**: `<proyecto>/.opencode/agents/` (`/workspace/.opencode/agents/` en contenedor) para agentes/skills/commands versionados solo en ese proyecto — ambos scopes desarrollan en `/tmp` y se mueven tras aprobación (global vía `agents_update.sh`, local vía `cp` a `.opencode/` del proyecto). Ver `agent-builder` (pregunta global/local, default global).
 
 ## Registro de agentes
 

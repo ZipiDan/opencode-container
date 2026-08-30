@@ -10,6 +10,16 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [2.7.0-pre1] — 2026-08-30
+
+### Added
+- **Agentes/skills/commands locales** — `agent-builder` ahora pregunta **¿global o local?** (default global). Local se desarrolla igual en `/tmp` efímero y, tras aprobación, se copia a `<proyecto>/.opencode/agents/` (`/workspace/.opencode/agents/` en contenedor) + `<proyecto>/.opencode/skills/` y `<proyecto>/.opencode/commands/` si el agente los tiene. Versionado en el git del proyecto, sin pasar por `agents_update.sh`.
+- Excepciones `.gitignore` para versionar locales: `!/.opencode/agents/`, `!/.opencode/agents/**`, `!/.opencode/skills/`, `!/.opencode/skills/**`, `!/.opencode/commands/`, `!/.opencode/commands/**` + creación de `<proyecto>/.opencode/{agents,skills,commands}/.gitkeep` en `setup_project_gitignore()`.
+
+### Changed
+- `opencode.sh` bumpeado a 2.7.0-pre1.
+- `agent-builder` + skill `agent-architecture`: documentado flujo global vs local y checklist de deploy.
+
 ## [2.6.2-pre1] — 2026-08-30
 
 ### Changed
@@ -132,6 +142,7 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ---
 
+[2.7.0-pre1]: #270--2026-08-30
 [2.6.2-pre1]: #262--2026-08-30
 [2.6.0-pre1]: #260--2026-08-30
 [2.5.0]: #250--2026-08-30

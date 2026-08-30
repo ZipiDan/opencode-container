@@ -10,6 +10,18 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [2.6.0-pre1] — 2026-08-30
+
+### Added
+- **Agente `agent-builder` v1** — meta-orquestador creador de agentes: workflow `investigador → plan → developer → cyberseguridad` con **Regla de oro de los labs (Anthropic/OpenAI/Google): lo determinístico va a hooks (PreToolUse), lo reutilizable a skills, lo universal y corto queda en el .md** (hook emulado como bloque `## Guardrails` en opencode), efímero en `/tmp` (investigador escribe solo en `/tmp`, cleanup obligatorio con `trap`), nunca auto-vendoriza (opción `A*` pre-vendorizada solo si `>500★ + MIT` para evaluación humana), múltiples ciclos `plan↔developer` y **gate final obligatorio** con `cyberseguridad` (STOP en medio/alto con decisión humana).
+- **Skill `agent-architecture`** — router de la Regla de Oro, checklist de frontmatter/permisos mínimos, plantilla de prompt y mapa de reescrituras Claude Code→opencode.
+- **Auditoría `agent-builder`** — `reports/cyberseguridad-2026-08-30-agent-builder.md` (H-01 MEDIO bloqueante mitigado → `## Guardrails` verbatim) y `reports/cyberseguridad-2026-08-30-agent-builder-reaudit.md` (APROBADO).
+
+### Changed
+- `opencode.sh` bumpeado a 2.6.0-pre1.
+- `src/agents/README.md` — registro de `agent-builder` v1.
+- `TODO.md #7` — marcado Resuelto (2026-08-30 20:45).
+
 ## [2.5.0] — 2026-08-30
 
 ### Added
@@ -114,6 +126,7 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ---
 
+[2.6.0-pre1]: #260--2026-08-30
 [2.5.0]: #250--2026-08-30
 [2.4.0]: #240--2026-08-24
 [2.1.0]: #210--2026-08-21

@@ -10,6 +10,12 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [2.6.2-pre1] — 2026-08-30
+
+### Changed
+- `opencode.sh` bumpeado a 2.6.2-pre1.
+- **Agente `developer`**: baseline de configuración ruff — `line-length = 120` (estándar del driver) e `ignore = ["I001", "RUF023"]` (isort reordena imports/normaliza líneas en blanco y `RUF023` ordena `__slots__` alfabéticamente; ambos puramente cosméticos y en conflicto con el `__slots__` semántico del driver). Aplica a `ruff.toml` y `pyproject.toml`.
+
 ## [2.6.0-pre1] — 2026-08-30
 
 ### Added
@@ -126,6 +132,7 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ---
 
+[2.6.2-pre1]: #262--2026-08-30
 [2.6.0-pre1]: #260--2026-08-30
 [2.5.0]: #250--2026-08-30
 [2.4.0]: #240--2026-08-24

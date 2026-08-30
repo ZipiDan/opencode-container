@@ -99,6 +99,33 @@ When a rule conflicts, apply them in this order:
   extract it).
 - No global mutable state unless the architecture already requires it.
 
+### Ruff configuration (driver's baseline)
+
+When a Python project ships a ruff config, ensure it carries the driver's
+baseline unless the project already defines a deliberate lint policy of its own:
+
+- `ruff.toml`:
+  ```toml
+  line-length = 120
+
+  [lint]
+  ignore = ["I001", "RUF023"]
+  ```
+- `pyproject.toml`:
+  ```toml
+  [tool.ruff]
+  line-length = 120
+
+  [tool.ruff.lint]
+  ignore = ["I001", "RUF023"]
+  ```
+
+Rationale: the driver's standard is 120 columns (AGENTS.md) while ruff's
+default is 88 (E501); `I001` (isort) reorders imports and normalizes blank
+lines after imports; `RUF023` sorts the `__slots__` tuple alphabetically.
+Both are purely cosmetic and conflict with the driver's semantic `__slots__`
+ordering — they do not affect correctness.
+
 ## PEP 8 essentials (secondary)
 
 - 4-space indentation, no tabs. **Line length: max 120 characters** (driver's

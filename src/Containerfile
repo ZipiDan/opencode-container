@@ -76,6 +76,15 @@ RUN npm install -g pyright \
     && npm cache clean --force \
     && rm -rf /root/.npm /root/.cache
 
+# Instalar ruff (linter/formatter de Python) como binario estático global.
+# Binario precompilado de GitHub releases (latest): no toca el venv del proyecto
+# ni el python del sistema. Va a /usr/local/bin para no ser enmascarado por los
+# mounts por-proyecto (/workspace/rust, /workspace/python).
+RUN curl -fsSL "https://github.com/astral-sh/ruff/releases/latest/download/ruff-x86_64-unknown-linux-gnu.tar.gz" \
+    | tar -xz -C /tmp \
+    && mv /tmp/ruff-x86_64-unknown-linux-gnu/ruff /usr/local/bin/ruff \
+    && rm -rf /tmp/* /var/tmp/*
+
 # Instalar toolchain de Rust vía rustup (estable) + objetivo musl para binarios estáticos.
 # RUSTUP_HOME queda en la imagen (/root/.rustup); en runtime opencode.sh monta el proyecto
 # y entrypoint.sh re-expone los binarios dentro del CARGO_HOME per-proyecto (<proyecto>/rust).

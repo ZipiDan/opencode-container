@@ -10,6 +10,16 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [2.5.0] — 2026-08-30
+
+### Added
+- **ruff global en la imagen**: binario estático de `astral-sh/ruff` instalado en `/usr/local/bin/ruff` vía `Containerfile` (fuera de venvs, no enmascarado por mounts).
+- **Agente `developer` v7**: reglas de calidad reforzadas — ruff como linter estándar (`ruff check` antes de entregar), fallback `uvx`/`pipx`, propiedades y atributos privados en `snake_case` (`self._internal_state`), y URL del binario precompilado documentada.
+
+### Changed
+- `opencode.sh` bumpeado a 2.5.0.
+- `test/test/sorted_collection.py` modernizado: `collections.abc` + sintaxis `X | None` (PEP 604), limpieza de variable no usada.
+
 ## [2.4.0] — 2026-08-24
 
 ### Added
@@ -104,6 +114,7 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ---
 
+[2.5.0]: #250--2026-08-30
 [2.4.0]: #240--2026-08-24
 [2.1.0]: #210--2026-08-21
 [2.0.0]: #200--2026-08-20

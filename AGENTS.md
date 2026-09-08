@@ -167,6 +167,34 @@ Custom commands are deployed to `~/.config/opencode/commands/` (e.g. the `/md2pd
 
 The `md2pdf` tool ships with alternate CSS styles in `src/tools/css-styles/` (`github.css`, `pandoc.css`, `newsprint.css`, `notion.css`, `paper.css`), selectable with `md2pdf <entrada.md> --style <nombre>`; `--html` generates an HTML file instead of PDF, `--custom-css <archivo.css>` overrides the style with a custom CSS, and `--list-styles` lists the detected styles. The styles are resolved by precedence: config global of the user (`~/.config/opencode/css-styles/`, deployed by `agents_update.sh` and mounted into the container) wins over the ones baked into the image (`/usr/local/share/md2pdf/css-styles/`); if none is found, the embedded default CSS is used. `--install-tools` copies only the root files of `src/tools/` (e.g. `md2pdf.py`) and never the `css-styles/` folder, which travels via the styles stage and the image.
 
+### Agente `arquitecto` (software architect)
+
+Agente primario global para las fases previas al desarrollo: organiza ideas y produce arquitectura
+documentada y plan de desarrollo. Flujo por fases con gate de aprobación humana por artefacto:
+Detección → Ellicitación (socrática, una pregunta por vez, estimaciones solo en rangos) →
+Arquitectura → Planificación → Tareas.
+
+- **Artefactos**: todo a `<proyecto>/docs/arquitectura/**` (`design.md`, `modulos/` con canvas por
+  módulo, `adr/` MADR-numerados, `diagramas/` Mermaid renderizados con la skill `mermaid2png`,
+  `plan/PLAN.md` y `plan/tareas/hito-NN/`). Nunca escribe código de aplicación: el handoff va a
+  `plan` (built-in, planes de ejecución en `.opencode/plans/`, que carga la skill
+  `delivery-planning`) y a `developer`.
+- **Skills del agente**: `module-decomposition` (requisitos→módulos→capas→contratos),
+  `architecture-decisions` (gate de 5 preguntas + ciclo de vida ADR), `delivery-planning` (WBS,
+  hitos con AC, MoSCoW, DoD). Reusa `mermaid2png`, `api-and-interface-design` y delega research a
+  `investigador*`/`explore`.
+- **Permisos**: `edit` solo `docs/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**` (el resto
+  deny); `task` allowlist `investigador*`/`explore` (`"*": deny` PRIMERO — los mapas de permission
+  usan last-match-wins); sin `webfetch`/`websearch` (el research se delega);
+  `external_directory: ask` pineado.
+- **Comando**: `/arquitecto <idea>` (`src/commands/arquitecto.md`, frontmatter `agent: arquitecto`
+  para correr bajo su envelope de permisos).
+- **Procedencia**: las plantillas y patrones provienen de guías verificadas en 6 idiomas con licencia
+  y justificación en `src/agents/arquitecto/PROVENANCE.md`; las re-verificaciones upstream siguen
+  `src/agents/arquitecto/upgrade-arquitecto.md` (fetch → diff → plegar → bump `version:` → gate
+  `cyberseguridad` → deploy). v1 audited 2026-09-08 (gate final APPROVED-WITH-NOTES; riesgo residual
+  documentado R1: la delegación hereda el env auto-allow del launcher).
+
 ## Notes
 
 - Container runs as root. `xdg-open` is stubbed with a no-op script.

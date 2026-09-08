@@ -1,5 +1,4 @@
 # Datos internos de opencode
-.opencode/
 
 # Versiones anteriores (histórico)
 iteracion9/
@@ -22,3 +21,10 @@ test/
 *~
 rust/
 python/
+.opencode/*
+!.opencode/agents/
+!.opencode/agents/**
+!.opencode/skills/
+!.opencode/skills/**
+!.opencode/commands/
+!.opencode/commands/**

@@ -10,6 +10,21 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [2.9.0] — 2026-09-08
+
+### Added
+- **Agente global `arquitecto` v1** — arquitecto de software para las fases previas al desarrollo: elicitación socrática de ideas/requisitos → arquitectura documentada (canvas por módulo con contratos command/query/event, diagramas C4 en Mermaid, ADRs MADR, riesgos, auto-revisión de 8 puntos) → plan maestro con subproyectos/hitos/MoSCoW → packs de tareas por hito en `<proyecto>/docs/arquitectura/**`. No escribe código: handoff a `plan` (built-in) y `developer`. Flujo por fases con gate de aprobación humana por artefacto.
+- **Skills `module-decomposition`, `architecture-decisions`, `delivery-planning`** — procedimientos on-demand del agente, construidos sobre guías verificadas en 6 idiomas (arc42, C4, Nygard/MADR, ddd-crew, superpowers, OpenSpec, WBS/DoD/MoSCoW).
+- **`src/agents/arquitecto/PROVENANCE.md`** — ledger de procedencia pieza→fuente→licencia→justificación→vía de re-verificación (patrón extendido del registro upstream de sysadmin/cyberseguridad; primer agente con él). `upgrade-arquitecto.md` formaliza el re-check de piezas.
+- **Comando `/arquitecto <idea>`** (`src/commands/arquitecto.md`, frontmatter `agent: arquitecto`).
+- **Permisos determinísticos como primera línea**: `edit` restringido a `docs/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**`, `task` allowlist (`"*": deny` primero — last-match-wins), `webfetch/websearch: deny`, `external_directory: ask` pineado, `read` con patrones `.env`. Descubrimiento documentado: los mapas de permission se evalúan findLast; el catch-all debe ir primero.
+- **Auditoría del agente**: 3 pasadas `cyberseguridad` (2H/3M/5L → fixes → STOP por orden de claves → APPROVED-WITH-NOTES). Riesgo residual R1 documentado: la delegación hereda el env auto-allow del launcher (cierre total exigiría `--no-auto` o endurecer `explore`/`investigador-*`, agentes ajenos).
+
+### Changed
+- `opencode.sh` bumpeado a 2.9.0.
+- `src/agents/README.md` — fila `arquitecto` en el registro; `AGENTS.md` — subsección del agente.
+- `TODO.md #2` — marcado Resuelto (2026-09-04: causa raíz = contenedores no reiniciados + hint de red envuelto por AI SDK, no persistencia de models.json).
+
 ## [2.7.0-pre1] — 2026-08-30
 
 ### Added

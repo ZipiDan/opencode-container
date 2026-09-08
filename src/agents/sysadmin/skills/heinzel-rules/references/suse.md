@@ -66,7 +66,7 @@ Enterprise Server (SLES).
 - Reload vs restart: prefer `systemctl reload` when
   the service supports it. See
   `./service-reload.md` for the auto-proceed
-  policy and `memory/service-policy.md` opt-out /
+  policy and `documents/memory/service-policy.md` opt-out /
   opt-in lists.
 
 ## YaST

@@ -143,7 +143,7 @@ Migration is manual by design to avoid overwriting data. Run it once per existin
 
 The canonical copies of the custom agents live in `src/agents/<agent>/` — one subfolder per agent (even multi-file agents such as `investigador`, which also ships subagents) — each `.md` carrying an integer `version:` in its frontmatter. `agents_update.sh` deploy PRESERVES the folder tree into the host's global config (`~/.config/opencode/agents/<rel>`). OpenCode scans `{agent,agents}/**/*.md` recursively — no registry entry needed in `opencode.json`. Each file can fix its agent name with the `name:` frontmatter field (the loader applies the frontmatter over the path-derived name), so agents get clean names (`investigador`, `investigador-en`…) even though their files live in subfolders. Since v2.7.0-pre1 `agent-builder` also supports **local scope**: agents/skills/commands developed in `/tmp` and, after approval, copied to `<proyecto>/.opencode/{agents,skills,commands}/` (`/workspace/.opencode/...` inside container), versioned in the project's git. Global remains default; local is per-project and does not go through `agents_update.sh`.
 
-`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It manages **five stages** (agents → skills → styles → commands, plus tools on demand), showing a per-stage summary and asking one confirmation per stage. Use `--no-skills` to skip the skills stage, `--no-styles` to skip the styles stage, `--no-commands` to skip the commands stage, and `--install-tools [dir]` to install the tool scripts (e.g. `md2pdf.py`) into the user's local bin (only needed for host-only opencode installs):
+`agents_update.sh` runs **only from the repo** and is independent of `opencode.sh` (the launcher is typically installed to `/usr/bin` and cannot locate the repo at runtime, so it is never modified by this mechanism). It manages **five stages** (agents → skills → styles → commands, plus tools on demand), showing a per-stage summary and asking one confirmation per stage. Use `--no-skills` to skip the skills stage, `--no-styles` to skip the styles stage, `--no-commands` to skip the commands stage, and `--install-tools [dir]` to install the tool scripts (e.g. `md2pdf.py`) into the user's local bin (only needed for host-only opencode installs); exclusive `--update-directory <dir>` migrates legacy root dirs of `<dir>` into `documents/` (mandatory dir; pass a project dir to migrate it, e.g. from its container), nothing else:
 
 | Stage | Source (repo) | Destino (global) | Detección de cambios |
 |-------|---------------|------------------|----------------------|
@@ -161,7 +161,7 @@ For agents it scans recursively, skips README files, and rejects duplicate agent
 
 ### Agente `sysadmin` (heinzel) y su actualización
 
-`src/agents/sysadmin/` vendoriza el ruleset de [`wintermeyer/heinzel`](https://github.com/wintermeyer/heinzel): el agente `sysadmin.md` (cerebro adaptado a opencode, memoria 100% por proyecto en `<proyecto>/memory/`), sus 5 skills en `skills/` y la biblioteca de reglas `skills/heinzel-rules/references/`. **No hay flag `--download`**: la actualización desde upstream sigue el procedimiento guiado `src/agents/sysadmin/upgrade-heinzel.md` (fetch → diff → re-vendorizar con mapa de reescrituras Claude-Code→opencode → plegar cambios a `sysadmin.md` y bumpear `version:` → validación → deploy con `agents_update.sh`).
+`src/agents/sysadmin/` vendoriza el ruleset de [`wintermeyer/heinzel`](https://github.com/wintermeyer/heinzel): el agente `sysadmin.md` (cerebro adaptado a opencode, memoria 100% por proyecto en `<proyecto>/documents/memory/`), sus 5 skills en `skills/` y la biblioteca de reglas `skills/heinzel-rules/references/`. **No hay flag `--download`**: la actualización desde upstream sigue el procedimiento guiado `src/agents/sysadmin/upgrade-heinzel.md` (fetch → diff → re-vendorizar con mapa de reescrituras Claude-Code→opencode → plegar cambios a `sysadmin.md` y bumpear `version:` → validación → deploy con `agents_update.sh`).
 
 Custom commands are deployed to `~/.config/opencode/commands/` (e.g. the `/md2pdf` PDF converter) and custom tools to `~/.config/opencode/scripts/` (e.g. `md2pdf.py`). Because `~/.config/opencode/` is bind-mounted into every container (`opencode.sh` mounts it at `/home/opencode/.config/opencode/`), both commands and tools are available inside the container **and** on any host opencode install, keeping behavior consistent across environments.
 
@@ -174,7 +174,7 @@ documentada y plan de desarrollo. Flujo por fases con gate de aprobación humana
 Detección → Ellicitación (socrática, una pregunta por vez, estimaciones solo en rangos) →
 Arquitectura → Planificación → Tareas.
 
-- **Artefactos**: todo a `<proyecto>/docs/arquitectura/**` (`design.md`, `modulos/` con canvas por
+- **Artefactos**: todo a `<proyecto>/documents/arquitectura/**` (`design.md`, `modulos/` con canvas por
   módulo, `adr/` MADR-numerados, `diagramas/` Mermaid renderizados con la skill `mermaid2png`,
   `plan/PLAN.md` y `plan/tareas/hito-NN/`). Nunca escribe código de aplicación: el handoff va a
   `plan` (built-in, planes de ejecución en `.opencode/plans/`, que carga la skill
@@ -183,7 +183,7 @@ Arquitectura → Planificación → Tareas.
   `architecture-decisions` (gate de 5 preguntas + ciclo de vida ADR), `delivery-planning` (WBS,
   hitos con AC, MoSCoW, DoD). Reusa `mermaid2png`, `api-and-interface-design` y delega research a
   `investigador*`/`explore`.
-- **Permisos**: `edit` solo `docs/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**` (el resto
+- **Permisos**: `edit` solo `documents/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**` (el resto
   deny); `task` allowlist `investigador*`/`explore` (`"*": deny` PRIMERO — los mapas de permission
   usan last-match-wins); sin `webfetch`/`websearch` (el research se delega);
   `external_directory: ask` pineado.

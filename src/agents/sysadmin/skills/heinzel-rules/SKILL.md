@@ -19,16 +19,16 @@ check for overrides in this order (later wins):
 
 1. **Base:** `references/<name>.md`
 2. **Project-wide custom:**
-   `memory/custom-rules/<name>.md` (also read
-   `memory/custom-rules/all.md` once per session)
+   `documents/memory/custom-rules/<name>.md` (also read
+   `documents/memory/custom-rules/all.md` once per session)
 3. **Per-server:**
-   `memory/servers/<hostname>/rules.md`
+   `documents/memory/servers/<hostname>/rules.md`
 
 Custom files use heading prefixes: `## Add:`,
 `## Replace:`, `## Remove:` followed by the topic or
 section name. Sections without a prefix are additions.
 The same override chain applies to the skills
-(`memory/custom-rules/heinzel-housekeeping.md`
+(`documents/memory/custom-rules/heinzel-housekeeping.md`
 overrides the `heinzel-housekeeping` skill, etc.).
 
 ## Reference index
@@ -84,11 +84,11 @@ overrides the `heinzel-housekeeping` skill, etc.).
 
 ## Memory layout (per project)
 
-All state lives under the project's `memory/` directory (each
+All state lives under the project's `documents/memory/` directory (each
 project is one client/network):
 
 ```
-memory/
+documents/memory/
 ├── client.md            ← which client/network this project manages
 ├── user.md              ← SSH users (default + per-server), language, operator
 ├── blacklist.md         ← hosts/IPs never to touch (this client)
@@ -105,5 +105,5 @@ memory/
 ```
 
 There is no global admin memory: every client defines its own
-policies. `memory/` is created on first use and should be added
+policies. `documents/memory/` is created on first use and should be added
 to the project's `.gitignore`.

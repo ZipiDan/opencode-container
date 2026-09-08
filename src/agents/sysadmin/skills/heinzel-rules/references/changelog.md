@@ -7,7 +7,7 @@ Two layers for two audiences:
    `journalctl -t heinzel` should read like a
    colleague's handover notes, not a debug dump.
 2. **Local changelog**
-   (`memory/servers/<hostname>/changelog.log`) — the
+   (`documents/memory/servers/<hostname>/changelog.log`) — the
    full technical detail for future heinzel sessions
    and audits.
 
@@ -50,7 +50,7 @@ the app and interrupt visitors"
 ```
 
 - `<operator>` is the operator name from
-  `memory/user.md`; `<unix-user>` is the account the
+  `documents/memory/user.md`; `<unix-user>` is the account the
   commands ran as (`root`, `alice`, …). Always
   include both, even when they are identical — the
   prefix is what lets admins tell each other's work
@@ -99,7 +99,7 @@ permissions instead. See `./secrets.md`.
 ## Local Changelog (full detail)
 
 Mirror every journal headline to
-`memory/servers/<hostname>/changelog.log` with a
+`documents/memory/servers/<hostname>/changelog.log` with a
 full `[YYYY-MM-DD HH:MM]` timestamp, then indent the
 technical detail the journal omitted:
 

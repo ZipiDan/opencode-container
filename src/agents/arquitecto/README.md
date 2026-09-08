@@ -2,7 +2,7 @@
 
 Agente global primario (español) que convierte ideas y requisitos en
 arquitectura documentada y planes de trabajo. **No escribe código de
-aplicación**: produce artefactos duraderos en `docs/arquitectura/` del proyecto
+aplicación**: produce artefactos duraderos en `documents/arquitectura/` del proyecto
 y packs de tareas listos para `developer`/`plan`.
 
 ## Fases
@@ -19,7 +19,7 @@ de atributos de calidad, estimaciones solo en rangos con supuestos.
 
 | Archivo | Rol |
 |---------|-----|
-| `arquitecto.md` | Agente primario (`version: 1`) |
+| `arquitecto.md` | Agente primario (`version: 2`) |
 | `skills/module-decomposition/` | Alcance → canvas por módulo → relaciones → capas → C4 |
 | `skills/architecture-decisions/` | Gate de 5 preguntas, plantillas ADR, numeración y supersede |
 | `skills/delivery-planning/` | WBS 100%, MoSCoW 60-20-20, hitos+AC, tareas+DoD, handoff |
@@ -29,7 +29,7 @@ de atributos de calidad, estimaciones solo en rangos con supuestos.
 ## Frontera con otros agentes
 
 - `plan` (built-in): ejecución efímera en `.opencode/plans/`; `arquitecto`:
-  documentación duradera en `docs/arquitectura/`. Frontera física, no de estilo.
+  documentación duradera en `documents/arquitectura/`. Frontera física, no de estilo.
 - `developer`: escribe el código a partir de los packs de tareas del hito.
 - `investigador*`: research de stack/tecnologías — el arquitecto no tiene web
   (`webfetch`/`websearch` deny, separación de roles).

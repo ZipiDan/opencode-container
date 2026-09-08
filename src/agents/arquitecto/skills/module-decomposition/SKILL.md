@@ -12,7 +12,7 @@ version: 1
 # Module Decomposition — de requisitos a módulos con contratos
 
 Objetivo: partir el alcance en módulos con contratos explícitos y un mapa C4
-(context + containers) documentado en `docs/arquitectura/`. Los pasos van en
+(context + containers) documentado en `documents/arquitectura/`. Los pasos van en
 orden; cada paso deja artefacto.
 
 Fuente general: PROVENANCE.md piezas 4, 5, 6, 9, 10, 11 y 12. Piezas 4 y 5:
@@ -43,7 +43,7 @@ en español); donde la licencia lo exige, la referencia lleva su línea de atrib
 ## 3. Canvas por módulo
 
 Completá la plantilla de `references/canvas-modulo.md` por candidato y
-escribila en `docs/arquitectura/modulos/<slug>.md`.
+escribila en `documents/arquitectura/modulos/<slug>.md`.
 
 Cláusula central: **los mensajes inbound/outbound del canvas SON el contrato
 del módulo**; todo lo demás es detalle interno que el vecino no puede tocar
@@ -66,7 +66,7 @@ Capas de `design.md`.
 ## 6. Diagramas C4 (Mermaid)
 
 - Nivel 1 `C4Context` y nivel 2 `C4Container` como bloques `mermaid` en
-  `design.md`; los fuentes `.mmd` quedan en `docs/arquitectura/diagramas/`.
+  `design.md`; los fuentes `.mmd` quedan en `documents/arquitectura/diagramas/`.
 - Con context + containers alcanza (Brown, minimal approach); componentes solo
   si un container no es obvio para el próximo mantenedor.
 - Render a PNG: delegar en la skill existente `mermaid2png` — no inventar

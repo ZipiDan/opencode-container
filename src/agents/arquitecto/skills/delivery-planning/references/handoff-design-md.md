@@ -8,7 +8,7 @@ tooling ni su texto.
 Propósito: que `plan` (built-in) y `developer` reciban un pack autocontenido
 por hito, sin necesidad de reconstruir el contexto del arquitecto.
 
-## Estructura del pack `docs/arquitectura/plan/`
+## Estructura del pack `documents/arquitectura/plan/`
 
 ```
 plan/

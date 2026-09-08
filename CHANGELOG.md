@@ -10,6 +10,29 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [3.0.0] — 2026-09-08
+
+### Changed
+- **Normalización `documents/`** — carpetas de trabajo de agentes bajo `documents/`:
+  `docs/arquitectura/`, `investigaciones/`, `memory/` y `reports/` se mueven a `documents/<área>/`.
+  Corte limpio sin symlinks; histórico intacto.
+- Agentes `arquitecto` v1→v2, `investigador` v8→v9, `sysadmin` v1→v2,
+  `cyberseguridad` v3→v4, `agent-builder` v1→v2.
+- `agents_update.sh`: modo exclusivo `--update-directory <dir>` (dir obligatorio; pasar el dir
+  de proyecto a migrar) que mueve las carpetas legacy a `documents/`. Corte limpio, nunca sobrescribe.
+- `opencode.sh` bumpeado a 3.0.0 (major por migración de layout + nuevas rutas de agentes).
+
+### How to upgrade (manual steps)
+1. Migrar cada proyecto (uno por contenedor/proyecto), primero en modo vista previa:
+     ./src/agents_update.sh --update-directory /path/to/proyecto --check
+     ./src/agents_update.sh --update-directory /path/to/proyecto   # confirmar Y/s
+   Verificar con `ls /path/to/proyecto/documents/` (solo mueve dirs preexistentes; nunca sobrescribe).
+   `<dir>` es obligatorio y debe existir. Repetir por proyecto (incluido este repo con su ruta si se desea).
+2. Desplegar agentes (una vez, desde este repo):
+     ./src/agents_update.sh --check
+     ./src/agents_update.sh   # confirmar Y/s (sobrescribe tus copias en ~/.config/opencode)
+   Verificar con `./src/agents_update.sh --check` → "up to date. Nothing to do."
+
 ## [2.9.0] — 2026-09-08
 
 ### Added

@@ -22,17 +22,17 @@ applies before any of this runs.
 
 1. **Load overrides.** Before running any check, apply the full
    heinzel rule-override chain (later wins):
-   - `memory/custom-`heinzel-rules` -> `heinzel-housekeeping.md`` if present
+   - `documents/memory/custom-`heinzel-rules` -> `heinzel-housekeeping.md`` if present
      (global custom overrides for this skill — `## Add:`,
      `## Replace:`, `## Remove:` prefixes per `the `sysadmin` agent prompt`).
-   - `memory/housekeeping.md` if present (additional cross-
+   - `documents/memory/housekeeping.md` if present (additional cross-
      server custom checks — free-form Markdown, gitignored by
      default).
-   - `memory/servers/<hostname>/memory.md` (service list,
+   - `documents/memory/servers/<hostname>/memory.md` (service list,
      last-known state, per-server quirks).
-   - `memory/servers/<hostname>/rules.md` if present (per-server
+   - `documents/memory/servers/<hostname>/rules.md` if present (per-server
      rule overrides — same prefixes as above, highest precedence).
-   Note: `memory/custom-`heinzel-rules` -> `all.md`` is already loaded by the
+   Note: `documents/memory/custom-`heinzel-rules` -> `all.md`` is already loaded by the
    the `sysadmin` agent prompt session-start preflight — do not re-read it.
 2. **Select checks.** Run all baseline checks for the detected OS
    plus any service-specific checks triggered by entries in the
@@ -89,7 +89,7 @@ Read on demand, only when the relevant section applies:
 
 ## Custom checks
 
-Users add their own checks in `memory/housekeeping.md`
+Users add their own checks in `documents/memory/housekeeping.md`
 (gitignored, free-form Markdown). The file describes what to
 check, what commands to run, and what thresholds to use. Do not
 pre-create an empty file — it is created when needed.

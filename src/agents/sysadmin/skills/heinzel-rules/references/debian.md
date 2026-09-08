@@ -197,7 +197,7 @@ third-party PPAs.
   `reload` when the service supports it (e.g. nginx)
   to avoid downtime. See `./service-reload.md`
   for the auto-proceed policy and the
-  `memory/service-policy.md` opt-out / opt-in lists.
+  `documents/memory/service-policy.md` opt-out / opt-in lists.
 - Before enabling `ufw`, allow SSH first — see the
   lockout warning in the Firewall section above.
 - `ufw` must be enabled (`ufw enable`) — installing

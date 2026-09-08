@@ -1,7 +1,7 @@
 ---
 name: heinzel-fleet-audit
 description: Compare key policies across all servers in
-  memory/servers/ to surface silent drift. Makes no configuration
+  documents/memory/servers/ to surface silent drift. Makes no configuration
   changes; writes one audit-trail line to each host's journal.
   Probes unattended-upgrades, sshd effective config, firewall
   posture, MTA, time sync, and auto-reboot behaviour. Use when
@@ -16,7 +16,7 @@ description: Compare key policies across all servers in
 Cross-server policy audit. Heinzel knows every host
 individually but has nothing that holds hosts against each
 other. This skill closes that gap by probing the same set of
-settings on every server in `memory/servers/` and rendering a
+settings on every server in `documents/memory/servers/` and rendering a
 side-by-side comparison so silent drift becomes visible.
 
 **No configuration changes.** The audit never alters any
@@ -41,13 +41,13 @@ servers" — that maps to single-host housekeeping.
 ## Workflow
 
 1. **Discover hosts.** List directories under
-   `memory/servers/` whose name resolves to a real host
+   `documents/memory/servers/` whose name resolves to a real host
    (skip placeholders like `server1.example.com` and
    `192.168.64.20` unless the user names them explicitly).
    The user may pass an explicit subset as arguments — in
    that case audit only those.
 
-2. **Resolve SSH users.** Read `memory/user.md` for the
+2. **Resolve SSH users.** Read `documents/memory/user.md` for the
    per-host SSH user. Hosts without a mapping go on a
    "skipped: no SSH user known" list (do not prompt — just
    report).

@@ -4,7 +4,7 @@ Adaptado de: ddd-crew/bounded-context-canvas (CC BY-SA 4.0),
 https://github.com/ddd-crew/bounded-context-canvas — campos reformulados con
 criterio propio en español; NO es texto verbatim del póster original.
 
-Uso: copiar la plantilla a `docs/arquitectura/modulos/<slug>.md` y completarla.
+Uso: copiar la plantilla a `documents/arquitectura/modulos/<slug>.md` y completarla.
 Un módulo sin canvas no entra al diagrama C4 ni al plan de tareas.
 
 ## Plantilla

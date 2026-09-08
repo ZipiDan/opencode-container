@@ -2,7 +2,7 @@
 
 Patrón de granularidad adaptado de obra/superpowers `writing-plans` (MIT):
 "múltiples tareas de minutos, no días". Copiar una por tarea a
-`docs/arquitectura/plan/tareas/hito-NN/<slug>.md`.
+`documents/arquitectura/plan/tareas/hito-NN/<slug>.md`.
 
 ```markdown
 ## Tarea <hito>.<nn> — <verbo + objeto, autoexplicada>

@@ -89,7 +89,7 @@ disagree, what the setting means, suggested fix.
 3. **Firewall tool**: host1 uses ufw, host2 has no
    firewall installed. Suggested fix: install ufw on
    host2 or document the exception in
-   memory/servers/<host2-fqdn>/memory.md.
+   documents/memory/servers/<host2-fqdn>/memory.md.
 ```
 
 ## Empty drift

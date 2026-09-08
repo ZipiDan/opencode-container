@@ -48,7 +48,7 @@ for anything ambiguous.
 
 ## Server Blacklist
 
-**File:** `memory/blacklist.md`
+**File:** `documents/memory/blacklist.md`
 
 **When to check:** before every connection attempt —
 before OS detection, before DNS alias detection,
@@ -57,20 +57,20 @@ when a user mentions a server.
 
 **On match:** refuse to connect. Tell the user:
 "This server is blacklisted in
-`memory/blacklist.md`. I will not connect to it."
+`documents/memory/blacklist.md`. I will not connect to it."
 Do not proceed. Do not ask for override. Do not run
 any SSH commands against the server.
 
 ## Read-Only Servers
 
-**File:** `memory/readonly.md`
+**File:** `documents/memory/readonly.md`
 
 **When to check:** right after the blacklist check,
 before OS detection and DNS alias detection.
 
 **On match:** announce read-only mode to the user:
 "This server is marked read-only in
-`memory/readonly.md`. I will connect and inspect,
+`documents/memory/readonly.md`. I will connect and inspect,
 but I will not make any changes."
 Proceed with the connection — unlike the blacklist,
 read-only does not block access.
@@ -99,5 +99,5 @@ unprivileged mode sysadmin report.
 
 **No override:** read-only mode is a hard constraint.
 The user must remove the entry from
-`memory/readonly.md` before heinzel will modify the
+`documents/memory/readonly.md` before heinzel will modify the
 server.

@@ -108,7 +108,7 @@ Rules for FreeBSD (all versions).
     `service <name> onestart`
   - Reload vs restart: see `./service-reload.md`
     for the auto-proceed policy and
-    `memory/service-policy.md` opt-out / opt-in
+    `documents/memory/service-policy.md` opt-out / opt-in
     lists.
 - **Enable/disable services:**
   - `sysrc <name>_enable="YES"` (preferred)

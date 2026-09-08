@@ -10,7 +10,7 @@ Idea del proyecto: $ARGUMENTS
 1. **Agente:** este comando fija `agent: arquitecto` en su frontmatter. Si tu versión del loader de
    commands lo ignora, trabajá igual esta sesión bajo las reglas del archivo del agente
    (`~/.config/opencode/agents/arquitecto/arquitecto.md`): no escribir código de aplicación,
-   artefactos solo en `docs/arquitectura/**` (scratch: `/tmp/opencode/arquitecto/**`), gate de
+   artefactos solo en `documents/arquitectura/**` (scratch: `/tmp/opencode/arquitecto/**`), gate de
    aprobación humana por fase, y cargar on-demand las skills `module-decomposition`,
    `architecture-decisions` y `delivery-planning` cuando la fase lo pida.
 2. **Arrancar SIEMPRE en la fase de Ellicitación**, nunca en arquitectura: con la herramienta de

@@ -60,10 +60,10 @@ and fight for the same role.
   moby-engine, podman, containerd.io
 
 Extensions live in
-`memory/custom-./service-class-check.md` using
+`documents/memory/custom-./service-class-check.md` using
 the repo's standard `## Add:`, `## Replace:`, and
 `## Remove:` heading prefixes. Per-host overrides
-live in `memory/servers/<hostname>/rules.md`.
+live in `documents/memory/servers/<hostname>/rules.md`.
 
 ## Detection Procedure
 
@@ -285,7 +285,7 @@ for (no conflict): proceed with the install.
 
 After the install completes, record the canonical
 class member in
-`memory/servers/<hostname>/memory.md`:
+`documents/memory/servers/<hostname>/memory.md`:
 
 ```markdown
 - Web server: nginx

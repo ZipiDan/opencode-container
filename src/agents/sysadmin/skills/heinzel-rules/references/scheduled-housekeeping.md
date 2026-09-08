@@ -43,7 +43,7 @@ unattended run cannot:
 - the email skill's pickers (recipient, local vs
   remote source, MTA choice) — persisted as
   `Alert email:` / `Email source:` lines in
-  `memory/servers/<host>/memory.md`;
+  `documents/memory/servers/<host>/memory.md`;
 - the backup-presence question from housekeeping;
 - any first-connection onboarding for a new host.
 
@@ -131,4 +131,4 @@ is the native equivalent; cron also works.
   `MAILTO`).
 - **Audit trail:** as in any session —
   `journalctl -t heinzel` on the server and
-  `memory/servers/<host>/changelog.log` locally.
+  `documents/memory/servers/<host>/changelog.log` locally.

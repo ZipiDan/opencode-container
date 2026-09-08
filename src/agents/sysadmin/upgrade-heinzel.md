@@ -77,7 +77,7 @@ cat "$TMP/VERSION" "$TMP/CHANGELOG.md"
 ```
 
 Leer `CHANGELOG.md` para detectar cambios estructurales (nuevas reglas,
-renombres, cambios de rutas `memory/`).
+renombres, cambios de rutas `documents/memory/`).
 
 ## Paso 3 — re-vendorizar skills y reglas
 
@@ -115,8 +115,7 @@ Borrar del vendor cualquier skill/regla que haya desaparecido upstream.
    `claude -p` / `--permission-mode auto` → `opencode run --agent sysadmin
    --auto`; `~/.claude` → `~/.config/opencode`. (Ver los ya adaptados:
    `scheduled-housekeeping.md` y la sección harness de `service-reload.md`.)
-6. **`memory/` queda igual**: nuestra memoria es 100% por proyecto en la raíz
-   del workspace, igual que la `memory/` de heinzel. No reescribir esas rutas.
+6. **Traducir `memory/` upstream → `documents/memory/`**: nuestra memoria es 100% por proyecto bajo `documents/` del workspace (upstream heinzel la tiene en la raíz). Reescribir esas rutas en cada re-vendorizado.
 
 ## Paso 5 — actualizar el cerebro (`sysadmin.md`)
 

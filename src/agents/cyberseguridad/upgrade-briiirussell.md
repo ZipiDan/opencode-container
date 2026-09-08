@@ -95,7 +95,7 @@ cambio en el README del agente si aporta (nuevas familias, skills, política).
 
 1. Checklist de salvaguardas (verificar punto por punto que sigan intactas):
    - **Solo auditar y reportar:** los `permission.edit` del frontmatter deben
-     seguir limitados a `reports/**` y `/tmp/**`; nada que permita corregir el
+     seguir limitados a `documents/reports/**` y `/tmp/**`; nada que permita corregir el
      código auditado.
    - **Autorización antes que acción:** los skills ofensivos (`recon`,
      `osint-recon`, `web-pentest`, `red-team-engagement`, `disk-forensics`)

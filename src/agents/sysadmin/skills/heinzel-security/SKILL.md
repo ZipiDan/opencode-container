@@ -22,14 +22,14 @@ applies before any of this runs.
 
 1. **Load overrides.** Before running any check, apply the full
    heinzel rule-override chain (later wins):
-   - `memory/custom-`heinzel-rules` -> `heinzel-security.md`` if present (global
+   - `documents/memory/custom-`heinzel-rules` -> `heinzel-security.md`` if present (global
      custom overrides for this skill — `## Add:`, `## Replace:`,
      `## Remove:` prefixes per `the `sysadmin` agent prompt`).
-   - `memory/servers/<hostname>/memory.md` for context (services,
+   - `documents/memory/servers/<hostname>/memory.md` for context (services,
      legitimate external bindings, VPN role).
-   - `memory/servers/<hostname>/rules.md` if present (per-server
+   - `documents/memory/servers/<hostname>/rules.md` if present (per-server
      rule overrides — same prefixes as above, highest precedence).
-   Note: `memory/custom-`heinzel-rules` -> `all.md`` is already loaded by the
+   Note: `documents/memory/custom-`heinzel-rules` -> `all.md`` is already loaded by the
    the `sysadmin` agent prompt session-start preflight — do not re-read it.
 2. **Run checks in 2–3 parallel batches** for speed — not one
    massive batch. If a single parallel tool call errors, Claude

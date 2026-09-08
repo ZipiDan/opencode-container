@@ -1,6 +1,6 @@
 # Template de hito (con criterios de aceptación verificables)
 
-Copiar a `docs/arquitectura/plan/PLAN.md` como sección por hito. Un hito es un
+Copiar a `documents/arquitectura/plan/PLAN.md` como sección por hito. Un hito es un
 corte de integración con AC verificables, no una fecha en el calendario.
 
 ```markdown

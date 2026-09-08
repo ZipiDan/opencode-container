@@ -21,6 +21,12 @@
 # o, por defecto, en ~/.local/bin) y no hace ninguna otra acción. Se usa para
 # compatibilidad con entornos opencode que corren directo en el host.
 #
+# La migración del layout (carpetas legacy de la raíz del proyecto a documents/)
+# NO viaja con el deploy: tiene su modo exclusivo --update-directory <dir>,
+# que solo mueve y no hace ninguna otra acción (igual que --install-tools con
+# las tools). <dir> es obligatorio e indica el proyecto a migrar
+# (cada proyecto corre en su propio contenedor).
+#
 # Los estilos CSS (src/tools/css-styles/) se despliegan a la config global
 # (~/.config/opencode/css-styles/) porque esa carpeta se monta dentro del
 # contenedor y es leída por opencode local: un solo sync alcanza para ambos
@@ -77,6 +83,8 @@ SKIP_STYLES=false
 SKIP_SKILLS=false
 INSTALL_TOOLS=false
 TOOLS_DEST=""
+UPDATE_DIRECTORY=false
+UPDATE_DIR_TARGET=""
 
 show_help() {
   cat <<EOF
@@ -120,6 +128,11 @@ Options:
                               nothing else. If <dir> is omitted, installs into
                               ~/.local/bin. Verifies that <dir> is in your PATH
                               so the tool is invocable (warns if it is not).
+  --update-directory <dir>    Migrate ONLY the legacy root dirs of <dir> into
+                               documents/ (docs/arquitectura, investigaciones,
+                               memory, reports; never overwrites) and do
+                               nothing else. <dir> must be an existing
+                               directory; pass a project dir to migrate it.
   --dest <dir>                Use <dir> as the destination agents folder (default: ${DEST_DIR}).
                               styles/commands are derived from its parent directory.
   -h, --help                  Show this help and exit.
@@ -132,6 +145,7 @@ Examples:
   $0 --no-styles              # deploy agents+skills+commands only
   $0 --install-tools          # install tools into ~/.local/bin (nothing else)
   $0 --install-tools ~/bin    # install tools into ~/bin (nothing else)
+  $0 --update-directory /path/to/project  # migrate project dirs into documents/ (nothing else)
 EOF
 }
 
@@ -143,6 +157,15 @@ while [[ $# -gt 0 ]]; do
     --no-commands) SKIP_COMMANDS=true; shift ;;
     --no-styles) SKIP_STYLES=true; shift ;;
     --no-skills) SKIP_SKILLS=true; shift ;;
+    --update-directory)
+      UPDATE_DIRECTORY=true
+      if [[ -z "${2:-}" || "${2:0:1}" == "-" ]]; then
+        echo "[ERROR] --update-directory requires a directory path." >&2
+        exit 1
+      fi
+      UPDATE_DIR_TARGET="$2"
+      shift 2
+      ;;
     --install-tools)
       INSTALL_TOOLS=true
       # Parámetro opcional de directorio: el siguiente argumento si no es una opción.
@@ -240,6 +263,153 @@ install_tools() {
 if [[ "$INSTALL_TOOLS" == "true" ]]; then
   install_tools "${TOOLS_DEST:-$HOME/.local/bin}"
 fi
+
+# ============================================================================
+# Modo exclusivo: --update-directory <dir>
+# Migra SOLO las carpetas legacy de la raíz del target a documents/ y no hace
+# ninguna otra acción. <dir> es obligatorio (proyectos arbitrarios, cada uno
+# en su contenedor).
+# ============================================================================
+update_directories() {
+  local target_root="$1"
+  local documents_dir="${target_root}/documents"
+  if [[ -f "$documents_dir" ]]; then
+    echo "[ERROR] Documents path exists as a regular file: $documents_dir" >&2
+    exit 1
+  fi
+
+  declare -a move_src=() move_dst=() move_rel=()
+  declare -a dir_skip=()
+  local pair src_rel dst_rel src dst
+  for pair in "docs/arquitectura:documents/arquitectura" "investigaciones:documents/investigaciones" \
+      "memory:documents/memory" "reports:documents/reports"; do
+    src_rel="${pair%%:*}"
+    dst_rel="${pair#*:}"
+    src="${target_root}/${src_rel}"
+    dst="${target_root}/${dst_rel}"
+    if [[ -L "$src" ]]; then
+      dir_skip+=("$src_rel (source is a symlink, skipped)")
+      continue
+    fi
+    if [[ -e "$src" ]]; then
+      if [[ -e "$dst" ]]; then
+        dir_skip+=("$src_rel (destination $dst_rel already exists, skipped)")
+        continue
+      fi
+      move_src+=("$src")
+      move_dst+=("$dst")
+      move_rel+=("$src_rel -> $dst_rel")
+    fi
+  done
+
+  echo "Checking directory layout for migration into documents/..."
+  echo "  Root: $target_root -> $documents_dir"
+  echo ""
+
+  if [[ ${#move_rel[@]} -eq 0 ]]; then
+    echo "Documents layout already normalized. Nothing to do."
+    if [[ ${#dir_skip[@]} -gt 0 ]]; then
+      echo ""
+      echo "Skipped (not touched):"
+      local note
+      for note in "${dir_skip[@]}"; do
+        printf '  - %s\n' "$note"
+      done
+    fi
+    exit 0
+  fi
+
+  echo "The following directories will be moved into documents/:"
+  echo ""
+  local i
+  for i in "${!move_rel[@]}"; do
+    printf '  - %s\n' "${move_rel[$i]}"
+  done
+
+  if [[ ${#dir_skip[@]} -gt 0 ]]; then
+    echo ""
+    echo "Skipped (not touched):"
+    local note
+    for note in "${dir_skip[@]}"; do
+      printf '  - %s\n' "$note"
+    done
+  fi
+
+  if [[ "$CHECK_MODE" == "true" ]]; then
+    echo ""
+    echo "${#move_rel[@]} change(s) would be applied."
+    exit 0
+  fi
+
+  if [[ "$FORCE_MODE" == "true" ]]; then
+    echo ""
+    echo "[--force mode: applying changes without confirmation.]"
+  elif [[ ! -t 0 ]]; then
+    # stdin no es un terminal: no hay forma de pedir confirmación. Nunca aplicar
+    # (ni cancelar) en silencio — exigir que se corra interactivo o con un modo explícito.
+    echo ""
+    echo "${RED}[ERROR] Standard input is not a terminal — cannot ask for confirmation.${NC}" >&2
+    echo "${YELLOW}Re-run interactively, or use --force to apply, or --check to preview.${NC}" >&2
+    exit 1
+  else
+    echo ""
+    read -r -p "Move these directories into documents/? (Y/s) " answer
+    case "${answer,,}" in
+      y | s) ;;
+      *)
+        echo ""
+        echo "Update cancelled. No changes were made."
+        exit 0
+        ;;
+    esac
+  fi
+
+  echo ""
+  echo "Updating..."
+  local applied=0 rel_src rel_dst
+  for i in "${!move_rel[@]}"; do
+    src="${move_src[$i]}"
+    dst="${move_dst[$i]}"
+    mkdir -p "$(dirname "$dst")" || {
+      echo "  [ERROR] Failed to create directory for ${move_rel[$i]}" >&2
+      exit 1
+    }
+    # Corte limpio sin symlinks: 'git mv' si el origen está trackeado, si no 'mv' plano.
+    rel_src="${src#$target_root/}"
+    rel_dst="${dst#$target_root/}"
+    if git -C "$target_root" rev-parse --is-inside-work-tree >/dev/null 2>&1 && \
+        git -C "$target_root" ls-files --error-unmatch -- "$rel_src" >/dev/null 2>&1; then
+      git -C "$target_root" mv -- "$rel_src" "$rel_dst" || {
+        echo "  [ERROR] Failed to move ${move_rel[$i]}" >&2
+        exit 1
+      }
+    elif ! mv "$src" "$dst"; then
+      echo "  [ERROR] Failed to move ${move_rel[$i]}" >&2
+      exit 1
+    fi
+    printf '  [MOVED] %s\n' "${move_rel[$i]}"
+    applied=$((applied + 1))
+  done
+
+  echo ""
+  echo "Done. $applied change(s) applied."
+  exit 0
+}
+
+# Resolución del target de --update-directory (<dir> obligatorio). Acepta ruta
+# relativa (contra $PWD) o absoluta; debe ser un directorio existente (no se crea).
+UPDATE_TARGET=""
+if [[ "$UPDATE_DIRECTORY" == "true" ]]; then
+  _raw_target="$UPDATE_DIR_TARGET"
+  [[ "$_raw_target" != /* ]] && _raw_target="$PWD/$_raw_target"
+  if [[ ! -d "$_raw_target" ]]; then
+    echo "[ERROR] --update-directory requires an existing directory: $UPDATE_DIR_TARGET" >&2
+    exit 1
+  fi
+  UPDATE_TARGET="$(cd "$_raw_target" && pwd)"
+fi
+
+if [[ "$UPDATE_DIRECTORY" == "true" ]]; then update_directories "$UPDATE_TARGET"; fi
 
 # ============================================================================
 # Modo normal (default): despliega agents, styles y commands.

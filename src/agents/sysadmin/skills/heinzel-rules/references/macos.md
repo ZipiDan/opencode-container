@@ -100,7 +100,7 @@ Rules for macOS (Apple Silicon and Intel).
   - Restart: `brew services restart <service>`
   - Reload vs restart: see `./service-reload.md`
     for the auto-proceed policy and
-    `memory/service-policy.md` opt-out / opt-in
+    `documents/memory/service-policy.md` opt-out / opt-in
     lists.
 - For non-Homebrew services:
   - Load: `sudo launchctl load <plist>`

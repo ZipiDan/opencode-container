@@ -1,6 +1,6 @@
 # SSH User
 
-All SSH usernames are stored in `memory/user.md` —
+All SSH usernames are stored in `documents/memory/user.md` —
 never in server memory files. Read this file at the
 start of every session.
 
@@ -28,7 +28,7 @@ Detect the current OS user with `whoami`
 
 ### Case A — fresh install, server already specified
 
-`memory/user.md` does not exist **and** the user
+`documents/memory/user.md` does not exist **and** the user
 has already named a specific server
 (`<hostname>`). Ask **one** combined question so
 the user doesn't get two near-identical pickers
@@ -58,23 +58,23 @@ Which SSH username should heinzel use for <hostname>?
 [1/2/3]:
 ```
 
-Write `memory/user.md` with the chosen name as
+Write `documents/memory/user.md` with the chosen name as
 **both** `Default:` and the `- <hostname>:` entry,
 in a single file write.
 
 ### Case B — fresh install, no server specified yet
 
-`memory/user.md` does not exist and the user ran
+`documents/memory/user.md` does not exist and the user ran
 `claude` / `opencode` with no target in mind.
 Ask only for the default:
 *"Which SSH username should heinzel use by
 default?"* with the same three options. Write
-only `Default:` to `memory/user.md`; do not
+only `Default:` to `documents/memory/user.md`; do not
 invent a per-server entry.
 
 ### Case C — default exists, first connection to a new server
 
-`memory/user.md` exists but has no entry for
+`documents/memory/user.md` exists but has no entry for
 `<hostname>`. Ask the per-server question:
 *"Which SSH username should heinzel use for
 `<hostname>`?"* with:
@@ -86,18 +86,18 @@ invent a per-server entry.
 If the memory default is already `root`, collapse
 options 1 and 2 into a single `root` entry and
 keep `Other…` as option 2. Save the choice as a
-per-server override in `memory/user.md`.
+per-server override in `documents/memory/user.md`.
 
 **On subsequent connections:** look up the server in
-`memory/user.md`. Do not ask again.
+`documents/memory/user.md`. Do not ask again.
 
 When the user explicitly specifies a username on the
 command line, skip the interview, use that name, and
-update `memory/user.md`.
+update `documents/memory/user.md`.
 
 ## User Language
 
-**File:** `memory/user.md` (same file as SSH
+**File:** `documents/memory/user.md` (same file as SSH
 usernames).
 
 heinzel communicates in the user's preferred

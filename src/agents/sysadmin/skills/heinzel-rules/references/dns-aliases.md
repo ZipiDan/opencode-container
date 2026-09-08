@@ -11,7 +11,7 @@ symlinks to the canonical directory.
 ## Detection (on every new hostname)
 
 When connecting to a hostname with no
-`memory/servers/<hostname>/` directory (and not a
+`documents/memory/servers/<hostname>/` directory (and not a
 symlink):
 
 1. **Resolve the IP(s).** Query A records and
@@ -31,12 +31,12 @@ symlink):
    ```
 
 2. **Compare against known servers.** Scan existing
-   `memory/servers/*/memory.md` files (skip
+   `documents/memory/servers/*/memory.md` files (skip
    symlinks) for a matching `- IP:` line.
 
 3. **Match found -> alias.**
    - Create symlink:
-     `ln -s <canonical> memory/servers/<alias>`
+     `ln -s <canonical> documents/memory/servers/<alias>`
    - Add `- DNS alias: <alias>` to canonical
      `memory.md`.
    - Skip OS detection.
@@ -66,7 +66,7 @@ elsewhere (detach it).
 
 ## Removing an Alias
 
-1. Delete the symlink from `memory/servers/`.
+1. Delete the symlink from `documents/memory/servers/`.
 2. Remove the `- DNS alias:` line from canonical
    `memory.md`.
-3. Remove the alias from `memory/user.md` if present.
+3. Remove the alias from `documents/memory/user.md` if present.

@@ -289,8 +289,8 @@ lines.
 ## Never Into the Repo Tree
 
 Never copy key material or credential files
-anywhere under the heinzel repo. `memory/` (and
-`memory/servers/` in team mode) can be shared via
+anywhere under the heinzel repo. `documents/memory/` (and
+`documents/memory/servers/` in team mode) can be shared via
 git — a committed key is a published key. This
 generalizes the rule in `./os-replacement.md`
 → Certificates: store such material outside the

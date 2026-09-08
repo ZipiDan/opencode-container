@@ -53,10 +53,10 @@ Auto-proceed on reload requires ALL of:
 Auto-proceed on restart requires the service to be
 explicitly listed in `restart-auto`. No heuristics.
 
-## Config: `memory/service-policy.md`
+## Config: `documents/memory/service-policy.md`
 
 Optional. Missing file = defaults apply. The format
-mirrors `memory/blacklist.md` / `memory/readonly.md`
+mirrors `documents/memory/blacklist.md` / `documents/memory/readonly.md`
 — plain markdown, three sections, one service name
 per line, lines starting with `#` ignored.
 
@@ -110,13 +110,13 @@ use the `question` tool with these four options:
      the list).
 
 After a write, confirm in one short line, e.g.
-`Added nginx to restart-auto in memory/service-policy.md.`
+`Added nginx to restart-auto in documents/memory/service-policy.md.`
 
 ### Write-Back Rules
 
 - Preserve comments, blank lines, and section order.
 - Only edit the specific list the answer affects.
-- If `memory/service-policy.md` is missing, create
+- If `documents/memory/service-policy.md` is missing, create
   it from the `.example` template with the one new
   entry added (and all commented examples intact).
 - Deduplicate — never add a service already in the
@@ -203,7 +203,7 @@ Tell them apart by who says no:
 They fail differently, so fix them differently. A
 harness refusal is not something a rule file, a
 custom rule, or a per-server override can lift —
-editing `memory/service-policy.md` in response to
+editing `documents/memory/service-policy.md` in response to
 one changes nothing at all.
 
 **In OpenCode**, a harness refusal is a permission
@@ -263,10 +263,10 @@ This rule follows the standard heinzel override
 chain. Later wins:
 
 1. **Base:** `./service-reload.md`
-2. **Global custom:** `memory/custom-./service-reload.md`
+2. **Global custom:** `documents/memory/custom-./service-reload.md`
    (with `## Add:`, `## Replace:`, `## Remove:`
    prefixes)
-3. **Per-server:** `memory/servers/<hostname>/rules.md`
+3. **Per-server:** `documents/memory/servers/<hostname>/rules.md`
 
 The policy lists themselves
 (`reload-always-ask`, `restart-auto`,

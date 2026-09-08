@@ -146,7 +146,7 @@ beyond logging.
 
 After a service is successfully started and
 listening, update
-`memory/servers/<hostname>/memory.md` with:
+`documents/memory/servers/<hostname>/memory.md` with:
 
 ```markdown
 - <App name>: port <N> (<tcp/udp>, <bind address>)

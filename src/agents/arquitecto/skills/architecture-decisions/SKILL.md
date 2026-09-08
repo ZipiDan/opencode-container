@@ -54,7 +54,7 @@ más que un archivo.
 
 ## 3. Convenciones (ciclo de vida)
 
-- Ruta: `docs/arquitectura/adr/NNNN-<titulo-kebab>.md`; numeración NNNN
+- Ruta: `documents/arquitectura/adr/NNNN-<titulo-kebab>.md`; numeración NNNN
   correlativa de 4 dígitos (0001, 0002, ...), sin huecos ni reuse.
 - **Inmutabilidad**: un ADR aceptado no se edita para cambiar de opinión. Lo
   único editable es su `Status:`.

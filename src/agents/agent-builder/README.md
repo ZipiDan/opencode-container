@@ -10,7 +10,7 @@ Ver `skills/agent-architecture/SKILL.md` para la tabla de enrutamiento y checkli
 
 ## Flujo (efímero en /tmp)
 
-Todos los artefactos intermedios viven en `/tmp/opencode/agent-builder/<slug>/` y se borran al final (éxito o fallo). No se escribe en `investigaciones/` durante este flujo. El agente final, una vez aprobado, se materializa en `src/agents/<slug>/` y se despliega con `agents_update.sh`.
+Todos los artefactos intermedios viven en `/tmp/opencode/agent-builder/<slug>/` y se borran al final (éxito o fallo). No se escribe en `documents/investigaciones/` durante este flujo. El agente final, una vez aprobado, se materializa en `src/agents/<slug>/` y se despliega con `agents_update.sh`.
 
 ```mermaid
 flowchart TD

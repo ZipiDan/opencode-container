@@ -1,6 +1,6 @@
 # Server Memory
 
-Each server: `memory/servers/<hostname>/` with
+Each server: `documents/memory/servers/<hostname>/` with
 `memory.md`, `changelog.log`, optionally `todo.md`,
 and optionally `rules.md` (per-server rule
 overrides — see the `sysadmin` agent prompt → Rule Overrides).

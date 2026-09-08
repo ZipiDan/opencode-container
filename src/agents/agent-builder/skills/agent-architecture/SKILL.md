@@ -44,20 +44,21 @@ permission:
     "*": deny
     "/tmp/**": allow
     "../tmp/**": allow
-    "reports/**": allow      # only if audit trace is desired
+    "documents/reports/**": allow      # only if audit trace is desired
   write:
     "*": deny
     "/tmp/**": allow
     "../tmp/**": allow
-    "reports/**": allow
+    "documents/reports/**": allow
 ---
 ```
 
 Rules:
 - Minimal permissions: grant only what the workflow needs. `agent-builder` never writes `src/agents/**` directly — `developer` does (both scopes build in `/tmp`).
 - Scope: **global** (default) → deployed via `agents_update.sh` to `~/.config/opencode/{agents,skills,commands}`; **local** → copied from `/tmp` to `<proyecto>/.opencode/{agents,skills,commands}` (`/workspace/.opencode/...` inside container) after user approval, no `agents_update.sh`, versioned in project's git.
-- No `edit: allow` globally for orchestrators or auditors. See `cyberseguridad` (`reports/**,/tmp/**` only) as reference.
+- No `edit: allow` globally for orchestrators or auditors. See `cyberseguridad` (`documents/reports/**,/tmp/**` only) as reference.
 - Verify `name:` matches folder and is lowercase-dashed (both global and local).
+- Agent working docs live under `documents/<area>/` (arquitectura, investigaciones, memory, reports). Never create new root-level output folders for agent output.
 
 ## Prompt Structure Template
 

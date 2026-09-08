@@ -40,7 +40,7 @@ Before starting:
 
 Gather and save this information from the running
 system before it is wiped. Store it in
-`memory/servers/<hostname>/pre-replacement.md`.
+`documents/memory/servers/<hostname>/pre-replacement.md`.
 
 ### System Facts
 

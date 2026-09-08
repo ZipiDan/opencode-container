@@ -41,5 +41,5 @@ nuevo.
 ## Convenciones compartidas
 
 Idénticas a las de la SKILL: numeración NNNN, ruta
-`docs/arquitectura/adr/NNNN-<titulo-kebab>.md`, inmutabilidad, y `Status:`
+`documents/arquitectura/adr/NNNN-<titulo-kebab>.md`, inmutabilidad, y `Status:`
 como único campo editable de un ADR aceptado.

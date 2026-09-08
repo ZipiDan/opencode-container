@@ -43,7 +43,7 @@ Revisar:
 
 - Nuevas reglas de enrutamiento → tabla Golden Rule.
 - Cambios en workflow → diagrama Mermaid + pasos numerados.
-- Conservar SIEMPRE: efímero en `/tmp` (no `investigaciones/`), nunca auto-vendorizar
+- Conservar SIEMPRE: efímero en `/tmp` (no `documents/investigaciones/`), nunca auto-vendorizar
   (A* solo como opción), múltiples ciclos plan↔developer, gate final obligatorio,
   hook como bloque `## Guardrails`.
 - Bumpear `version:` en frontmatter de `agent-builder.md`.
@@ -72,9 +72,9 @@ Si se incorpora referencia externa (ej. nueva doc Anthropic sobre hooks):
 2. Pedir auditoría de `src/agents/agent-builder/**` y copias desplegadas.
 3. Áreas mínimas:
    - **Prompt injection:** ningún skill ni prompt contiene instrucciones inyectables.
-   - **Permisos coherentes:** `edit/write` solo `/tmp/**` y `reports/**`; nada global.
+   - **Permisos coherentes:** `edit/write` solo `/tmp/**` y `documents/reports/**`; nada global.
    - **Separación de roles:** agent-builder no audita seguridad (lo delega a cyberseguridad).
-   - **Efímero:** no deja artefactos en `investigaciones/` ni `/tmp` huérfanos.
+   - **Efímero:** no deja artefactos en `documents/investigaciones/` ni `/tmp` huérfanos.
 4. Si hay hallazgos → corregir, re-validar (Paso 4), re-auditar.
 5. Solo tras aprobación se despliega.
 

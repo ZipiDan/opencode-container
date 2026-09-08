@@ -34,18 +34,18 @@ applies before any of this runs.
 
 2. **Load overrides.** Apply the heinzel rule-override chain
    (later wins):
-   - `memory/custom-`heinzel-rules` -> `heinzel-email.md`` if present.
-   - `memory/servers/<host>/memory.md` (recipient, source,
+   - `documents/memory/custom-`heinzel-rules` -> `heinzel-email.md`` if present.
+   - `documents/memory/servers/<host>/memory.md` (recipient, source,
      transport, policies — see "Per-server memory" below).
-   - `memory/servers/<host>/rules.md` if present.
-   `memory/custom-`heinzel-rules` -> `all.md`` is already loaded by the
+   - `documents/memory/servers/<host>/rules.md` if present.
+   `documents/memory/custom-`heinzel-rules` -> `all.md`` is already loaded by the
    session-start preflight — do not re-read it.
 
 3. **Resolve recipient.** In order of precedence:
    1. **User said an explicit address** ("send to alice@…",
       "mail it to bob@example.com") → use that. Don't override
       it with stored values.
-   2. **Per-server memory** — `memory/servers/<host>/memory.md`
+   2. **Per-server memory** — `documents/memory/servers/<host>/memory.md`
       has an `Alert email:` line (the established pattern) →
       use that.
    3. **"Send me" shorthand** ("email me", "send me", "mail it
@@ -185,7 +185,7 @@ in this order:
    work in the session):
    - First check `memory.md` for an `Email sender:` line —
      if present, use it without re-probing.
-   - Otherwise read `memory/user.md` for the preferred
+   - Otherwise read `documents/memory/user.md` for the preferred
      username.
    - `id <user>` to verify the account exists on the host.
    - `su - <user> -c 'command -v <transport>'` to verify the
@@ -296,8 +296,8 @@ the only root-privileged operation in the workflow.
    subject and body may be English, the "Viele Grüße /
    Heinzel" close stays the tool's voice. Users who want a
    different wording can set a `Greeting:` line in
-   `memory/user.md` (global) or
-   `memory/servers/<host>/memory.md` (per-host); if present,
+   `documents/memory/user.md` (global) or
+   `documents/memory/servers/<host>/memory.md` (per-host); if present,
    it replaces both lines verbatim (multi-line allowed).
    Per-send instructions ("use 'Mit freundlichen Grüßen'
    this time") always win over memory.
@@ -324,9 +324,9 @@ the only root-privileged operation in the workflow.
    like `root` or `admin`:
 
    1. `Operator name:` line in
-      `memory/servers/<host>/memory.md` (per-host override,
+      `documents/memory/servers/<host>/memory.md` (per-host override,
       rare).
-   2. `Operator name:` line in `memory/user.md` (global,
+   2. `Operator name:` line in `documents/memory/user.md` (global,
       canonical).
    3. Claude Code auto-memory — the `user_profile.md` file
       referenced from `MEMORY.md`. Take the human name from
@@ -342,7 +342,7 @@ the only root-privileged operation in the workflow.
       persist the answer.
 
    **Persist on first resolution via 3/4/5/6** — write
-   `Operator name: <name>` into `memory/user.md` under the
+   `Operator name: <name>` into `documents/memory/user.md` under the
    existing `# Preferences` section so the next run skips
    the probes and the user can edit the canonical value.
    Do not overwrite an `Operator name:` line that already
@@ -354,7 +354,7 @@ the only root-privileged operation in the workflow.
 
    - Remote path: `<sending-host-fqdn>` is the per-server
      hostname (the directory name under
-     `memory/servers/<host>/`).
+     `documents/memory/servers/<host>/`).
    - Local path: `<sending-host-fqdn>` is the workstation's
      FQDN (`hostname -f`, fall back to `hostname`).
 
@@ -392,11 +392,11 @@ the only root-privileged operation in the workflow.
    from a managed host:
 
    1. `Reply-To:` line in
-      `memory/servers/<host>/memory.md` (per-host
+      `documents/memory/servers/<host>/memory.md` (per-host
       override, rare — e.g. a different operator fields
       replies for one specific host; still must be a
       real off-server inbox).
-   2. `Reply-To:` line in `memory/user.md` (global,
+   2. `Reply-To:` line in `documents/memory/user.md` (global,
       canonical).
    3. Claude Code auto-memory — the "Default email"
       entry under User in `MEMORY.md`. Load the linked
@@ -410,7 +410,7 @@ the only root-privileged operation in the workflow.
       with no working reply path silently.
 
    **Persist on first resolution via 3/4** — write
-   `Reply-To: <addr>` into `memory/user.md` under the
+   `Reply-To: <addr>` into `documents/memory/user.md` under the
    `# Preferences` section so the next run skips the
    probes and the user can edit the canonical value.
    Do not overwrite an existing `Reply-To:` line.
@@ -542,7 +542,7 @@ the only root-privileged operation in the workflow.
    "Per-server memory" below. Only write `…always` or
    `…never` lines when the user explicitly picked them;
    absence means "ask next time". The global `Operator name`
-   is persisted to `memory/user.md`, not to per-server
+   is persisted to `documents/memory/user.md`, not to per-server
    memory — write a per-host `Operator name:` line only when
    the user asks for a different signer on that specific
    host.
@@ -557,7 +557,7 @@ the only root-privileged operation in the workflow.
 ## Per-server memory
 
 No new file. The skill reads and updates lines in the
-existing `memory/servers/<host>/memory.md`, extending the
+existing `documents/memory/servers/<host>/memory.md`, extending the
 existing per-server memory format. Policy lines are only
 written once the user picks **Always** or **Never**;
 absence means "ask next time".
@@ -573,14 +573,14 @@ absence means "ask next time".
 - Email send policy: always | never  # gate A — use existing remote MTA
 - MTA install policy: always | never # gate B — install a new remote MTA
 - Operator name: <full name>         # per-host override for signature
-                                     # (global default in memory/user.md)
+                                     # (global default in documents/memory/user.md)
 - Greeting: <closing text>           # per-host override for the greeting
-                                     # (global default in memory/user.md;
+                                     # (global default in documents/memory/user.md;
                                      # absent = "Viele Grüße / Heinzel")
 - From: <mailbox>                    # per-host From override
                                      # (default: noreply@<host>)
 - Reply-To: <addr>                   # per-host Reply-To override
-                                     # (global default in memory/user.md)
+                                     # (global default in documents/memory/user.md)
 ```
 
 The two policy lines are deliberately separate: a user may
@@ -588,7 +588,7 @@ be happy to use a mature postfix that's already there
 ("send: always") but want to be asked every time before
 heinzel installs new packages on a different server
 ("install: ask" = line absent). Mirrors the shape of
-`memory/service-policy.md`'s split between `restart-auto`
+`documents/memory/service-policy.md`'s split between `restart-auto`
 and `restart-never`.
 
 ## References (read on demand)

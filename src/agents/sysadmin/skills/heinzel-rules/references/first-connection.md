@@ -19,7 +19,7 @@ moment") — don't skip.
 2. **Read-only check.** Switch to read-only mode if
    listed. See `./access-control.md`.
 3. **DNS check.** New hostname (no
-   `memory/servers/<hostname>/` yet): run alias
+   `documents/memory/servers/<hostname>/` yet): run alias
    detection. Known hostname: verify the current IP
    still matches the `- IP:` field in server memory.
    See `./dns-aliases.md` for both.

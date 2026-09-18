@@ -104,6 +104,18 @@ La diferencia es mínima:
 El flujo de deploy y actualización es el mismo en ambos casos y se describe en
 detalle más abajo, en [Agentes personalizados](#agentes-personalizados-deploy-y-actualización).
 
+## Identidad del agente
+
+El launcher crea una **identidad propia para el agente**, separada de la del usuario:
+
+- Una **llave SSH** que podés usar en servidores remotos sin exponer tu llave personal.
+- Un **`gitconfig`** que define el autor de los commits del agente y que podés
+  personalizar.
+
+Ambas viven en `~/.config/opencode/identity/` y se enlazan dentro del contenedor al
+iniciar. Así los commits y accesos del agente quedan claramente diferenciados de los
+tuyos.
+
 ---
 
 # Especificaciones técnicas
@@ -333,17 +345,6 @@ parámetros
 ./opencode.sh /ruta/proyecto --tui --network-host
 ```
 
-## Identidad del agente
-
-El launcher crea una **identidad propia para el agente**, separada de la del usuario:
-
-- Una **llave SSH** que podés usar en servidores remotos sin exponer tu llave personal.
-- Un **`gitconfig`** que define el autor de los commits del agente y que podés
-  personalizar.
-
-Ambas viven en `~/.config/opencode/identity/` y se enlazan dentro del contenedor al
-iniciar. Así los commits y accesos del agente quedan claramente diferenciados de los
-tuyos.
 
 ## Arquitectura
 

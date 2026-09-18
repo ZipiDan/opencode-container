@@ -10,6 +10,14 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [Unreleased]
+
+### Changed
+- **`md2pdf` v1.3 → v1.4** — se unifica el tamaño del cuerpo de texto a **`10pt`** en los
+  6 estilos (CSS embebido por defecto y `github`, `pandoc`, `newsprint`, `notion`, `paper`);
+  antes el default usaba `10px` y los 5 estilos `11pt`. Sin cambios en tablas, tipografías
+  ni otros estilos. (`opencode.sh` sin cambios de versión.)
+
 ## [3.1.0] — 2026-09-18
 
 ### Changed

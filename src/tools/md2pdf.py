@@ -43,7 +43,7 @@ import shutil
 import stat
 import sys
 
-VERSION = "1.3"
+VERSION = "1.4"
 
 CSS = """
 @page {
@@ -53,7 +53,7 @@ CSS = """
 }
 body {
     font-family: 'DejaVu Sans', 'Noto Sans', Helvetica, Arial, sans-serif;
-    font-size: 10px;
+    font-size: 10pt;
     line-height: 1.6;
     color: #1a1a1a;
     text-align: justify;

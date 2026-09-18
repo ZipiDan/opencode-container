@@ -88,7 +88,7 @@ table {
     margin: 1em 0;
     font-size: 8.5pt;
     line-height: 1.35;
-    table-layout: fixed;
+    table-layout: auto;
     page-break-inside: auto;
 }
 
@@ -98,8 +98,10 @@ th, td {
     padding: 0.4em 0.6em;
     border: 1px solid #e3e2e0;
     vertical-align: top;
+    text-align: left;
     overflow-wrap: break-word;
     word-wrap: break-word;
+    word-break: break-word;
     hyphens: auto;
 }
 
@@ -108,8 +110,6 @@ th { font-weight: 600; background-color: #f7f7f5; page-break-inside: avoid; }
 tr { page-break-inside: avoid; }
 
 tr:nth-child(2n) { background-color: #fafaf8; }
-
-th:first-child, td:first-child { width: 14%; }
 
 img { max-width: 100%; }
 

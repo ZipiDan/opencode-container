@@ -86,7 +86,7 @@ table {
     margin: 1em 0;
     font-size: 8.5pt;
     line-height: 1.35;
-    table-layout: fixed;
+    table-layout: auto;
     page-break-inside: auto;
 }
 
@@ -96,16 +96,16 @@ th, td {
     padding: 0.35em 0.6em;
     border: 1px solid #bbb;
     vertical-align: top;
+    text-align: left;
     overflow-wrap: break-word;
     word-wrap: break-word;
+    word-break: break-word;
     hyphens: auto;
 }
 
 th { font-weight: 600; background-color: #eee; page-break-inside: avoid; }
 
 tr { page-break-inside: avoid; }
-
-th:first-child, td:first-child { width: 14%; }
 
 img { max-width: 100%; }
 

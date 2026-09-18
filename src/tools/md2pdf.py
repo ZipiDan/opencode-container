@@ -43,7 +43,7 @@ import shutil
 import stat
 import sys
 
-VERSION = "1.2"
+VERSION = "1.3"
 
 CSS = """
 @page {
@@ -101,7 +101,7 @@ table {
     margin: 12px 0;
     font-size: 8.5pt;
     line-height: 1.35;
-    table-layout: fixed;
+    table-layout: auto;
     page-break-inside: auto;
 }
 thead { display: table-header-group; }
@@ -117,13 +117,14 @@ td {
     padding: 5px 10px;
     border-bottom: 1px solid #e0e0e0;
     vertical-align: top;
+    text-align: left;
     overflow-wrap: break-word;
     word-wrap: break-word;
+    word-break: break-word;
     hyphens: auto;
 }
 tr { page-break-inside: avoid; }
 tr:nth-child(even) td { background: #f5f9ff; }
-th:first-child, td:first-child { width: 14%; }
 .meta { font-size: 10pt; color: #555; margin-bottom: 16px; }
 .meta strong { color: #333; }
 """

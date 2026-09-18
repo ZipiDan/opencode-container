@@ -10,6 +10,18 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [3.1.0] — 2026-09-18
+
+### Changed
+- **Documentación general del proyecto** — revisión y actualización de la documentación
+  (README y CHANGELOG) para reflejar el estado actual del launcher y de las herramientas.
+- **Estilos de los informes para PDF y HTML** — las tablas pasan a **auto-layout**
+  (`table-layout: auto`, columnas según el contenido), con `word-break` para tokens largos
+  y sin ancho fijo para la primera columna. Aplicado al CSS embebido por defecto de `md2pdf`
+  (v1.2 → v1.3) y a los 5 estilos (`github`, `pandoc`, `newsprint`, `notion`, `paper`), sin
+  alterar tipografías ni el resto de cada tema.
+- `opencode.sh` bumpeado a 3.1.0.
+
 ## [3.0.0] — 2026-09-08
 
 ### Changed

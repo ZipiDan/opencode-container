@@ -84,7 +84,7 @@ table {
     margin: 1em 0;
     font-size: 8.5pt;
     line-height: 1.35;
-    table-layout: fixed;
+    table-layout: auto;
     page-break-inside: auto;
 }
 
@@ -94,8 +94,10 @@ th, td {
     padding: 0.35em 0.5em;
     border-bottom: 1px solid #ccc;
     vertical-align: top;
+    text-align: left;
     overflow-wrap: break-word;
     word-wrap: break-word;
+    word-break: break-word;
     hyphens: auto;
 }
 
@@ -109,8 +111,6 @@ th {
 tr { page-break-inside: avoid; }
 
 tr:nth-child(even) td { background-color: #fafafa; }
-
-th:first-child, td:first-child { width: 14%; }
 
 img { max-width: 100%; }
 

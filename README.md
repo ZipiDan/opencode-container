@@ -84,8 +84,9 @@ mantenerse en el tiempo.
 
 Los agentes generan Markdown, y el proyecto incluye `md2pdf`, una herramienta que
 convierte cualquier informe a **PDF o HTML** con estilos agradables para lectura y
-publicación: `github`, `pandoc`, `newsprint`, `notion` y `paper`. Está disponible
-como comando global `/md2pdf`.
+publicación: `github`, `pandoc`, `newsprint`, `notion` y `paper`. Las tablas se
+maquetan según el contenido de cada columna (auto-layout) y cortan las palabras
+largas, tanto en PDF como en HTML. Está disponible como comando global `/md2pdf`.
 
 ## Compatibilidad y actualización
 

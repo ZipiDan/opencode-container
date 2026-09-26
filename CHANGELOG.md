@@ -12,11 +12,30 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-09-26
+
 ### Changed
+- **Agente `arquitecto` v3 → v4 — permisos usables** — se corrigen los bloqueos que obligaban
+  a escribir artefactos por `bash` + heredoc (en vez de las herramientas dedicadas):
+  - `bash: ask` → `bash: allow`: el `ask` pisaba el auto-approve del launcher y generaba
+    prompts constantes (y auto-rechazo en ejecución no interactiva). Alineado con `developer`,
+    `sysadmin`, `cyberseguridad` y `agent-builder`.
+  - Scratch robusto: `edit`/`write` pasan de `../tmp/opencode/arquitecto/**` a
+    `**/tmp/opencode/arquitecto/**`, que absorbe los `../` que agrega `path.relative` según la
+    profundidad del worktree (`/workspace` → `../tmp/...`, `/workspace/sub` → `../../tmp/...`).
+    Era el bug que denegaba el scratch en subdirectorios.
+  - Bloque `write:` espejo de `edit` (defensivo: en opencode actual `edit` gobierna
+    `edit`+`write`+`patch`).
+  - Semántica del motor documentada en el prompt: last-match-wins, recurso relativo al worktree,
+    `external_directory` absoluto y previo a `edit`.
+  - Verificado T1–T6 en modo `developer` y en modo Arquitecto real (opencode 1.18.25): escritura
+    en `documents/arquitectura/**` y scratch OK sin prompts; código y `.opencode/plans/**` siguen
+    denegados.
 - **`md2pdf` v1.3 → v1.4** — se unifica el tamaño del cuerpo de texto a **`10pt`** en los
   6 estilos (CSS embebido por defecto y `github`, `pandoc`, `newsprint`, `notion`, `paper`);
   antes el default usaba `10px` y los 5 estilos `11pt`. Sin cambios en tablas, tipografías
-  ni otros estilos. (`opencode.sh` sin cambios de versión.)
+  ni otros estilos.
+- `opencode.sh` bumpeado a 3.3.0.
 
 ## [3.1.0] — 2026-09-18
 

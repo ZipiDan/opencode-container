@@ -10,6 +10,24 @@ La actualización es **por pieza**, no por clon, y es un procedimiento guiado:
 aplicar cambios requiere criterio (las plantillas están adaptadas a español y a
 las convenciones del repo), no un `sed` ciego.
 
+## Invariantes (no re-vendorizar)
+
+Decisiones **propias** del agente (no vienen de upstream). Una actualización desde
+internet NO debe revertirlas; si un cambio upstream choca, gana el invariante y
+cualquier relajación se decide con el operador (nunca en automático):
+
+1. **Permisos**: `edit: allow` y `write: allow` en el frontmatter. La restricción
+   de alcance a `documents/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**`
+   es **por prompt** (guardrails 2 y 4), no por el motor. No "re-endurecer" con
+   mapas de patrones sin decisión explícita (ver `BITACORA.md` 2026-09-29).
+2. **Home + registro**: `documents/arquitectura/INDEX.md` es la tabla de proyectos
+   (`| Proyecto | Descripción | Estado | Fecha de creación | Fecha de última actualización |`)
+   y cada proyecto vive en su subcarpeta `documents/arquitectura/<proyecto>/` con
+   `design.md`, `modulos/`, `adr/`, `diagramas/` y `plan/`.
+3. **Skills propias**: `module-decomposition`, `architecture-decisions` y
+   `delivery-planning` se actualizan por pieza según `PROVENANCE.md`; no se
+   reemplazan por versiones upstream sin plegar al estilo propio.
+
 ## Cuándo correrlo
 
 - El operador pide "actualizá el agente arquitecto".
@@ -33,13 +51,15 @@ las convenciones del repo), no un `sed` ciego.
    ledger) y anotarlo.
 4. **Bumpear `version:`** en `arquitecto.md` y en cada `SKILL.md` tocado
    (es lo que hace visible el UPDATE en los stages de `agents_update.sh`).
-5. **Gates obligatorios**: checklist de la skill `agent-architecture` +
+5. **Verificar invariantes** (sección "Invariantes"): que el plegado no revirtió
+   `edit/write: allow`, el layout por proyecto ni el esquema de `INDEX.md`.
+6. **Gates obligatorios**: checklist de la skill `agent-architecture` +
    auditoría con el agente `cyberseguridad`, scope `src/agents/arquitecto/**`
    (foco: inyección en templates de docs, permisos del frontmatter,
    exfiltración, licencias). Hallazgo medio/alto → STOP y decisión humana.
-6. **Deploy**: `./src/agents_update.sh --check` → revisar diff → confirmar →
+7. **Deploy**: `./src/agents_update.sh --check` → revisar diff → confirmar →
    `./src/agents_update.sh`. Loguear el hito en `BITACORA.md`.
-7. **Limpieza**: borrar todo clon temporal bajo `/tmp/opencode/` usado en el
+8. **Limpieza**: borrar todo clon temporal bajo `/tmp/opencode/` usado en el
    procedimiento (`rm -rf`, verificar con `test ! -e`).
 
 ## Checks ABIERTOS (estado v1, 2026-09-08)

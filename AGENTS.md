@@ -174,19 +174,22 @@ documentada y plan de desarrollo. Flujo por fases con gate de aprobación humana
 Detección → Ellicitación (socrática, una pregunta por vez, estimaciones solo en rangos) →
 Arquitectura → Planificación → Tareas.
 
-- **Artefactos**: todo a `<proyecto>/documents/arquitectura/**` (`design.md`, `modulos/` con canvas por
-  módulo, `adr/` MADR-numerados, `diagramas/` Mermaid renderizados con la skill `mermaid2png`,
-  `plan/PLAN.md` y `plan/tareas/hito-NN/`). Nunca escribe código de aplicación: el handoff va a
-  `plan` (built-in, planes de ejecución en `.opencode/plans/`, que carga la skill
-  `delivery-planning`) y a `developer`.
+- **Home y artefactos**: su home es `<proyecto>/documents/arquitectura/`, con `INDEX.md` (registro de
+  proyectos gestionados: `| Proyecto | Descripción | Estado | Fecha de creación | Fecha de última
+  actualización |`) y una subcarpeta `<proyecto>/` por proyecto con `design.md`, `modulos/` (canvas por
+  módulo), `adr/` MADR-numerados, `diagramas/` Mermaid (skill `mermaid2png`) y `plan/PLAN.md` +
+  `plan/tareas/hito-NN/`. Nunca escribe código de aplicación: el handoff va a `plan` (built-in,
+  planes de ejecución en `.opencode/plans/`, que carga la skill `delivery-planning`) y a `developer`.
 - **Skills del agente**: `module-decomposition` (requisitos→módulos→capas→contratos),
   `architecture-decisions` (gate de 5 preguntas + ciclo de vida ADR), `delivery-planning` (WBS,
   hitos con AC, MoSCoW, DoD). Reusa `mermaid2png`, `api-and-interface-design` y delega research a
   `investigador*`/`explore`.
-- **Permisos**: `edit` solo `documents/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**` (el resto
-  deny); `task` allowlist `investigador*`/`explore` (`"*": deny` PRIMERO — los mapas de permission
-  usan last-match-wins); sin `webfetch`/`websearch` (el research se delega);
-  `external_directory: ask` pineado.
+- **Permisos**: `edit: allow` y `write: allow` (v5): opencode no resuelve bien los patrones por
+  directorio cuando el workspace root difiere del root del proyecto (root `/` + proyecto en
+  `/workspace` → la ruta se relativiza como `workspace/documents/...`), así que el alcance
+  (`documents/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**`) se restringe **por prompt**
+  (guardrail 2), no por el motor; `bash: allow`; `task` allowlist `investigador*`/`explore`; sin
+  `webfetch`/`websearch` (el research se delega); `external_directory` acotado al scratch.
 - **Comando**: `/arquitecto <idea>` (`src/commands/arquitecto.md`, frontmatter `agent: arquitecto`
   para correr bajo su envelope de permisos).
 - **Procedencia**: las plantillas y patrones provienen de guías verificadas en 6 idiomas con licencia

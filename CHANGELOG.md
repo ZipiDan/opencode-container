@@ -12,6 +12,23 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [3.5.0] — 2026-09-29
+
+### Changed
+- **Agente `arquitecto` v4 → v5 — permisos por diseño + home de proyectos**:
+  - `edit: allow` y `write: allow`: se eliminan los mapas de patrones del frontmatter; la restricción
+    a `documents/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**` pasa a sostenerse **por
+    prompt** (guardrails 2 y 4). Motivo: el matcher de rutas de opencode resultó frágil entre
+    versiones y profundidades de worktree; se prioriza que las herramientas dedicadas funcionen.
+  - **Home del arquitecto**: `documents/arquitectura/` pasa a alojar `INDEX.md` (registro de
+    proyectos: `| Proyecto | Descripción | Estado | Fecha de creación | Fecha de última
+    actualización |`) y una subcarpeta `<proyecto>/` por proyecto gestionado; antes los artefactos
+    vivían en la raíz del directorio. Los artefactos legacy se detectan y se relocalizan con
+    consentimiento explícito.
+  - `upgrade-arquitecto.md`: nueva sección **Invariantes (no re-vendorizar)** + paso de verificación,
+    para que una actualización desde internet no revierta el modelo de permisos ni el layout.
+- `opencode.sh` bumpeado a 3.5.0.
+
 ## [3.3.0] — 2026-09-26
 
 ### Changed

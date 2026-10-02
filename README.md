@@ -12,7 +12,9 @@ proyecto, con las herramientas ya dispuestas y tus carpetas locales siempre a la
 
 ## Presentación
 
-[![Vista previa de la presentación: portada, agentes, ejecución y cierre](opencode-container-preview.png)](opencode-container.html)
+<a href="opencode-container.html">
+  <img src="opencode-container-preview.png" alt="Vista previa de la presentación: portada, agentes, ejecución y cierre" width="600">
+</a>
 
 Un recorrido visual por el proyecto: qué aporta, los agentes especializados que lo acompañan
 y cómo se ejecuta. **[Abrir la presentación](opencode-container.html)** — HTML autocontenido,

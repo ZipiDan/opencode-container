@@ -12,6 +12,17 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [3.7.1] — 2026-10-02
+
+### Fixed
+- **`entrypoint.sh` — symlink de `/root/.ssh`**: se elimina `/root/.ssh` antes de recrearlo
+  como symlink a `/root/.identity/ssh`. Si la imagen ya traía `/root/.ssh` como directorio,
+  `ln -sf` generaba un symlink anidado (`/root/.ssh/ssh`) y git/ssh no encontraban ni las
+  claves ni el `known_hosts` de la identidad del agente (el `git push` por defecto dentro
+  del contenedor fallaba con "Host key verification failed" / "Permission denied").
+  Requiere reconstruir la imagen.
+- `opencode.sh` bumpeado a 3.7.1.
+
 ## [3.7.0] — 2026-10-02
 
 ### Added

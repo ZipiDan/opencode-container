@@ -7,9 +7,14 @@ set -e
 #                         (típicamente los del CMD: web --port N --hostname ...)
 #   - tui:                ejecuta `opencode` sin argumentos (arranca la TUI)
 
-# Symlinks para que git/ssh encuentren la identidad del agente
+# Symlinks para que git/ssh encuentren la identidad del agente.
+# /root/.ssh debe SER un symlink al directorio de identidad montado: si la imagen
+# ya trae /root/.ssh como directorio, `ln -sf` crearía un symlink anidado
+# (/root/.ssh/ssh) y ssh no vería las claves ni el known_hosts. Se elimina primero;
+# rm sobre un symlink borra solo el enlace (no sigue al target montado /root/.identity).
 ln -sf /root/.identity/gitconfig /root/.gitconfig
-ln -sf /root/.identity/ssh /root/.ssh
+rm -rf /root/.ssh
+ln -sfn /root/.identity/ssh /root/.ssh
 chmod 700 /root/.identity/ssh
 
 # Generar clave ed25519 si no existe

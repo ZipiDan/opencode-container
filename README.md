@@ -10,6 +10,14 @@ proyecto, con las herramientas ya dispuestas y tus carpetas locales siempre a la
 
 ---
 
+## Presentación
+
+[![Vista previa de la presentación: portada, agentes, ejecución y cierre](opencode-container-preview.png)](opencode-container.html)
+
+Un recorrido visual por el proyecto: qué aporta, los agentes especializados que lo acompañan
+y cómo se ejecuta. **[Abrir la presentación](opencode-container.html)** — HTML autocontenido,
+se abre directamente en el navegador.
+
 ## Por qué existe este proyecto
 
 Cuando trabajamos en una idea, no queremos que la máquina local sea parte del

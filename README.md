@@ -66,6 +66,12 @@ frentes concretos. Se eligen por sesión (en TUI, con `Tab`) o se invocan por co
 | `cyberseguridad` | Audita código, infraestructura y agentes de IA. Es el filtro de seguridad obligatorio antes de dar por aprobado cualquier agente nuevo. |
 | `agent-builder` | Meta-agente que crea otros agentes: investiga, planifica, construye y audita antes de proponerte el resultado. |
 
+Además de los agentes, el proyecto distribuye **skills globales** sin agente portador.
+La principal es `frontend-slides`: crea presentaciones HTML autocontenidas y animadas desde
+cero o convirtiendo un PowerPoint, con descubrimiento visual de estilo y 34 plantillas
+"bold", y exporta el resultado a PDF localmente. Sus dependencias vienen integradas en
+la imagen. Se invoca con el comando `/frontend-slides`.
+
 ### Cómo se construyeron
 
 Algunos agentes nacieron de una idea propia, como el `investigador`. Otros, como el

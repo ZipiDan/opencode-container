@@ -85,6 +85,26 @@ RUN curl -fsSL "https://github.com/astral-sh/ruff/releases/latest/download/ruff-
     && mv /tmp/ruff-x86_64-unknown-linux-gnu/ruff /usr/local/bin/ruff \
     && rm -rf /tmp/* /var/tmp/*
 
+# Dependencias de las skills globales frontend-slides y mermaid2png (horneadas, offline):
+#  - python-pptx (conversión PPT). NO está en Debian trixie → pip del sistema.
+#  - playwright + Chromium headless shell (export PDF de frontend-slides).
+#  - @mermaid-js/mermaid-cli usando el Chromium del sistema (render de mermaid2png).
+#  - libs del sistema para Chrome/Chromium (las instala playwright --with-deps).
+# Limpieza: se borran cachés y temporales de instalación (apt/npm/pip) conservando
+# solo los artefactos (node_modules globales y los browsers de playwright).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends chromium fonts-liberation fonts-dejavu-core \
+    && pip install --break-system-packages --no-cache-dir python-pptx \
+    && PUPPETEER_SKIP_DOWNLOAD=1 npm install -g playwright @mermaid-js/mermaid-cli \
+    && npx playwright install --with-deps --only-shell chromium \
+    && npm cache clean --force \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*.bin /var/cache/debconf/*-old \
+              /root/.npm /root/.cache/pip /tmp/* /var/tmp/*
+
+# mermaid2png: puppeteer usa el Chromium del sistema (evita duplicar navegador).
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Instalar toolchain de Rust vía rustup (estable) + objetivo musl para binarios estáticos.
 # RUSTUP_HOME queda en la imagen (/root/.rustup); en runtime opencode.sh monta el proyecto
 # y entrypoint.sh re-expone los binarios dentro del CARGO_HOME per-proyecto (<proyecto>/rust).

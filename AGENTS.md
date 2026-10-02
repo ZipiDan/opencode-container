@@ -148,16 +148,20 @@ The canonical copies of the custom agents live in `src/agents/<agent>/` — one 
 | Stage | Source (repo) | Destino (global) | Detección de cambios |
 |-------|---------------|------------------|----------------------|
 | agents | `src/agents/**/*.md` | `~/.config/opencode/agents/<rel>` | `version:` (frontmatter) + `sha256sum` |
-| skills | `src/agents/*/skills/<nombre>/**` | `~/.config/opencode/skills/<nombre>/` | `sha256sum` |
+| skills | `src/agents/*/skills/<nombre>/**` + `src/skills/<nombre>/**` | `~/.config/opencode/skills/<nombre>/` | `sha256sum` |
 | styles | `src/tools/css-styles/**` | `~/.config/opencode/css-styles/` | `sha256sum` |
 | tools | `src/tools/*` (raíz, p. ej. `md2pdf.py`) | `~/.local/bin` (solo con `--install-tools`) | `sha256sum` |
 | commands | `src/commands/*.md` | `~/.config/opencode/commands/` | `sha256sum` |
 
 Since v2.7.0-pre1 local scope (`<proyecto>/.opencode/{agents,skills,commands}/`, `/workspace/.opencode/...` in container) is handled directly by `agent-builder` (copy from `/tmp` after approval, no `agents_update.sh`). Global is default; `setup_project_gitignore()` now creates the exception `!/.opencode/{agents,skills,commands}/` so local agents are git-tracked while `.opencode/data|state|python|node_modules` stay ignored.
 
-The skills stage deploys each agent's `skills/<nombre>/` folder to the **global** opencode skills directory (`skills/<nombre>/SKILL.md`, one level — opencode requires unique skill names across all locations, so duplicates are rejected). The `.md` files under `*/skills/` are never treated as agents, and meta-docs without `mode:` (e.g. `upgrade-heinzel.md`) are not deployed.
+The skills stage deploys skills from **two sources** to the **global** opencode skills directory (`skills/<nombre>/SKILL.md`, one level): an agent's own `skills/<nombre>/` folder and the standalone `src/skills/<nombre>/` tree (skills with no owning agent, e.g. `frontend-slides`, `mermaid2png`). The whole standalone tree is copied (scripts/templates included). Because opencode requires unique skill names across all locations, duplicate names **between both sources** are rejected. The `.md` files under `*/skills/` are never treated as agents, and meta-docs without `mode:` (e.g. `upgrade-heinzel.md`) are not deployed.
 
-For agents it scans recursively, skips README files, and rejects duplicate agent names (case-insensitive, in case the destination filesystem is case-insensitive). It compares the repo files against the installed copies (plain files on disk, no git or network), shows the changed files, warns that local modifications will be overwritten on confirmation, and asks for confirmation (`Y`/`s`). It **only manages** the files under `src/agents/`, `src/tools/` and `src/commands/` — the default OpenCode agents (`build`, `plan`), user commands and any other user files are never touched or deleted. `--check` shows what would change without applying. See `src/agents/README.md` for the agent registry and update procedure.
+### Skill global `frontend-slides`
+
+`src/skills/frontend-slides/` (v1, vendorizada de `zarazhangrui/frontend-slides`, MIT) genera presentaciones HTML autocontenidas desde cero o convirtiendo un PPT, con descubrimiento visual de estilo anti-"AI slop", 34 bold templates y export a PDF local. **Vercel excluido** (no publica en terceros). Dependencias **horneadas y offline** en la imagen: `python-pptx` (conversión PPT), `playwright` + Chromium headless shell (export PDF) y `@mermaid-js/mermaid-cli` + Chromium del sistema (para `mermaid2png`). En host, `bash scripts/deps.sh doctor` verifica y `bash scripts/deps.sh install` las aísla en `.deps/`. Se invoca con el comando `/frontend-slides` o cargando la skill por su `description`.
+
+For agents it scans recursively, skips README files, and rejects duplicate agent names (case-insensitive, in case the destination filesystem is case-insensitive). It compares the repo files against the installed copies (plain files on disk, no git or network), shows the changed files, warns that local modifications will be overwritten on confirmation, and asks for confirmation (`Y`/`s`). It **only manages** the files under `src/agents/`, `src/skills/`, `src/tools/` and `src/commands/` — the default OpenCode agents (`build`, `plan`), user commands and any other user files are never touched or deleted. `--check` shows what would change without applying. See `src/agents/README.md` for the agent registry and update procedure.
 
 ### Agente `sysadmin` (heinzel) y su actualización
 

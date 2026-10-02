@@ -25,6 +25,15 @@ se despliega a `~/.config/opencode/skills/<skill>/` (opencode detecta las skills
 agentes. Los meta-archivos de procedimiento (p. ej. `upgrade-heinzel.md`, sin `mode:`) tampoco
 se despliegan.
 
+### Stage `src/skills/` — skills globales sin agente portador
+
+Además de las skills propias de un agente, `agents_update.sh` despliega la fuente standalone
+**`src/skills/<skill>/`** (mismo destino global, `~/.config/opencode/skills/<skill>/`). Se usa para
+skills que no pertenecen a ningún agente en particular pero deben estar disponibles en la config
+global. El stage detecta nombres de skill duplicados **entre ambas fuentes** (agente y standalone) y
+aborta con error, porque opencode exige nombres únicos. El árbol standalone se copia completo
+(no solo `SKILL.md`), de modo que scripts, templates y referencias viajan junto a la skill.
+
 > **Nota sobre despliegue de skills:** las skills de un agente terminan en el registro **global**
 > de skills de opencode (es el único lugar donde opencode las detecta). No es "memoria del agente":
 > el estado operacional del agente (servidores, políticas) vive 100% en `<proyecto>/documents/memory/`.
@@ -51,6 +60,15 @@ El deploy **preserva el árbol de subcarpetas**: cada archivo `src/agents/<rel>`
 | `developer` | `src/agents/developer/` | 7 | Desarrollador senior que escribe código limpio, mantenible y bien estructurado (reglas en inglés, lenguaje-agnósticas): DRY inteligente, modularidad progresiva, diseño de clases, naming, comentarios mínimos, KISS/YAGNI. Referencia de estilo `python-style.md` con jerarquía (custom > PEP 8 > SOTA > Google) aplicable a otros lenguajes. 7 skills on-demand (python-style, code-review, code-simplification, test-driven-development, api-and-interface-design, incremental-implementation, frontend-engineering). **No incluye reglas de ciberseguridad** (rol del agente `cyberseguridad`); construcción y cada actualización pasan por el gate de seguridad de `cyberseguridad`. Actualización desde upstream: ver `upgrade-developer.md` (meta-archivo, no se despliega) |
 | `agent-builder` | `src/agents/agent-builder/` | 1 | Meta-agente creador de agentes: orquesta `investigador → plan → developer → cyberseguridad` aplicando la **Regla de Oro (determinístico→Guardrails, reutilizable→skills, universal→.md)**, efímero en `/tmp` (sin escribir en `documents/investigaciones/`), requiere decisión humana ante hallazgos medios/altos, múltiples ciclos plan↔developer y gate final obligatorio. Hook como bloque `## Guardrails` (opencode sin hook nativo). Ver `README.md` para diagrama y `skills/agent-architecture/SKILL.md` para checklist. Actualización: ver `upgrade-agent-builder.md` |
 | `arquitecto` | `src/agents/arquitecto/` | 5 | Agente global arquitecto de software: elicitación socrática de ideas/requisitos → canvas por módulo con contratos (command/query/event), diagramas C4 en Mermaid, ADRs y riesgos → plan maestro con subproyectos/hitos/MoSCoW → packs de tareas por hito. No escribe código: su home es `<proyecto>/documents/arquitectura/` con `INDEX.md` (registro de proyectos: `| Proyecto | Descripción | Estado | Fecha de creación | Fecha de última actualización |`) y una subcarpeta `<proyecto>/` por proyecto gestionado; `edit/write: allow` con el alcance restringido **por prompt** (guardrails). Handoff a `plan` (built-in, F2) y `developer`. 3 skills on-demand (`module-decomposition`, `architecture-decisions`, `delivery-planning`) + comando `/arquitecto`. Decisiones de diseño y piezas vendorizadas: `PROVENANCE.md`; actualización de piezas upstream: `upgrade-arquitecto.md` (meta-archivo, no se despliega). Auditorías y gate final: `documents/reports/cyberseguridad-2026-09-08-arquitecto*.md` |
+
+## Skills globales (standalone, `src/skills/`)
+
+Skills sin agente portador, horneadas en la imagen y desplegadas a la config global:
+
+| Skill | Subcarpeta | Versión | Rol |
+|-------|------------|---------|------|
+| `frontend-slides` | `src/skills/frontend-slides/` | 1 | Crea presentaciones HTML autocontenidas (animadas) desde cero o convirtiendo PPT, con descubrimiento visual de estilo anti-"AI slop" y 34 bold templates; export a PDF local. Vendorizada de `zarazhangrui/frontend-slides` (MIT). Scripts: `deps.sh` (doctor/install aislado en `.deps/` en host), `export-pdf.sh` + `export-slides.mjs` (playwright+Chromium), `pptx-extract.sh` + `extract-pptx.py` (python-pptx). Comando `/frontend-slides`. Vercel excluido. Ver `PROVENANCE.md` y `upgrade-frontend-slides.md` |
+| `mermaid2png` | `src/skills/mermaid2png/` | 2 | Renderiza diagramas Mermaid (`.mmd`) a PNG localmente con `@mermaid-js/mermaid-cli` y Chrome headless, sin servicios de terceros (kroki/mermaid.ink excluidos). Antes vivía huérfana en la config global; ahora es fuente versionada en el repo |
 
 ## Actualización de heinzel (agente sysadmin)
 

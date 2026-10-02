@@ -7,7 +7,8 @@
 #
 # Stages:
 #   agents    src/agents/**         → ~/.config/opencode/agents/**     (por defecto: SÍ)
-#   skills    src/agents/*/skills/** → ~/.config/opencode/skills/**    (por defecto: SÍ)
+#   skills    src/agents/*/skills/** + src/skills/**
+#                                   → ~/.config/opencode/skills/**    (por defecto: SÍ)
 #   styles    src/tools/css-styles/** → ~/.config/opencode/css-styles/** (por defecto: SÍ)
 #   commands  src/commands/**       → ~/.config/opencode/commands/**   (por defecto: SÍ)
 #   tools     src/tools/* (solo la raíz, p. ej. md2pdf.py)
@@ -38,8 +39,9 @@
 # relativa (p. ej. agents/investigador/investigador-en.md → investigador/investigador-en).
 # Cada archivo puede fijar su nombre con el campo 'name:' del frontmatter.
 # Los .md que no tienen 'mode:' (p. ej. README.md o el meta-doc upgrade-heinzel.md)
-# NO se despliegan como agentes. Las skills viven en subcarpetas
-# src/agents/<agente>/skills/<nombre>/ y se despliegan a
+# NO se despliegan como agentes. Las skills viven en DOS fuentes: subcarpetas de un
+# agente (src/agents/<agente>/skills/<nombre>/) y el directorio standalone
+# (src/skills/<nombre>/), ambas se despliegan a
 # ~/.config/opencode/skills/<nombre>/ (opencode las detecta como skills/*/SKILL.md).
 #
 # Los commands y los estilos se despliegan a la config global (~/.config/opencode/).
@@ -51,7 +53,7 @@
 # sha256. Los estilos, tools y commands (sin frontmatter con version) se comparan
 # solo por checksum.
 #
-# Solo gestiona los archivos que viven bajo src/agents/, src/tools/ y
+# Solo gestiona los archivos que viven bajo src/agents/, src/skills/, src/tools/ y
 # src/commands/: nunca toca los agentes por defecto de OpenCode (build, plan,
 # etc.) ni ningún otro archivo de la config del usuario.
 
@@ -69,6 +71,7 @@ AGENTS_SRC="${SCRIPT_DIR}/agents"
 TOOLS_SRC="${SCRIPT_DIR}/tools"
 STYLES_SRC="${TOOLS_SRC}/css-styles"
 COMMANDS_SRC="${SCRIPT_DIR}/commands"
+SKILLS_SRC="${SCRIPT_DIR}/skills"
 # Raíz de config de opencode: respetar XDG_CONFIG_HOME si está definido (si no, ~/.config).
 CONFIG_ROOT="${XDG_CONFIG_HOME:-${HOME}/.config}/opencode"
 DEST_DIR="${CONFIG_ROOT}/agents"
@@ -96,7 +99,8 @@ environment.
 
 Stages:
   src/agents/...            → ${DEST_DIR}/...           (deployed by default)
-  src/agents/*/skills/...   → ${SKILLS_DEST}/...        (deployed by default)
+  src/agents/*/skills/... + src/skills/...
+                            → ${SKILLS_DEST}/...        (deployed by default)
   src/tools/css-styles/...  → ${STYLES_DEST}/...        (deployed by default)
   src/commands/...          → ${COMMANDS_DEST}/...      (deployed by default)
   src/tools/* (root only)   → NOT installed by default.
@@ -108,14 +112,15 @@ Stages:
 OpenCode scans {agent,agents}/**/*.md recursively with no registry entry. The
 global config directory is read by any local opencode AND is mounted inside the
 launcher container, so one sync covers both environments. Skills are detected
-at skills/<name>/SKILL.md; each agent can carry its own skills under
-src/agents/<agent>/skills/<name>/ which deploy to the global skills directory
-(skill names must be unique across all locations).
+at skills/<name>/SKILL.md. They may live under an agent
+(src/agents/<agent>/skills/<name>/) or standalone (src/skills/<name>/); both
+deploy to the global skills directory (skill names must be unique across all
+locations).
 
 Comparison: agents use the frontmatter 'version:' field plus a sha256 checksum;
 skills, styles, tools and commands (no version field) are compared by checksum only.
-Only the files under src/agents/, src/tools/ and src/commands/ are managed here;
-default OpenCode agents (build, plan, etc.) are never touched.
+Only the files under src/agents/, src/skills/, src/tools/ and src/commands/ are
+managed here; default OpenCode agents (build, plan, etc.) are never touched.
 
 Options:
   --check                     Show what would change, without writing anything.
@@ -449,7 +454,7 @@ echo "  Agents:   $AGENTS_SRC -> $DEST_DIR"
 if [[ "$SKIP_SKILLS" == "true" ]]; then
   echo "  Skills:   (skipped --no-skills)"
 else
-  echo "  Skills:   $AGENTS_SRC/*/skills/ -> $SKILLS_DEST"
+  echo "  Skills:   $AGENTS_SRC/*/skills/ + $SKILLS_SRC/ -> $SKILLS_DEST"
 fi
 if [[ "$SKIP_STYLES" == "true" ]]; then
   echo "  Styles:   (skipped --no-styles)"
@@ -547,22 +552,34 @@ sync_plain() {
 }
 
 # --- Stage 2: skills (checksum sha256) ---
-# Las skills viven en src/agents/<agente>/skills/<nombre>/ y se despliegan a
-# ~/.config/opencode/skills/<nombre>/. OpenCode las detecta como skills/*/SKILL.md
-# (un nivel: cada carpeta <nombre> debe contener SKILL.md) y exige nombres de
-# skill únicos en todos los ámbitos, así que se detectan duplicados.
+# Las skills viven en DOS fuentes:
+#   1) src/agents/<agente>/skills/<nombre>/**   (skills propias de un agente)
+#   2) src/skills/<nombre>/**                    (skills globales sin dueño)
+# Ambas se despliegan a ~/.config/opencode/skills/<nombre>/. OpenCode las detecta
+# como skills/*/SKILL.md (un nivel) y exige nombres de skill únicos en todos los
+# ámbitos, así que se detectan duplicados entre fuentes.
 skills_stage() {
-  local src_dir="$1" dst_dir="$2"
-  [[ -d "$src_dir" ]] || return 0
-  declare -a skill_files=()
-  while IFS= read -r f; do skill_files+=("$f"); done \
-    < <(find "$src_dir" -type f -path '*/skills/*/SKILL.md' | sort)
-  [[ ${#skill_files[@]} -eq 0 ]] && return 0
+  local agents_src="$1" standalone_src="$2" dst_dir="$3"
+  local -a skill_mds=()
+  local f rel skill lower
+
+  if [[ -d "$agents_src" ]]; then
+    while IFS= read -r f; do skill_mds+=("$f"); done \
+      < <(find "$agents_src" -type f -path '*/skills/*/SKILL.md' | sort)
+  fi
+  if [[ -d "$standalone_src" ]]; then
+    while IFS= read -r f; do skill_mds+=("$f"); done \
+      < <(find "$standalone_src" -type f -name 'SKILL.md' ! -path '*/.deps/*' | sort)
+  fi
+  [[ ${#skill_mds[@]} -eq 0 ]] && return 0
 
   declare -A seen_skill=()
-  local rel skill lower
-  for f in "${skill_files[@]}"; do
-    rel="${f##*/skills/}"
+  for f in "${skill_mds[@]}"; do
+    if [[ "$f" == */skills/* ]]; then
+      rel="${f##*/skills/}"
+    else
+      rel="${f#${standalone_src}/}"
+    fi
     skill="${rel%%/*}"
     lower="$(printf '%s' "$skill" | tr '[:upper:]' '[:lower:]')"
     if [[ -n "${seen_skill[$lower]+x}" ]]; then
@@ -573,22 +590,36 @@ skills_stage() {
     seen_skill[$lower]=1
   done
 
-  while IFS= read -r src; do
-    rel="${src##*/skills/}"
-    dst="${dst_dir}/${rel}"
-    src_hash="$(sha256sum "$src" | awk '{print $1}')"
-    if [[ ! -f "$dst" ]]; then
-      queue_change "skills" "$rel" "$src" "$dst" "INSTALL" "(checksum)"
-    else
-      dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
-      if [[ "$src_hash" != "$dst_hash" ]]; then
-        queue_change "skills" "$rel" "$src" "$dst" "UPDATE" "(checksum)"
+  local src dst
+  if [[ -d "$agents_src" ]]; then
+    while IFS= read -r src; do
+      rel="${src##*/skills/}"
+      dst="${dst_dir}/${rel}"
+      src_hash="$(sha256sum "$src" | awk '{print $1}')"
+      if [[ ! -f "$dst" ]]; then
+        queue_change "skills" "$rel" "$src" "$dst" "INSTALL" "(checksum)"
+      else
+        dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
+        [[ "$src_hash" != "$dst_hash" ]] && queue_change "skills" "$rel" "$src" "$dst" "UPDATE" "(checksum)"
       fi
-    fi
-  done < <(find "$src_dir" -type f -path '*/skills/*' | sort)
+    done < <(find "$agents_src" -type f -path '*/skills/*' | sort)
+  fi
+  if [[ -d "$standalone_src" ]]; then
+    while IFS= read -r src; do
+      rel="${src#${standalone_src}/}"
+      dst="${dst_dir}/${rel}"
+      src_hash="$(sha256sum "$src" | awk '{print $1}')"
+      if [[ ! -f "$dst" ]]; then
+        queue_change "skills" "$rel" "$src" "$dst" "INSTALL" "(checksum)"
+      else
+        dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
+        [[ "$src_hash" != "$dst_hash" ]] && queue_change "skills" "$rel" "$src" "$dst" "UPDATE" "(checksum)"
+      fi
+    done < <(find "$standalone_src" -type f ! -path '*/.deps/*' | sort)
+  fi
 }
 
-[[ "$SKIP_SKILLS" == "true" ]] || skills_stage "$AGENTS_SRC" "$SKILLS_DEST"
+[[ "$SKIP_SKILLS" == "true" ]] || skills_stage "$AGENTS_SRC" "$SKILLS_SRC" "$SKILLS_DEST"
 [[ "$SKIP_STYLES" == "true" ]] || sync_plain "styles" "$STYLES_SRC" "$STYLES_DEST" 1
 [[ "$SKIP_COMMANDS" == "true" ]] || sync_plain "commands" "$COMMANDS_SRC" "$COMMANDS_DEST" 0
 

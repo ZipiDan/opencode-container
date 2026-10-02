@@ -28,3 +28,7 @@ python/
 !.opencode/skills/**
 !.opencode/commands/
 !.opencode/commands/**
+
+# Dependencias aisladas de la skill frontend-slides (deps.sh install) — nunca versionar
+.deps/
+**/.deps/

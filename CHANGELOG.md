@@ -12,6 +12,32 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [3.7.0] — 2026-10-02
+
+### Added
+- **Skill global `frontend-slides`** (vendorizada de `zarazhangrui/frontend-slides`, MIT): genera
+  decks HTML autocontenidos con descubrimiento visual de estilo y 34 bold templates; conversión de
+  PPT (`python-pptx`) y export a PDF (`playwright` + Chromium) **locales**. Vercel **excluido**
+  (nada de publicación en terceros).
+- **Nuevo stage `src/skills/`** en `agents_update.sh`: despliega skills globales sin agente portador
+  (además de `src/agents/*/skills/`) y detecta nombres duplicados entre ambas fuentes.
+- **`mermaid2png`**: vendorizada en `src/skills/mermaid2png/` (antes huérfana en la config global) y
+  con dependencias horneadas en la imagen.
+- **Comando `/frontend-slides`**.
+
+### Changed
+- **Imagen**: dependencias horneadas y offline (python-pptx, playwright + Chromium headless shell,
+  `@mermaid-js/mermaid-cli` + Chromium del sistema, librerías de Chrome) con limpieza de cachés de
+  instalación (apt/npm/pip).
+- `opencode.sh` bumpeado a 3.7.0.
+
+### Security
+- Gate de ciberseguridad (auditoría + re-auditoría) sobre `frontend-slides`: servidor de export
+  confinado al directorio de la presentación (anti path-traversal) y en loopback; sin carga de
+  módulos/intérpretes desde variables de entorno; cachés de instalación scoped a `.deps/`.
+- `skills_stage` excluye `*/.deps/*` del deploy y `.gitignore` ignora `.deps/` (evita desplegar
+  o commitear venv/node_modules/browsers de una instalación local).
+
 ## [3.5.0] — 2026-09-29
 
 ### Changed

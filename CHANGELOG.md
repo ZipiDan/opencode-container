@@ -12,6 +12,8 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [3.9.0] — 2026-10-22
+
 ### Added
 - **`--pair <patrón>`**: genera links de pairing para un contenedor web usando el mismo
   resolvedor que `--kill` (nombre exacto, `tuiN`, `N`). Lee el password del contenedor

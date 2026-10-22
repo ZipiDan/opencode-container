@@ -10,11 +10,15 @@ Container-based opencode launcher using Podman. Entrypoint is `opencode.sh`; it 
 |--------|---------|
 | Launch web (default port 4096) | `./opencode.sh /path/to/project` |
 | Launch TUI (no web server) | `./opencode.sh /path/to/project --tui` |
+| Launch web (explicit) | `./opencode.sh /path/to/project --web` |
+| Launch mode via host env var | `OPENCODE_GUI=tui ./opencode.sh /path/to/project` (or `OPENCODE_GUI=web`) |
+| Publish extra ports (both modes) | `./opencode.sh /path/to/project --extra-ports 3000,8080` |
 | Resolve project root from a subdirectory | `./opencode.sh /path/to/project/subdir` |
 | Force working inside a subdirectory (no climb) | `./opencode.sh /path/to/project/subdir --no-climb` |
 | Custom port | `./opencode.sh /path/to/project --port 4097` |
-| Web basic auth (password) | `./opencode.sh /path/to/project --password "pwd"` |
-| Web basic auth (password + user) | `./opencode.sh /path/to/project --password "pwd" --user "admin"` |
+| Web basic auth (password) | `./opencode.sh /path/to/project --password "pwd"` (user: `opencode`; default password: `opencode`) |
+| Generate pairing links for a web container | `./opencode.sh --pair 4096` (or `--pair opencode-4096`) |
+| Stop a container | `./opencode.sh --kill <pattern>` (or `--rm <pattern>`) |
 | Custom project data dir | `./opencode.sh /path/to/project -config /custom/path` |
 | Rebuild image (cached) | `./opencode.sh --rebuild` |
 | Rebuild image (no-cache + pull) | `./opencode.sh --update` |
@@ -35,9 +39,11 @@ By default the container **auto-approves opencode permissions** (the container i
 
 By default the container uses Podman's own network namespace (slirp4netns/pasta), so it **cannot** reach services running on the host that listen on `127.0.0.1` (e.g. a local dev DB, an LLM proxy). Pass `--network-host` (or `--network_host`) to add `--network host` to `podman run`: the container then shares the host's network namespace and `localhost` inside the container resolves to the host. This **breaks network isolation** (the container sees every host port/service), so use it only when host access is required. In web mode the port is published automatically via the host network, so the `-p` flag is omitted (Podman would ignore it and warn otherwise). TUI mode is unaffected and also gains host access.
 
+Extra ports: `--extra-ports <n>,<n>,...` publishes each container port on the same host port (`-p n:n`), in addition to the web port. It applies in **both modes** (web and TUI) — useful to reach services running inside the container (e.g. a dev server). Format: comma-separated numbers without spaces, at least 1, each 1-65535, no duplicates, and no clash with `--port` in web mode. With `--network-host` it is omitted with a warning (the container's ports already are host ports).
+
 ## Architecture
 
-- `Containerfile` — Debian stable-backports base, installs dev/network tools, Ansible, opencode (via official install script), and pyright.
+- `Containerfile` — Debian stable-backports base, installs dev/network tools, Ansible, opencode (via official v2 install script), and pyright.
 - `entrypoint.sh` — Container CMD, dispatches to `opencode` (web mode with args) or `opencode` (TUI mode) based on `OPENCODE_MODE`. Also sets up the agent's git/ssh identity via symlinks to `/root/.identity`.
 - `opencode.sh` — Host-side launcher: resolves paths, creates dirs, sets up mounts, runs Podman.
 
@@ -102,9 +108,14 @@ The global share mount must exist before the symlinks are created.
 | `RUSTUP_HOME` | `/root/.rustup` | Rust toolchain (in image, global) |
 | `AGENT_GIT_NAME` | `OpenCode Agent` | Git author name for agent commits |
 | `AGENT_GIT_EMAIL` | `agent@opencode.local` | Git author email for agent commits |
-| `OPENCODE_MODE` | `web` / `tui` | Selected by `--tui`/`--no-web` |
+| `OPENCODE_MODE` | `web` / `tui` | Interface: flags `--tui`/`--no-web` or `--web` > host env `OPENCODE_GUI` (`tui`/`web`) > default web |
+| `OPENCODE_SERVER_PASSWORD` | `opencode` (default) | Web basic auth password: `--password` > host env > default. Always passed in web mode and printed at startup |
 
-Web basic auth: `--password`/`--user` flags on `opencode.sh` win over the host env vars `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` (which are read from the host when the flags are absent). Only applies to web mode; ignored (with a warning) in TUI mode. The launcher passes the resolved values to the container as `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME`.
+Web basic auth: the `--password` flag on `opencode.sh` wins over the host env var `OPENCODE_SERVER_PASSWORD`; if neither is set, the launcher uses `opencode` as the default and prints it. The username is always `opencode`: opencode v2 hardcodes it in `ServerAuthConfig` and ignores `OPENCODE_SERVER_USERNAME`, so the `--user` flag was removed from the launcher. Only applies to web mode; ignored (with a warning) in TUI mode.
+
+Web mode runs detached (`podman run -d`): the container survives terminal close and is stopped with `--kill <port>`. After startup the launcher polls `/api/info`, mints a one-time pairing link (`POST /api/pair`) and prints it; the link sets a 30-day cookie on the browser. `--pair <pattern>` reuses the `--kill` resolver to read the container's port and password and prints links for `127.0.0.1` + LAN IPs (one code per URL). `--pair` does not accept `--port` or `--password`.
+
+Interface selection precedence: `--tui`/`--no-web` or `--web` flags win; otherwise the host env `OPENCODE_GUI` decides (`tui` or `web`; invalid value → warning + default web); otherwise web (default). `OPENCODE_GUI` is read host-side by the launcher and never reaches the container (it is resolved to `OPENCODE_MODE`).
 
 ## Migrating from the old layout
 

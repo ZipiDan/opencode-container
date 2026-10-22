@@ -147,8 +147,12 @@ para los propios agentes.
 |--------|---------|
 | Modo web (puerto 4096) | `opencode.sh /ruta/a/tu/proyecto` |
 | Modo TUI | `opencode.sh /ruta/a/tu/proyecto --tui` |
+| Modo web explícito | `opencode.sh /ruta/a/tu/proyecto --web` |
+| Modo vía variable de entorno | `OPENCODE_GUI=tui opencode.sh /ruta/a/tu/proyecto` (o `OPENCODE_GUI=web`) |
 | Puerto personalizado | `opencode.sh /ruta/a/tu/proyecto --port 4097` |
-| Auth básica web | `opencode.sh /ruta/a/tu/proyecto --password "pwd" --user "admin"` |
+| Puertos extra publicados | `opencode.sh /ruta/a/tu/proyecto --extra-ports 3000,8080` |
+| Auth básica web | `opencode.sh /ruta/a/tu/proyecto --password "pwd"` (usuario: `opencode`; default: `opencode`) |
+| Link de acceso (pairing) | `opencode.sh --pair 4096` (o `--pair opencode-4096`) |
 | Datos en otra ubicación | `opencode.sh /ruta/a/tu/proyecto -config /mnt/opencode-data` |
 | Compartir red del host | `opencode.sh /ruta/a/tu/proyecto --network-host` |
 | Listar contenedores | `opencode.sh --ps` (o `--ls`) |
@@ -232,14 +236,20 @@ Reiniciá opencode (contenedor o tradicional) para que tome los agentes.
 # Modo TUI (terminal interactiva)
 ./opencode.sh /ruta/a/tu/proyecto --tui
 
+# Modo web explícito (es el modo por defecto)
+./opencode.sh /ruta/a/tu/proyecto --web
+
+# Modo vía variable de entorno del host (los flags --tui/--web ganan)
+OPENCODE_GUI=tui ./opencode.sh /ruta/a/tu/proyecto
+
 # Puerto personalizado
 ./opencode.sh /ruta/a/tu/proyecto --port 4097
 
-# Auth básica web (usuario por defecto: opencode)
-./opencode.sh /ruta/a/tu/proyecto --password "mi-secreto"
+# Publicar puertos extra del contenedor en el host (aplica en web y TUI)
+./opencode.sh /ruta/a/tu/proyecto --extra-ports 3000,8080
 
-# Auth básica web (password + usuario custom)
-./opencode.sh /ruta/a/tu/proyecto --password "mi-secreto" --user "admin"
+# Auth básica web (usuario fijo: opencode)
+./opencode.sh /ruta/a/tu/proyecto --password "mi-secreto"
 
 # Datos del proyecto en ubicación personalizada
 ./opencode.sh /ruta/a/tu/proyecto -config /mnt/opencode-data
@@ -251,6 +261,12 @@ Reiniciá opencode (contenedor o tradicional) para que tome los agentes.
 ./opencode.sh /ruta/a/tu/proyecto/subdir --no-climb
 ```
 
+En modo web el contenedor corre **detached** (`podman run -d`): el comando vuelve,
+el contenedor sigue vivo y el launcher imprime el password y un link de acceso de
+un solo uso. Detenelo con `./opencode.sh --kill <puerto>`; los logs se siguen con
+`podman logs -f opencode-<puerto>`. Para pedir links nuevos (por ejemplo, para la
+LAN), usá `./opencode.sh --pair <puerto>`.
+
 ### Gestión de imagen
 
 | Acción | Comando |
@@ -259,8 +275,7 @@ Reiniciá opencode (contenedor o tradicional) para que tome los agentes.
 | Actualizar imagen (no-cache + pull base) | `./opencode.sh --update` |
 | Actualizar imagen desde cero, reemplazando la anterior si el build es exitoso | `./opencode.sh --renew` |
 | Compartir red del host | `./opencode.sh /path/to/project --network-host` |
-| Auth básica web (password) | `./opencode.sh /path/to/project --password "pwd"` |
-| Auth básica web (password + user) | `./opencode.sh /path/to/project --password "pwd" --user "admin"` |
+| Auth básica web | `./opencode.sh /path/to/project --password "pwd"` (usuario: `opencode`) |
 
 > `--renew` y `--rebuild` son mutuamente excluyentes.
 
@@ -273,17 +288,19 @@ Reiniciá opencode (contenedor o tradicional) para que tome los agentes.
 | Detener un contenedor opencode (forma corta) | `./opencode.sh --kill tui2` o `./opencode.sh --kill 2` |
 | Detener un contenedor opencode (por puerto) | `./opencode.sh --kill 4096` |
 | Alias de `--kill` | `./opencode.sh --rm <patrón>` |
+| Generar links de acceso (pairing) | `./opencode.sh --pair 4096` o `./opencode.sh --pair opencode-4096` |
 
-> `--ps`/`--ls` y `--kill`/`--rm` son mutuamente excluyentes y no se pueden combinar
-> con flags de gestión de imagen ni de ejecución.
+> `--ps`/`--ls`, `--kill`/`--rm`, `--pair` y `--kill-all` son mutuamente excluyentes
+> y no se pueden combinar con flags de gestión de imagen ni de ejecución.
+> `--pair` lee el password del contenedor: no acepta `--password` ni `--port`.
 
 ## Combinaciones de parámetros
 
 Los parámetros se distribuyen en tres **mundos mutuamente excluyentes**:
 
 - **Mundo IMAGEN**: `--renew` / `--rebuild` / `--update` — gestionan la imagen del contenedor.
-- **Mundo GESTIÓN**: `--ps` / `--ls` / `--kill` / `--rm` — operan sobre contenedores en ejecución.
-- **Mundo EJECUCIÓN**: `<proyecto>` + flags runtime (`-config`, `--port`, `--tui`, `--network-host`) — lanzan un contenedor.
+- **Mundo GESTIÓN**: `--ps` / `--ls` / `--kill` / `--rm` / `--pair` — operan sobre contenedores en ejecución.
+- **Mundo EJECUCIÓN**: `<proyecto>` + flags runtime (`-config`, `--port`, `--extra-ports`, `--tui`, `--web`, `--network-host`) — lanzan un contenedor.
 
 Los flags de un mundo **no se cruzan** con los del otro. La referencia formal completa
 (tabla única, BNF y reglas del parser) está en [`PARAMETERS.md`](PARAMETERS.md).
@@ -308,6 +325,9 @@ parámetros
 ├── --kill <patrón> | --rm <patrón>  detiene un contenedor opencode
 │       (patrón: opencode-tui2, opencode-4096, tui2, 2, 4096)
 │
+├── --pair <patrón>                  genera links de acceso para un contenedor web
+│       (mismo patrón que --kill; lee el password del contenedor)
+│
 └── <proyecto>                       lanza opencode en el proyecto
     │
     ├── --no-climb                   desactiva la búsqueda de .git hacia atrás
@@ -315,11 +335,14 @@ parámetros
     │
     ├── --tui                        arranca terminal interactiva
     │   ├── -config <ruta>
-    │   └── --network-host
+    │   ├── --network-host
+    │   └── --extra-ports <n>,<n>,...   publica puertos extra host→contenedor
     │
-    └── web (sin --tui, default)     arranca servidor web
+    └── web (default)                arranca servidor web
+        ├── --web                    fuerza modo web (gana a OPENCODE_GUI)
         ├── --port <1-65535>
         │   └── default: 4096
+        ├── --extra-ports <n>,<n>,...   publica puertos extra host→contenedor
         ├── -config <ruta>
         └── --network-host
 ```
@@ -328,13 +351,24 @@ parámetros
 
 - No mezclar flags de mundos distintos (IMAGEN/GESTIÓN/EJECUCIÓN).
 - `--renew` y `--rebuild` son mutuamente excluyentes (error del script).
-- `--ps`/`--ls` y `--kill`/`--rm` son mutuamente excluyentes entre sí.
+- `--ps`/`--ls`, `--kill`/`--rm`, `--pair` y `--kill-all` son mutuamente excluyentes entre sí.
+- `--pair` usa el mismo patrón que `--kill`; no acepta `--port` ni `--password` (los lee del contenedor).
 - `--tui` ignora `--port` (no hay servidor web).
+- `--tui`/`--no-web` y `--web` son mutuamente excluyentes.
+- Selección de modo (precedencia): flags `--tui`/`--no-web` o `--web` > env
+  `OPENCODE_GUI` del host (`tui`/`web`; valor inválido → aviso y default) >
+  default web.
+- `--extra-ports <n>,<n>,...` publica `-p n:n` por cada puerto, en web y TUI
+  (comas sin espacios, 1-65535, sin duplicados ni choque con `--port` en web).
 - `--no-climb` (alias `--no-search-git`) desactiva la resolución automática de `.git`
   hacia arriba; útil para trabajar en una subcarpeta aislada.
-- `--network-host` omite `-p` en modo web (podman lo publica vía el host).
+- `--network-host` omite `-p` (puerto web y extra-ports: podman los descarta
+  al compartir la red del host).
 - Contenedores TUI se nombran `opencode-tuiN` (numeración `max+1`).
-- Contenedores web se nombran `opencode-<puerto>`.
+- Contenedores web se nombran `opencode-<puerto>` y corren detached (`-d`):
+  sobreviven al cierre de la terminal; se detienen con `--kill <puerto>`.
+- Password web: `--password` > env `OPENCODE_SERVER_PASSWORD` > default
+  `opencode`; se imprime al arrancar en modo web.
 
 ### Ejemplos de invocaciones válidas
 
@@ -349,6 +383,8 @@ parámetros
 ./opencode.sh --kill opencode-tui2
 ./opencode.sh --kill 4096
 ./opencode.sh --rm tui2
+./opencode.sh --pair 4096
+./opencode.sh --pair opencode-4096
 
 # Mundo EJECUCIÓN — web
 ./opencode.sh /ruta/proyecto
@@ -356,10 +392,15 @@ parámetros
 ./opencode.sh /ruta/proyecto/subdir --no-climb    # no busca la raíz; trabaja en la subcarpeta
 ./opencode.sh /ruta/proyecto --port 4097 --network-host
 ./opencode.sh /ruta/proyecto -config /mnt/data
+./opencode.sh /ruta/proyecto --web                # fuerza modo web (default)
+OPENCODE_GUI=web ./opencode.sh /ruta/proyecto     # modo web vía env del host
+./opencode.sh /ruta/proyecto --extra-ports 3000,8080
 
 # Mundo EJECUCIÓN — TUI
 ./opencode.sh /ruta/proyecto --tui
 ./opencode.sh /ruta/proyecto --tui --network-host
+OPENCODE_GUI=tui ./opencode.sh /ruta/proyecto     # modo TUI vía env del host
+./opencode.sh /ruta/proyecto --tui --extra-ports 3000   # puertos extra también en TUI
 ```
 
 
@@ -501,8 +542,16 @@ El scope local no pasa por `agents_update.sh`.
 | `AGENT_GIT_NAME` | `OpenCode Agent` | Nombre git del agente |
 | `AGENT_GIT_EMAIL` | `agent@opencode.local` | Email git del agente |
 | `OPENCODE_MODE` | `web` / `tui` | Modo de ejecución |
-| `OPENCODE_SERVER_PASSWORD` | — | Password de auth básica web (si no se usa `--password`) |
-| `OPENCODE_SERVER_USERNAME` | `opencode` | Usuario de auth básica web (si no se usa `--user`) |
+| `OPENCODE_SERVER_PASSWORD` | — | Password de auth básica web (si no se usa `--password`). El usuario siempre es `opencode` |
+
+### Variables del host que lee el launcher
+
+Estas variables se leen en el host al lanzar `opencode.sh` y no requieren flags:
+
+| Variable | Valores | Propósito |
+|----------|---------|-----------|
+| `OPENCODE_GUI` | `tui` / `web` | Selecciona la interfaz si no se pasan flags `--tui`/`--web` (los flags ganan; valor inválido → aviso y default web). No llega al contenedor: el launcher la resuelve a `OPENCODE_MODE` |
+| `OPENCODE_PERMISSION` | JSON inline | Permisos de opencode; tiene prioridad sobre `--auto`/`--no-auto` |
 
 ## Red
 
@@ -517,17 +566,40 @@ aislamiento de red**, así que úsalo solo cuando sea necesario.
 En modo web con `--network-host`, el puerto se publica automáticamente vía la red del host,
 por lo que se omite el flag `-p`.
 
+Puertos extra: `--extra-ports <n>,<n>,...` publica cada puerto del contenedor en el mismo
+puerto del host (`-p n:n`), además del puerto web. Aplica en **ambos modos** (web y TUI) —
+útil para alcanzar servicios que corran dentro del contenedor (ej: un dev server que el
+agente levante). Formato: números separados por comas sin espacios, mínimo 1, cada uno
+entre 1 y 65535, sin duplicados ni choque con `--port` (en modo web). Con `--network-host`
+se omite con aviso: al compartir la red del host, los puertos del contenedor ya son
+directamente puertos del host.
+
 ## Auth básica web
 
-El servidor web de opencode soporta HTTP basic auth. `opencode.sh` expone
-`--password <pwd>` y `--user <usuario>` (solo modo web; en TUI se avisan y se ignoran):
+El servidor web de opencode v2 exige HTTP basic auth. `opencode.sh` expone
+`--password <pwd>` (solo modo web; en TUI se avisa y se ignora):
 
-- Sin `--password` ni env var → no hay auth (comportamiento por defecto).
-- `--password <pwd>` → activa auth con usuario por defecto `opencode`.
-- `--password <pwd> --user <usuario>` → auth con usuario custom.
-- Si no se pasan flags, se usan las env vars del host
-  `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` si existen.
-- Precedencia: flag `--password`/`--user` > env var del host.
+- El usuario es siempre `opencode`: opencode v2 lo fija en `ServerAuthConfig` y no lo
+  lee de configuración ni de `OPENCODE_SERVER_USERNAME`. El flag `--user` se eliminó
+  del launcher (si se pasa, `error_exit`).
+- Precedencia del password: `--password` > env `OPENCODE_SERVER_PASSWORD` >
+  default `opencode`. El launcher siempre pasa el password al contenedor y lo
+  imprime en el arranque (modo web).
+- Acceso rápido: el launcher pide un code de pairing y imprime
+  `http://127.0.0.1:<puerto>/auth/connect/<code>`. El link es de un solo uso,
+  vence en 5 minutos y deja una cookie de 30 días en el navegador.
+- `--pair <patrón>` genera links nuevos para un contenedor web (127.0.0.1 + IPs
+  de LAN reales; excluye interfaces virtuales de Podman/Docker, VPN y VMs),
+  sin pasar `--password`: lo lee del contenedor. No acepta `--port`.
+- Si no usás el link, en la pantalla “Conectarse a un servidor” elegí
+  “Use password” y poné el password impreso.
+- No uses `opencode service get password`: ese es el password del servidor
+  auxiliar (el del puerto interno), no el del `serve` web.
+- En modo web el contenedor corre detached: sobrevive al cierre de la terminal.
+  Detenelo con `./opencode.sh --kill <puerto>`; logs con `podman logs -f`.
+- El default `opencode` es débil y el puerto se publica en todas las interfaces
+  del host. Si el puerto queda expuesto en la LAN, pasá `--password` o
+  `OPENCODE_SERVER_PASSWORD` con un valor propio.
 
 ## Migración desde versiones anteriores
 
@@ -590,8 +662,10 @@ Solo mueve directorios preexistentes y nunca sobrescribe.
 - `CARGO_HOME`/`CARGO_TARGET_DIR=/workspace/rust` — cargo guarda registry, target y bin
   en `<proyecto>/rust/`. `opencode.sh` crea el directorio y completa el `.gitignore` con
   `rust/`, `python/` y los temporales (`*.tmp`, `*.swp`, `*~`) si faltan.
-- Auth web: `--password`/`--user` (o env vars `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME`
-  del host) activan HTTP basic auth; solo web, ignorado en TUI.
+- Auth web: `--password` (o `OPENCODE_SERVER_PASSWORD` del host) activa HTTP basic auth; solo web,
+  ignorado en TUI. El usuario siempre es `opencode` (fijado por opencode v2; `--user` ya no existe).
+- Interfaz (web/TUI): precedencia flags `--tui`/`--no-web` o `--web` > env `OPENCODE_GUI` del
+  host (`tui`/`web`; valor inválido → aviso y default) > default web.
 - La identidad git/ssh del agente vive en `~/.config/opencode/identity/` y se symlinea a
   `/root/` al iniciar el contenedor.
 - Para proyectos sin `.git` ni `opencode.json(c)`, `opencode.sh` crea `opencode.jsonc` en

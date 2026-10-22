@@ -2,14 +2,14 @@
 
 > Referencia formal de combinaciones válidas. Documenta la intención de diseño que el parser de `opencode.sh` debería respetar.
 >
-> **Nota:** El parser actual (líneas 328-394 de `opencode.sh`) NO impone totalmente este esquema — aún permite algunas combinaciones marcadas como 🔴 (silenciosamente ignoradas). Este archivo es la especificación objetivo para futuras optimizaciones del parseo.
+> **Nota:** El parser actual (bloque `# Parseo de argumentos` de `opencode.sh`) NO impone totalmente este esquema — aún permite algunas combinaciones marcadas como 🔴 (silenciosamente ignoradas). Este archivo es la especificación objetivo para futuras optimizaciones del parseo.
 
 ## Filosofía: mundos separados estrictos
 
 El launcher tiene **tres mundos funcionales mutuamente excluyentes**:
 
 - **Mundo IMAGEN**: gestiona la imagen del contenedor (build/update/renew). No necesita un proyecto ni configura el runtime.
-- **Mundo GESTIÓN**: opera sobre contenedores ya en ejecución (`--ps`/`--ls` para listar, `--kill`/`--rm` para detener). No requiere `<proyecto>`.
+- **Mundo GESTIÓN**: opera sobre contenedores ya en ejecución (`--ps`/`--ls` para listar, `--kill`/`--rm` para detener, `--pair` para generar links de acceso). No requiere `<proyecto>`.
 - **Mundo EJECUCIÓN**: lanza un contenedor sobre un proyecto. Configura puerto, modo (TUI/web) y red.
 
 Los flags de un mundo **no se cruzan** con los del otro. Si se mezclan, el resultado es semánticamente incorrecto (un flag se ignora o no tiene sentido) y el parser emite `error_exit`.
@@ -17,29 +17,30 @@ Los flags de un mundo **no se cruzan** con los del otro. Si se mezclan, el resul
 ## Tabla única de combinaciones
 
 ```
- ┌──────────────┬──────┬───────┬──────┬──────┬──────────┬──────────┬───────┬──────────┬──────┬─────┬─────────┬──────────┬────────┬──────┐
- │              │ renew│ rebuild│ update│ --ps │ --kill   │ <proyecto>│ -config│ --no-climb│ --port│ --tui│ --network│ --password│ --user │ --auto│
- ├──────────────┼──────┼───────┼──────┼──────┼──────────┼──────────┼───────┼──────────┼──────┼─────┼─────────┼──────────┼────────┼──────┤
- │ --renew      │ —    │ ❌     │ 🔴    │ 🔴    │ 🔴        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
- │ --rebuild    │ ❌    │ —     │ 🔴    │ 🔴    │ 🔴        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
- │ --update     │ 🔴    │ 🔴     │ —    │ 🔴    │ 🔴        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
- │ --ps         │ 🔴    │ 🔴     │ 🔴    │ —    │ ❌        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
- │ --kill       │ 🔴    │ 🔴     │ 🔴    │ ❌    │ —        │ 🔴        │ 🔴     │ 🔴        │ 🔴    │ 🔴   │ 🔴       │ 🔴        │ 🔴      │ 🔴    │
- ├──────────────┼──────┼───────┼──────┼──────┼──────────┼──────────┼───────┼──────────┼──────┼─────┼─────────┼──────────┼────────┼──────┤
- │ <proyecto>   │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ —        │ ✅     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
- │ -config      │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ —     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
- │ --no-climb   │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ —        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
- │ --port       │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ —    │ 🔴   │ ✅       │ ✅        │ ✅      │ ✅    │
- │ --tui        │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ 🔴    │ —   │ ✅       │ 🔴        │ 🔴      │ ✅    │
- │ --network    │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ ✅    │ ✅   │ —       │ ✅        │ ✅      │ ✅    │
- │ --password   │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ ✅    │ 🔴   │ ✅       │ —        │ ✅      │ ✅    │
- │ --user       │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ ✅    │ 🔴   │ ✅       │ ✅        │ —      │ ✅    │
- ├──────────────┼──────┼───────┼──────┼──────┼──────────┼──────────┼───────┼──────────┼──────┼─────┼─────────┼──────────┼────────┼──────┤
- │ --auto       │ 🔴    │ 🔴     │ 🔴    │ 🔴    │ 🔴        │ ✅        │ ✅     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ —    │
- ├──────────────┼──────┼───────┼──────┼──────┼──────────┼──────────┼───────┼──────────┼──────┼─────┼─────────┼──────────┼────────┼──────┤
- │ -h, --help   │ ✅    │ ✅     │ ✅    │ ✅    │ ✅        │ ✅        │ ✅     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
- │ --version    │ ✅    │ ✅     │ ✅    │ ✅    │ ✅        │ ✅        │ ✅     │ ✅        │ ✅    │ ✅   │ ✅       │ ✅        │ ✅      │ ✅    │
- └──────────────┴──────┴───────┴──────┴──────┴──────────┴──────────┴───────┴──────────┴──────┴─────┴─────────┴──────────┴────────┴──────┘
+ ┌──────────────┬──────┬────────┬───────┬─────┬───────┬───────────┬────────┬───────────┬───────┬──────────────┬──────┬──────┬──────────┬───────────┬───────┐
+│              │renew│rebuild│update│--ps│--kill│<proyecto>│-config│--no-climb│--port│--extra-ports│--tui│--web│--network│--password│--auto│
+ ├──────────────┼──────┼────────┼───────┼─────┼───────┼───────────┼────────┼───────────┼───────┼──────────────┼──────┼──────┼──────────┼───────────┼───────┤
+│ renew        │—    │❌      │🔴     │🔴   │🔴     │🔴         │🔴      │🔴         │🔴     │🔴            │🔴    │🔴    │🔴        │🔴         │🔴     │
+│ rebuild      │❌    │—      │🔴     │🔴   │🔴     │🔴         │🔴      │🔴         │🔴     │🔴            │🔴    │🔴    │🔴        │🔴         │🔴     │
+│ update       │🔴    │🔴      │—     │🔴   │🔴     │🔴         │🔴      │🔴         │🔴     │🔴            │🔴    │🔴    │🔴        │🔴         │🔴     │
+│ --ps         │🔴    │🔴      │🔴     │—   │❌     │🔴         │🔴      │🔴         │🔴     │🔴            │🔴    │🔴    │🔴        │🔴         │🔴     │
+│ --kill       │🔴    │🔴      │🔴     │❌   │—     │🔴         │🔴      │🔴         │🔴     │🔴            │🔴    │🔴    │🔴        │🔴         │🔴     │
+ ├──────────────┼──────┼────────┼───────┼─────┼───────┼───────────┼────────┼───────────┼───────┼──────────────┼──────┼──────┼──────────┼───────────┼───────┤
+│ <proyecto>   │🔴    │🔴      │🔴     │🔴   │🔴     │—         │✅      │✅         │✅     │✅            │✅    │✅    │✅        │✅         │✅     │
+│ -config      │🔴    │🔴      │🔴     │🔴   │🔴     │✅         │—      │✅         │✅     │✅            │✅    │✅    │✅        │✅         │✅     │
+│ --no-climb   │🔴    │🔴      │🔴     │🔴   │🔴     │✅         │✅      │—         │✅     │✅            │✅    │✅    │✅        │✅         │✅     │
+│ --port       │🔴    │🔴      │🔴     │🔴   │🔴     │✅         │✅      │✅         │—     │✅            │🔴    │✅    │✅        │✅         │✅     │
+│ --extra-ports│🔴    │🔴      │🔴     │🔴   │🔴     │✅         │✅      │✅         │✅     │—            │✅    │✅    │✅        │✅         │✅     │
+│ --tui        │🔴    │🔴      │🔴     │🔴   │🔴     │✅         │✅      │✅         │🔴     │✅            │—    │❌    │✅        │🔴         │✅     │
+│ --web        │🔴    │🔴      │🔴     │🔴   │🔴     │✅         │✅      │✅         │✅     │✅            │❌    │—    │✅        │✅         │✅     │
+│ --network    │🔴    │🔴      │🔴     │🔴   │🔴     │✅         │✅      │✅         │✅     │✅            │✅    │✅    │—        │✅         │✅     │
+│ --password   │🔴    │🔴      │🔴     │🔴   │🔴     │✅         │✅      │✅         │✅     │✅            │🔴    │✅    │✅        │—         │✅     │
+ ├──────────────┼──────┼────────┼───────┼─────┼───────┼───────────┼────────┼───────────┼───────┼──────────────┼──────┼──────┼──────────┼───────────┼───────┤
+│ --auto       │🔴    │🔴      │🔴     │🔴   │🔴     │✅         │✅      │✅         │✅     │✅            │✅    │✅    │✅        │✅         │—     │
+ ├──────────────┼──────┼────────┼───────┼─────┼───────┼───────────┼────────┼───────────┼───────┼──────────────┼──────┼──────┼──────────┼───────────┼───────┤
+│ -h, --help   │✅    │✅      │✅     │✅   │✅     │✅         │✅      │✅         │✅     │✅            │✅    │✅    │✅        │✅         │✅     │
+│ --version    │✅    │✅      │✅     │✅   │✅     │✅         │✅      │✅         │✅     │✅            │✅    │✅    │✅        │✅         │✅     │
+ └──────────────┴──────┴────────┴───────┴─────┴───────┴───────────┴────────┴───────────┴───────┴──────────────┴──────┴──────┴──────────┴───────────┴───────┘
 ```
 
 Leyenda:
@@ -50,6 +51,8 @@ Leyenda:
 | ❌ | Prohibido: el script tira `error_exit` |
 | 🔴 | Sin sentido: un flag se ignora o cruza mundos |
 | — | Diagonal, no se compara consigo mismo |
+
+> `--pair` y `--kill-all` no figuran como columnas en la tabla (se agregaron después): son acciones del mundo GESTIÓN, mutuamente excluyentes con `--ps`/`--kill` y con los mundos IMAGEN/EJECUCIÓN. `--pair` además rechaza `--port` y `--password`.
 
 ## Árbol de combinaciones de parámetros
 
@@ -74,6 +77,11 @@ parámetros
 │         o forma corta (tui2, 2, 4096)
 │       Si el patrón no matchea o matchea varios, no se actúa.
 │
+├── --pair <patrón>                  genera links de pairing para un contenedor web
+│       Mismo patrón que --kill. No acepta --port ni --password:
+│       el puerto y el password se leen del contenedor resuelto.
+│       Un link por origen (127.0.0.1 + LAN real; sin interfaces virtuales).
+│
 └── <proyecto>                       lanza opencode en el proyecto
     │
     ├── --no-climb                   desactiva la búsqueda de .git hacia atrás
@@ -84,13 +92,15 @@ parámetros
     │
     ├── --tui                        arranca terminal interactiva
     │   ├── -config <ruta>
-    │   └── --network-host
+    │   ├── --network-host
+    │   └── --extra-ports <n>,<n>,...   publica puertos extra host→contenedor
     │
-    └── web (sin --tui, default)     arranca servidor web
+    └── web (default)                arranca servidor web
+        ├── --web                    fuerza modo web (gana a OPENCODE_GUI)
         ├── --port <1-65535>
         │   └── default: 4096
-        ├── --password <pwd>         activa auth básica web
-        ├── --user <usuario>         usuario de la auth (default: opencode)
+        ├── --extra-ports <n>,<n>,...   publica puertos extra host→contenedor
+        ├── --password <pwd>         activa auth básica web (usuario: opencode)
         ├── -config <ruta>
         └── --network-host
 ```
@@ -109,31 +119,42 @@ invocacion       ::= mundo_imagen | mundo_gestion | mundo_ejecucion | "--help" |
 mundo_imagen     ::= ("--renew" | "--rebuild" | "--update") ["--help"]
 mundo_gestion    ::= ( "--ps" | "--ls"
                      | "--kill" <patrón> | "--rm" <patrón>
+                     | "--pair" <patrón>
                      ) ["--help"]
 mundo_ejecucion  ::= "<proyecto>" ["--no-climb"] ["--auto" | "--no-auto"]
                      (modo_tui | modo_web) ["--help"]
 
-modo_tui         ::= "--tui" *tui_option
+modo_tui         ::= ("--tui" | "--no-web") *tui_option
 tui_option       ::= "-config" "<ruta>" | "--network-host" | "--network_host"
+                   | "--extra-ports" "<lista_puertos>"
 
-modo_web         ::= *web_option
+modo_web         ::= ["--web"] *web_option
 web_option       ::= "--port" "<1-65535>"
+                   | "--extra-ports" "<lista_puertos>"
                    | "--password" "<pwd>"
-                   | "--user" "<usuario>"
                    | "-config" "<ruta>"
                    | "--network-host"
                    | "--network_host"
+
+lista_puertos    ::= <1-65535> ("," <1-65535>)*
 ```
 
 Restricciones adicionales:
 
 - `--renew` y `--rebuild` son **mutuamente excluyentes** (error de sintaxis en el parser).
-- `--ps`/`--ls` y `--kill`/`--rm` son **mutuamente excluyentes** (error de sintaxis en el parser).
+- `--tui`/`--no-web` y `--web` son **mutuamente excluyentes** (error de sintaxis en el parser).
+- Selección de modo (precedencia): flags `--tui`/`--no-web` o `--web` > env `OPENCODE_GUI` del host (`tui`|`web`; valor inválido → aviso y default) > default web.
+- `--extra-ports <lista_puertos>`: comas sin espacios, mínimo 1, cada puerto 1-65535 y sin duplicados (error de sintaxis en el parser). En modo web no puede chocar con `--port` (error: mapeo `-p` duplicado).
+- `--extra-ports` publica `-p n:n` por cada puerto en **ambos modos** (web y TUI); con `--network-host` se omite con aviso (podman descarta `-p` en red del host).
+- `--ps`/`--ls`, `--kill`/`--rm`, `--pair` y `--kill-all` son **mutuamente excluyentes** (error de sintaxis en el parser).
+- `--pair <patrón>` usa el mismo resolvedor que `--kill` (nombre exacto, `tuiN`, `N`; 0 matches → aviso, >1 → error). No acepta `--port` ni `--password`: el puerto y el password se leen del contenedor resuelto.
+- `--pair` solo opera sobre contenedores web (`opencode-<puerto>`); un contenedor TUI produce `error_exit`.
 - Cualquier flag IMAGEN con cualquier flag GESTIÓN o EJECUCIÓN es **error de sintaxis**.
 - Cualquier flag GESTIÓN con cualquier flag IMAGEN o EJECUCIÓN es **error de sintaxis**.
 - `--tui` **excluye** el uso de `--port` (no hay servidor).
-- `--tui` **excluye** `--password`/`--user` (la auth básica es solo web; se avisa y se ignoran).
-- `--password`/`--user` tienen prioridad sobre las env vars `OPENCODE_SERVER_PASSWORD`/`OPENCODE_SERVER_USERNAME` del host; si no se pasan flags, se usan las env vars si existen.
+- `--tui` **excluye** `--password` (la auth básica es solo web; se avisa y se ignora).
+- `--password` tiene prioridad sobre la env var `OPENCODE_SERVER_PASSWORD` del host; si no se pasa el flag ni existe la env, se usa el default `opencode`. El password se imprime en el arranque web.
+- `--user` **se eliminó**: opencode v2 fija el usuario de auth web en `opencode` (hardcodeado en `ServerAuthConfig`; ignora `OPENCODE_SERVER_USERNAME`). Pasarlo produce `error_exit`.
 - `--no-climb` (alias `--no-search-git`) solo aplica con `<proyecto>`; en otros mundos se ignora o produce error de sintaxis.
 - `--auto`/`--no-auto` solo aplican con `<proyecto>`; en otros mundos se ignoran o producen error de sintaxis. Default: `--auto` (el contenedor auto-aprueba permisos). La env var `OPENCODE_PERMISSION` del host tiene prioridad sobre ambos flags.
 - En `modo_web`, `--network-host` omite el flag `-p` de `podman run` (podman lo ignora con `--network host` y emite warning).
@@ -147,14 +168,23 @@ Estado de cada regla en el parser actual de `opencode.sh`:
 | Regla del esquema | Parser actual | Acción requerida |
 |-------------------|---------------|-------------------|
 | `--renew` ❌ `--rebuild` | ✅ ya lo impone | Ninguna |
-| Mundo GESTIÓN (--ps/--kill) excluye IMAGEN y EJECUCIÓN | ✅ ya lo impone (error_exit) | Ninguna |
-| `--ps` ❌ `--kill` | ✅ ya lo impone (error_exit) | Ninguna |
+| Mundo GESTIÓN (--ps/--kill/--pair) excluye IMAGEN y EJECUCIÓN | ✅ ya lo impone (error_exit) | Ninguna |
+| `--ps` ❌ `--kill` ❌ `--pair` | ✅ ya lo impone (error_exit) | Ninguna |
 | `--kill <patrón>` match flexible | ✅ Implementado (1 match → stop, 0 o >1 → no actúa) | Ninguna |
+| `--pair <patrón>` usa el mismo match que `--kill` | ✅ Implementado (resolvedor compartido) | Ninguna |
+| `--pair` lee puerto/password del contenedor, sin `--password` | ✅ Implementado (inspect + fallback logs) | Ninguna |
+| `--pair` rechaza contenedores TUI | ✅ `error_exit` si no hay puerto web | Ninguna |
+| `--password` default `opencode` + impresión en arranque | ✅ Implementado (flag > env > default) | Ninguna |
 | `--ps` lista contenedores con formato extendido | ✅ Implementado | Ninguna |
 | Contenedores TUI: nombre `opencode-tuiN` con N=max+1 | ✅ Implementado | Ninguna |
 | `--tui` ignora `--port` | ⚠️ No lo valida, solo lo silencia al armar `PORT_ARGS` | Validar y advertir |
-| `--password`/`--user` solo en web | ✅ Avisa en TUI y los ignora (no pasa env vars de auth) | Ninguna |
-| `--password`/`--user` prioridad sobre env del host | ✅ Implementado (flag > env) | Ninguna |
+| `--tui` ❌ `--web` | ✅ ya lo impone (error_exit) | Ninguna |
+| Selección de modo: flags > `OPENCODE_GUI` > default | ✅ Implementado (env del host; valor inválido → aviso y default web) | Ninguna |
+| `--extra-ports`: lista válida + sin choque con `--port` | ✅ Implementado (error_exit) | Ninguna |
+| `--extra-ports` omitido con `--network-host` | ✅ Implementado (aviso, sin `-p`) | Ninguna |
+| `--password` solo en web | ✅ Avisa en TUI y lo ignora (no pasa env var de auth) | Ninguna |
+| `--password` prioridad sobre env del host | ✅ Implementado (flag > env) | Ninguna |
+| `--user` eliminado (usuario fijo `opencode` en v2) | ✅ `error_exit` con explicación | Ninguna |
 | `--network-host` omite `-p` en web | ✅ Ya lo hace | Ninguna |
 | `--auto`/`--no-auto` (auto-aprueba permisos) | ✅ Implementado; default `--auto`; env `OPENCODE_PERMISSION` del host tiene prioridad | Ninguna |
 

@@ -12,6 +12,79 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+- **`--pair <patrón>`**: genera links de pairing para un contenedor web usando el mismo
+  resolvedor que `--kill` (nombre exacto, `tuiN`, `N`). Lee el password del contenedor
+  (`podman inspect`, fallback a `podman logs`) y emite un code por origen
+  (`127.0.0.1` + IPs de LAN). No acepta `--port` ni `--password`; rechaza contenedores TUI.
+- **Link de acceso automático en modo web**: tras `podman run -d`, el launcher espera a
+  que `/api/info` responda y pide un code a `POST /api/pair`; imprime el link
+  `http://127.0.0.1:<puerto>/auth/connect/<code>` (un solo uso, 5 minutos, cookie de 30 días).
+- **Password web por defecto**: `--password` > env `OPENCODE_SERVER_PASSWORD` > `opencode`;
+  el launcher siempre pasa el password al contenedor y lo imprime en el arranque web.
+- **Fallbacks de herramientas**: `curl` → `wget` (solo si soporta POST/auth) para la API;
+  `jq` → `sed` → regex de bash para parsear el code. Si no hay herramienta HTTP, avisa y
+  continúa sin link.
+
+### Changed
+- **Modo web detached**: `podman run -d` en lugar de `-it`; el contenedor sobrevive al
+  cierre de la terminal y se detiene con `--kill <puerto>`. La TUI sigue en foreground.
+- **Resolvedor compartido**: la lógica de `--kill` se extrajo a `resolve_opencode_container`
+  y la reutiliza `--pair` (mismos patrones y mismas reglas de 0/1/varios matches).
+- **Docs**: help, README, PARAMETERS y AGENTS actualizados con `--pair`, el password por
+  defecto y el modo detached.
+- **Salida**: línea en blanco después del link de acceso (arranque y `--pair`).
+
+### Fixed
+- **`--pair` sin ruido de IPs virtuales**: `detect_lan_ips` excluye interfaces de
+  Podman/Docker (`podman`, `docker`, `veth`, `br-`, `cni`), VPN (`tun`, `tap`, `wg`,
+  `tailscale`, `utun`), VMs (`virbr`, `vmnet`, `vboxnet`) y otras virtuales; solo
+  imprime LAN real.
+- **Nombre de contenedor en uso**: chequeo previo a `podman run` con mensaje accionable
+  (`$0 --kill <puerto>` si está corriendo, `podman rm -f <nombre>` si quedó detenido)
+  en lugar del error crudo de Podman.
+
+## [3.8.1] — 2026-10-21
+
+### Fixed
+- **Modo web con opencode v2**: el launcher pasaba `opencode web` (subcomando eliminado en v2);
+  ahora usa `serve` con los mismos `--port`/`--hostname`. Mismo cambio en el `CMD` del Containerfile.
+  Sin esto la web no arrancaba (`Unrecognized flag: --port`).
+- **Auth web documentada según v2**: el servidor exige password siempre; si no se pasa
+  `--password` ni `OPENCODE_SERVER_PASSWORD`, v2 genera una aleatoria y la imprime al arrancar
+  (`server password ...`). El acceso es con usuario `opencode`.
+
+### Removed
+- **`--user`**: opencode v2 fija el usuario de auth web en `opencode` (`ServerAuthConfig`) e ignora
+  `OPENCODE_SERVER_USERNAME`. El flag ya no tenía efecto; ahora `error_exit` con explicación y el
+  launcher deja de exportar `OPENCODE_SERVER_USERNAME` al contenedor. Docs (README, PARAMETERS,
+  AGENTS) actualizadas.
+
+## [3.8.0] — 2026-10-20
+
+### Added
+- **`--web`**: fuerza explícitamente el servidor web (modo por defecto). Mutuamente excluyente
+  con `--tui`/`--no-web` (`error_exit` si se combinan).
+- **Selección de interfaz vía `OPENCODE_GUI`**: la env del host (`tui`/`web`) define el modo cuando
+  no se pasan flags. Precedencia: flags `--tui`/`--no-web` o `--web` > `OPENCODE_GUI` (valor inválido
+  → aviso y default web) > default web. La variable se lee en el host; al contenedor llega ya
+  resuelta como `OPENCODE_MODE`.
+- **`--extra-ports <n>,<n>,...`**: publica puertos extra del contenedor en el host (`-p n:n`), además
+  del puerto web, en **ambos modos** (web y TUI) — útil para alcanzar servicios que corran dentro del
+  contenedor (p. ej. un dev server). Comas sin espacios, mínimo 1, cada puerto 1-65535, sin duplicados
+  ni choque con `--port` (en modo web; mapeo `-p` duplicado). Con `--network-host` se omite con aviso.
+
+### Changed
+- **Containerfile**: el instalador de opencode pasa de `https://opencode.ai/install` a
+  `https://opencode.ai/v2/install` (nuevo mecanismo oficial de instalación; descarga desde
+  registry.npmjs.org, misma ubicación de binario `/root/.opencode/bin/opencode`). Requiere
+  reconstruir la imagen (`--rebuild`/`--renew`).
+- **Presentación HTML** (`opencode-container.html` + copia readonly): badges a v3.8.0, árbol de
+  ejecución con `--tui | --web`, `--extra-ports` y precedencia `OPENCODE_GUI`; comandos de uso
+  actualizados; corregido `--build` → `--rebuild` en la tarjeta de instalación; preview PNG
+  regenerado.
+- `opencode.sh` bumpeado a 3.8.0.
+
 ## [3.7.1] — 2026-10-02
 
 ### Fixed

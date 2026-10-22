@@ -4,7 +4,7 @@ set -e
 # opencode container entrypoint.
 # El modo se selecciona mediante la variable de entorno OPENCODE_MODE:
 #   - web (por defecto): ejecuta `opencode` con los argumentos recibidos
-#                         (típicamente los del CMD: web --port N --hostname ...)
+#                         (típicamente los del CMD: serve --port N --hostname ...)
 #   - tui:                ejecuta `opencode` sin argumentos (arranca la TUI)
 
 # Symlinks para que git/ssh encuentren la identidad del agente.

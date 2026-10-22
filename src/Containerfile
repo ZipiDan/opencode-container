@@ -66,8 +66,9 @@ RUN mkdir -p /home/opencode/.config \
              /home/opencode/.local/state \
              /home/opencode/.local/share
 
-# Instalar opencode mediante el instalador oficial
-RUN curl -fsSL https://opencode.ai/install | bash \
+# Instalar opencode mediante el instalador oficial v2 (descarga desde registry.npmjs.org;
+# instala el binario en /root/.opencode/bin, igual que el instalador v1)
+RUN curl -fsSL https://opencode.ai/v2/install | bash \
     && ln -sf /root/.opencode/bin/opencode /usr/local/bin/opencode \
     && rm -rf /tmp/* /var/tmp/*
 
@@ -131,6 +132,7 @@ WORKDIR /workspace
 EXPOSE 4096
 
 # Por defecto se arranca el servidor web en 0.0.0.0:4096.
-# El modo TUI se activa con OPENCODE_MODE=tui (lo hace opencode.sh con --tui/--no-web).
+# El modo TUI se activa con OPENCODE_MODE=tui (lo hace opencode.sh con
+# --tui/--no-web, o OPENCODE_GUI=tui; --web fuerza el modo web).
 ENTRYPOINT ["/usr/local/bin/opencode-entrypoint.sh"]
-CMD ["web", "--port", "4096", "--hostname", "0.0.0.0"]
+CMD ["serve", "--port", "4096", "--hostname", "0.0.0.0"]

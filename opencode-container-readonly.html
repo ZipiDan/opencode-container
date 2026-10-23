@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>opencode.sh — Un lugar seguro donde construir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    /* ===========================================
+       THEME — Blueprint Dock
+       Deep navy engineering sheet + cyan rule lines
+       + amber signal. Mount-stack as signature graphic.
+       =========================================== */
+    :root {
+        --navy: #0B1220;
+        --navy-deep: #070C16;
+        --cyan: #38BDF8;
+        --cyan-soft: rgba(56, 189, 248, 0.12);
+        --amber: #FFB020;
+        --paper: #E8EEF7;
+        --muted: #7C8DA6;
+        --line: rgba(56, 189, 248, 0.16);
+        --font-display: 'Sora', sans-serif;
+        --font-mono: 'Space Mono', monospace;
+        --stage-bg: #04070D;
+        --slide-bg: #0B1220;
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ===========================================
+       MANDATORY viewport-base.css (fixed 16:9 stage)
+       =========================================== */
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--stage-bg, #000); }
+    .deck-viewport { position: fixed; inset: 0; overflow: hidden; background: var(--stage-bg, #000); }
+    .deck-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; background: var(--slide-bg, #fff); }
+    .slide { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden; display: block; visibility: hidden; opacity: 0; pointer-events: none; background: var(--slide-bg, #fff); }
+    .slide.active, .slide.visible { visibility: visible; opacity: 1; pointer-events: auto; z-index: 1; }
+    img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+    .deck-controls { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 1000; }
+    @media print {
+        html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+        .deck-viewport { position: static; overflow: visible; background: #fff; }
+        .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+        .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+        .slide:last-child { break-after: auto; page-break-after: auto; }
+        .deck-controls { display: none !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+    }
+
+    /* ===========================================
+       SLIDE SHELL — blueprint sheet, frame, header
+       =========================================== */
+    .slide {
+        padding: 70px 100px 74px;
+        font-family: var(--font-display);
+        color: var(--paper);
+        background:
+            radial-gradient(ellipse at 88% 10%, rgba(56,189,248,0.09) 0%, transparent 48%),
+            radial-gradient(ellipse at 8% 96%, rgba(255,176,32,0.05) 0%, transparent 42%),
+            linear-gradient(160deg, #0B1220 0%, #070C16 100%);
+    }
+    /* blueprint rule grid, faded toward center */
+    .slide::before {
+        content: "";
+        position: absolute; inset: 0; pointer-events: none;
+        background-image:
+            linear-gradient(var(--line) 1px, transparent 1px),
+            linear-gradient(90deg, var(--line) 1px, transparent 1px);
+        background-size: 60px 60px;
+        mask-image: radial-gradient(ellipse at 34% 44%, #000 0%, transparent 80%);
+    }
+    .frame { position: absolute; inset: 38px; border: 1px solid rgba(56,189,248,0.26); pointer-events: none; }
+    .frame::before, .frame::after { content: ""; position: absolute; width: 13px; height: 13px; border: 2px solid var(--cyan); }
+    .frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+    .frame::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+    .frame .b3, .frame .b4 { content: ""; position: absolute; width: 13px; height: 13px; border: 2px solid rgba(255,176,32,0.75); }
+    .frame .b3 { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+    .frame .b4 { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+
+    .head {
+        position: relative; z-index: 3;
+        display: flex; justify-content: space-between; align-items: center;
+        font-family: var(--font-mono); font-size: 17px; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--muted);
+    }
+    .head .node b { color: var(--cyan); }
+    .head .pg { color: var(--muted); }
+    .head .pg b { color: var(--paper); }
+
+    /* El bloque de contenido se centra verticalmente en el stage para equilibrar
+       slides con poca carga; el header queda siempre arriba. */
+    .body { position: relative; z-index: 3; margin-top: 20px; height: calc(100% - 52px); display: flex; flex-direction: column; justify-content: center; }
+
+    /* ===========================================
+       TYPE
+       =========================================== */
+    .kicker { font-family: var(--font-mono); font-size: 20px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--amber); margin-bottom: 20px; }
+    h2.title { font-size: 72px; font-weight: 800; line-height: 1.04; letter-spacing: -0.03em; color: var(--paper); max-width: 1560px; }
+    h2.title .hl { color: var(--cyan); }
+    h2.title.sm { font-size: 62px; }
+    .lead { margin-top: 22px; font-size: 29px; line-height: 1.5; color: var(--muted); max-width: 1300px; font-weight: 400; }
+    .lead b { color: var(--paper); font-weight: 600; }
+
+    /* ===========================================
+       CARDS
+       =========================================== */
+    .cards { display: grid; gap: 22px; }
+    .cards.c2 { grid-template-columns: repeat(2, 1fr); }
+    .cards.c3 { grid-template-columns: repeat(3, 1fr); }
+    .cards.c4 { grid-template-columns: repeat(4, 1fr); }
+    .mt44 { margin-top: 44px; }
+    .mt34 { margin-top: 34px; }
+
+    .card {
+        border: 1px solid rgba(56,189,248,0.30);
+        border-radius: 14px;
+        padding: 30px 32px;
+        background: linear-gradient(160deg, rgba(56,189,248,0.07), rgba(56,189,248,0.012));
+        position: relative;
+    }
+    .card.amber { border-color: rgba(255,176,32,0.38); background: linear-gradient(160deg, rgba(255,176,32,0.09), rgba(255,176,32,0.015)); }
+    .card h3 { font-size: 29px; font-weight: 700; letter-spacing: -0.01em; color: var(--paper); margin-bottom: 12px; display: flex; align-items: center; gap: 13px; }
+    .card h3 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 12px rgba(56,189,248,0.8); flex: none; }
+    .card.amber h3 .dot { background: var(--amber); box-shadow: 0 0 12px rgba(255,176,32,0.8); }
+    .card h3 .num { font-family: var(--font-mono); font-size: 19px; color: var(--amber); font-weight: 400; }
+    .card p { font-size: 22px; line-height: 1.5; color: var(--muted); }
+    .card p b { color: var(--paper); font-weight: 600; }
+
+    /* ===========================================
+       AGENT SLIDES — split + ficha
+       =========================================== */
+    .split { display: grid; grid-template-columns: 1.28fr 0.72fr; gap: 46px; margin-top: 8px; align-items: start; }
+    .agent-name { font-size: 76px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; color: var(--paper); }
+    .agent-name .tick { color: var(--cyan); }
+    .agent-role { margin-top: 18px; font-size: 29px; line-height: 1.5; color: var(--muted); max-width: 1050px; }
+    .agent-role b { color: var(--paper); font-weight: 600; }
+
+    .check { margin-top: 30px; display: flex; flex-direction: column; gap: 17px; }
+    .check li { list-style: none; position: relative; padding-left: 34px; font-size: 23px; line-height: 1.42; color: var(--muted); }
+    .check li b { color: var(--paper); font-weight: 600; }
+    .check li::before { content: "›"; position: absolute; left: 4px; top: -1px; color: var(--cyan); font-family: var(--font-mono); font-weight: 700; }
+    .check li.amber::before { color: var(--amber); }
+
+    .ficha { border: 1px solid rgba(56,189,248,0.30); border-radius: 14px; padding: 26px 30px; background: linear-gradient(160deg, rgba(56,189,248,0.06), transparent); }
+    .ficha .row { padding: 15px 0; border-bottom: 1px dashed rgba(56,189,248,0.20); }
+    .ficha .row:last-child { border-bottom: none; padding-bottom: 0; }
+    .ficha .row:first-child { padding-top: 0; }
+    .ficha .k { font-family: var(--font-mono); font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .ficha .v { font-size: 21px; color: var(--paper); line-height: 1.4; }
+    .ficha .v.mono { font-family: var(--font-mono); font-size: 19px; color: var(--cyan); }
+    .chips { display: flex; flex-wrap: wrap; gap: 9px; }
+    .chip { font-family: var(--font-mono); font-size: 15px; color: var(--cyan); border: 1px solid rgba(56,189,248,0.4); background: rgba(56,189,248,0.08); border-radius: 999px; padding: 5px 13px; }
+    .chip.amber { color: var(--amber); border-color: rgba(255,176,32,0.45); background: rgba(255,176,32,0.08); }
+
+    /* ===========================================
+       CODE / TREE BLOCKS
+       =========================================== */
+    .code {
+        font-family: var(--font-mono); font-size: 21px; line-height: 1.8;
+        background: rgba(4, 8, 16, 0.72);
+        border: 1px solid rgba(56,189,248,0.26);
+        border-radius: 14px;
+        padding: 28px 32px;
+        color: var(--paper);
+        white-space: pre-wrap;
+    }
+    .code .cmt { color: var(--muted); }
+    .code .cmd { color: var(--paper); }
+    .code .flag { color: var(--cyan); }
+    .code .arg { color: #9DE8A6; }
+    .code .acc { color: var(--amber); }
+    .code.tree { white-space: pre; font-size: 20px; line-height: 1.68; padding: 30px 36px; }
+    .code.tree .br { color: var(--muted); }
+    .code.tree .grp { color: var(--amber); font-weight: 700; }
+    .code.tree .opt { color: var(--cyan); }
+    .code-label { font-family: var(--font-mono); font-size: 16px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+    /* ===========================================
+       FLOW (linea de construcción)
+       =========================================== */
+    .flow { display: grid; grid-template-columns: 1fr 44px 1fr 44px 1fr 44px 1fr; align-items: stretch; margin-top: 52px; }
+    .step { border: 1px solid rgba(56,189,248,0.30); border-radius: 14px; padding: 28px 28px; background: linear-gradient(160deg, rgba(56,189,248,0.07), transparent); }
+    .step .sn { font-family: var(--font-mono); font-size: 17px; color: var(--amber); letter-spacing: 0.12em; }
+    .step h3 { font-size: 28px; font-weight: 700; color: var(--paper); margin: 12px 0 10px; }
+    .step p { font-size: 20px; line-height: 1.45; color: var(--muted); }
+    .flow .arrow { display: flex; align-items: center; justify-content: center; color: var(--cyan); font-family: var(--font-mono); font-size: 34px; }
+
+    /* ===========================================
+       STATUS TABLE (compatibilidad)
+       =========================================== */
+    .callout { margin-top: 40px; border: 1px solid rgba(255,176,32,0.4); border-left: 4px solid var(--amber); border-radius: 12px; padding: 26px 32px; background: linear-gradient(90deg, rgba(255,176,32,0.10), rgba(255,176,32,0.02)); }
+    .callout p { font-size: 25px; line-height: 1.5; color: var(--paper); }
+    .callout p b { color: var(--amber); }
+
+    /* ===========================================
+       MISC
+       =========================================== */
+    .stack-wrap { position: relative; display: flex; flex-direction: column; gap: 18px; }
+    .stack-label { font-family: var(--font-mono); font-size: 18px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .layer { display: flex; align-items: center; gap: 20px; border: 1px solid rgba(56,189,248,0.35); background: linear-gradient(90deg, rgba(56,189,248,0.08), rgba(56,189,248,0.02)); border-radius: 12px; padding: 20px 24px; }
+    .layer.amber { border-color: rgba(255,176,32,0.45); background: linear-gradient(90deg, rgba(255,176,32,0.10), rgba(255,176,32,0.02)); }
+    .layer .dotmark { width: 14px; height: 14px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 14px rgba(56,189,248,0.7); flex: none; }
+    .layer.amber .dotmark { background: var(--amber); box-shadow: 0 0 14px rgba(255,176,32,0.7); }
+    .layer .host { font-family: var(--font-mono); font-size: 21px; color: var(--paper); }
+    .layer .arrow { margin-left: auto; color: var(--muted); font-family: var(--font-mono); font-size: 22px; }
+    .layer .dest { font-family: var(--font-mono); font-size: 19px; color: var(--cyan); }
+    .layer.amber .dest { color: var(--amber); }
+
+    /* ===========================================
+       ANIMATION
+       =========================================== */
+    .reveal { opacity: 0; transform: translateY(26px); transition: opacity 0.7s var(--ease-out-expo), transform 0.7s var(--ease-out-expo); transition-delay: var(--d, 0s); }
+    .slide.visible .reveal { opacity: 1; transform: none; }
+
+    /* Copia de solo lectura: se retiró el chrome de edición (hotzone, botón y outline de contenteditable). */
+
+    /* progress + page counter (outside the stage) */
+    .deck-progress { position: fixed; left: 0; bottom: 0; height: 3px; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--amber)); z-index: 1000; transition: width 0.4s var(--ease-out-expo); }
+
+    /* barra de navegación inferior: segmentos clicables, el activo brilla con glow difuso */
+    .deck-nav {
+        position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+        z-index: 1000; display: flex; align-items: center; gap: 7px;
+        padding: 9px 15px; border-radius: 999px;
+        background: rgba(7, 12, 22, 0.55);
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        backdrop-filter: blur(6px);
+    }
+    .deck-nav .seg {
+        width: 24px; height: 4px; border-radius: 3px; padding: 0; border: none;
+        background: rgba(124, 141, 166, 0.52);
+        cursor: pointer;
+        transition: background 0.3s ease, height 0.3s ease, box-shadow 0.3s ease;
+    }
+    .deck-nav .seg:hover { background: rgba(56, 189, 248, 0.80); height: 7px; }
+    .deck-nav .seg.active {
+        background: var(--cyan); height: 7px;
+        box-shadow: 0 0 16px rgba(56, 189, 248, 0.95), 0 0 5px rgba(56, 189, 248, 1);
+    }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+    <main class="deck-stage" id="deckStage">
+
+        <!-- ============================================================
+             01 · PORTADA
+             ============================================================ -->
+        <section class="slide title-slide active" style="padding: 76px 96px;">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head" style="margin-bottom: 0;">
+                <span class="node reveal" style="--d:.05s">NODO <b>Ø1</b> · LAUNCHER DE OPENCODE</span>
+                <span class="pg reveal" style="--d:.05s">v4.1.0 / DEBIAN</span>
+            </div>
+
+            <div style="position: relative; z-index: 3; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 70px; height: calc(100% - 40px); align-items: center;">
+                <div>
+                    <div class="kicker reveal" style="--d:.16s">Aislado por proyecto</div>
+                    <h1 class="agent-name reveal" style="--d:.16s; font-size: 158px;">opencode<span style="color: var(--cyan);">.sh</span><span style="color: var(--amber);">_</span></h1>
+                    <p class="lead reveal" style="--d:.3s; max-width: 760px;">Un lugar <b>seguro</b> donde pensar, construir y operar. El contenedor es una base equipada: tus carpetas locales, primero.</p>
+                </div>
+
+                <div class="stack-wrap reveal" style="--d:.44s">
+                    <div class="stack-label">/ montajes del contenedor</div>
+                    <div class="layer">
+                        <span class="dotmark"></span><span class="host">&lt;proyecto&gt;</span>
+                        <span class="arrow">→</span><span class="dest">/workspace</span>
+                    </div>
+                    <div class="layer">
+                        <span class="dotmark"></span><span class="host">~/.config/opencode</span>
+                        <span class="arrow">→</span><span class="dest">global</span>
+                    </div>
+                    <div class="layer amber">
+                        <span class="dotmark"></span><span class="host">.opencode/data</span>
+                        <span class="arrow">→</span><span class="dest">aislado</span>
+                    </div>
+                    <p class="lead" style="--d:0s; margin-top: 18px; font-family: var(--font-mono); font-size: 19px; line-height: 1.7;">cada proyecto corre en su <b>propia instancia</b>, con sesiones, snapshots y logs aislados.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             02 · POR QUÉ EXISTE
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø2</b> · MOTIVACIÓN</span>
+                <span class="pg"><b>02</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">El problema</div>
+                <h2 class="title reveal" style="--d:.12s">La máquina local no debería ser <span class="hl">parte del experimento</span>.</h2>
+                <p class="lead reveal" style="--d:.22s">Cuando trabajamos en una idea, instalar toolchains, pelear con versiones, mezclar credenciales o dejar rastros en el sistema son distracciones que rompen el ritmo.</p>
+
+                <div class="cards c3 mt44">
+                    <div class="card reveal" style="--d:.34s">
+                        <h3><span class="dot"></span>Aislado</h3>
+                        <p>Cada proyecto corre en su propio contenedor. El entorno local queda <b>tal como estaba</b>.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.44s">
+                        <h3><span class="dot"></span>Reproducible</h3>
+                        <p>Una <b>base equipada</b> siempre igual. No empezás de cero cada vez.</p>
+                    </div>
+                    <div class="card amber reveal" style="--d:.54s">
+                        <h3><span class="dot"></span>Completo</h3>
+                        <p>Todo el toolchain y los <b>agentes especializados</b> ya dispuestos a trabajar.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             03 · QUÉ TE LLEVÁS
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø3</b> · PROPUESTA</span>
+                <span class="pg"><b>03</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Qué te llevás</div>
+                <h2 class="title sm reveal" style="--d:.12s">Un opencode completo, sin ensuciar tu máquina.</h2>
+
+                <div class="cards c3 mt34">
+                    <div class="card reveal" style="--d:.22s">
+                        <h3><span class="dot"></span>opencode completo y familiar</h3>
+                        <p>Mismos agentes base <b>build</b> y <b>plan</b>, y toda la configuración global compartida entre proyectos.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.3s">
+                        <h3><span class="dot"></span>Cuatro entornos integrados</h3>
+                        <p>Python, JavaScript, TypeScript y Rust <b>listos para usar</b>, sin instalación previa.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.38s">
+                        <h3><span class="dot"></span>Herramientas de apoyo</h3>
+                        <p>Redes, DevOps, control de versiones, automatización y <b>auditoría</b> ya presentes.</p>
+                    </div>
+                    <div class="card amber reveal" style="--d:.46s">
+                        <h3><span class="dot"></span>Agentes especializados</h3>
+                        <p>Del día a día: desde la <b>investigación</b> hasta la <b>operación</b> de servidores.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.54s">
+                        <h3><span class="dot"></span>Tus carpetas locales, primero</h3>
+                        <p>Trabaja sobre tus directorios reales. Nada de <b>islas desconectadas</b>.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.62s">
+                        <h3><span class="dot"></span>Un solo flujo de actualización</h3>
+                        <p>El mismo para el contenedor y para opencode <b>tradicional</b>.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             04 · CUATRO ENTORNOS + HERRAMIENTAS
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø4</b> · ENTORNOS</span>
+                <span class="pg"><b>04</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Cuatro entornos, un mismo espacio</div>
+                <h2 class="title sm reveal" style="--d:.12s">Ya está todo puesto.</h2>
+
+                <div class="cards c4 mt34">
+                    <div class="card reveal" style="--d:.2s">
+                        <h3><span class="num">01</span>Python</h3>
+                        <p>Python 3 + pip + <b>python3-dev</b>. Venv canónico en <b>&lt;proyecto&gt;/python/</b>: se crea y activa solo. Type checking con <b>pyright</b>, linting con <b>ruff</b>.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.28s">
+                        <h3><span class="num">02</span>JavaScript</h3>
+                        <p>Node.js y npm para scripts, paquetes del ecosistema y soporte de lenguaje vía <b>LSP</b>.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.36s">
+                        <h3><span class="num">03</span>TypeScript</h3>
+                        <p>El mismo toolchain de Node.js más el soporte de <b>TypeScript</b> que opencode activa vía su LSP integrado.</p>
+                    </div>
+                    <div class="card amber reveal" style="--d:.44s">
+                        <h3><span class="num">04</span>Rust</h3>
+                        <p>Toolchain estable con rustup y objetivo <b>musl</b> para binarios estáticos. Registry, <b>target/</b> y binarios aislados en &lt;proyecto&gt;/rust/.</p>
+                    </div>
+                </div>
+
+                <div class="callout reveal" style="--d:.56s">
+                    <p>Además: <b>git</b>, <b>ssh</b> y <b>gpg</b>; <b>curl</b>, <b>wget</b> y <b>jq</b> para APIs; <b>iptables</b> y <b>Ansible</b> para automatización; y una caja de redes con ping, traceroute, mtr, dig, ss, nmap, tcpdump y tshark.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             05 · AGENTES — OVERVIEW
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø5</b> · AGENTES</span>
+                <span class="pg"><b>05</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Se suman a build y plan</div>
+                <h2 class="title sm reveal" style="--d:.12s">Agentes que te acompañan.</h2>
+                <p class="lead reveal" style="--d:.2s">Se eligen por sesión (en TUI, con <b>Tab</b>) o se invocan por comando.</p>
+
+                <div class="cards c3 mt34">
+                    <div class="card reveal" style="--d:.28s">
+                        <h3><span class="dot"></span>investigador</h3>
+                        <p>Investiga un tema en la web orquestando subagentes en varios idiomas. Entrega un <b>informe en español</b> con fuentes citadas.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.35s">
+                        <h3><span class="dot"></span>arquitecto</h3>
+                        <p>Convierte una idea en <b>arquitectura documentada</b> y un plan por hitos. No escribe código: piensa, decide y entrega tareas.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.42s">
+                        <h3><span class="dot"></span>developer</h3>
+                        <p>Escribe y refactoriza <b>código limpio</b>, con reglas de calidad siempre activas y skills que se cargan solo cuando la tarea lo pide.</p>
+                    </div>
+                    <div class="card reveal" style="--d:.49s">
+                        <h3><span class="dot"></span>sysadmin</h3>
+                        <p>Administra servidores <b>Linux, FreeBSD y macOS</b> con disciplina y guardarraíles. Guarda la memoria de cada cliente en el proyecto.</p>
+                    </div>
+                    <div class="card amber reveal" style="--d:.56s">
+                        <h3><span class="dot"></span>cyberseguridad</h3>
+                        <p>Audita código, infraestructura y agentes de IA. Es el <b>filtro obligatorio</b> antes de aprobar cualquier agente nuevo.</p>
+                    </div>
+                    <div class="card amber reveal" style="--d:.63s">
+                        <h3><span class="dot"></span>agent-builder</h3>
+                        <p><b>Meta-agente</b> que crea otros agentes: investiga, planifica, construye y audita antes de proponerte el resultado.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             06 · INVESTIGADOR
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø6</b> · AGENTE 01</span>
+                <span class="pg"><b>06</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="split">
+                    <div>
+                        <div class="kicker reveal" style="--d:.05s">Investigación</div>
+                        <div class="agent-name reveal" style="--d:.12s">investigador<span class="tick">_</span></div>
+                        <p class="agent-role reveal" style="--d:.2s">Busca en la web <b>orquestando subagentes</b> en varios idiomas y devuelve un informe en español, listo para leer o convertir.</p>
+                        <ul class="check">
+                            <li class="reveal" style="--d:.28s">Dos modos: <b>simplificado</b> (EN/ES) y <b>extendido</b> (EN/FR/ES/DE/ZH/RU).</li>
+                            <li class="reveal" style="--d:.34s">Reutiliza <b>búsquedas recientes</b> para no repetir trabajo.</li>
+                            <li class="reveal" style="--d:.4s">Informe <b>citado</b>: introducción, cuerpo por temas, discrepancias, conclusión y fuentes.</li>
+                            <li class="reveal" style="--d:.46s">Se guarda en <b>documents/investigaciones/</b> y se convierte con <b>/md2pdf</b>.</li>
+                        </ul>
+                    </div>
+                    <div class="ficha reveal" style="--d:.5s">
+                        <div class="row"><div class="k">Versión</div><div class="v">primario v10 · subagentes v2</div></div>
+                        <div class="row"><div class="k">Subagentes</div>
+                            <div class="chips">
+                                <span class="chip">en</span><span class="chip">es</span><span class="chip">fr</span>
+                                <span class="chip">de</span><span class="chip">zh</span><span class="chip">ru</span>
+                            </div>
+                        </div>
+                        <div class="row"><div class="k">Salida</div><div class="v mono">documents/investigaciones/</div></div>
+                        <div class="row"><div class="k">Formato</div><div class="v mono">markdown → /md2pdf</div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             07 · ARQUITECTO
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø7</b> · AGENTE 02</span>
+                <span class="pg"><b>07</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="split">
+                    <div>
+                        <div class="kicker reveal" style="--d:.05s">Arquitectura y planificación</div>
+                        <div class="agent-name reveal" style="--d:.12s">arquitecto<span class="tick">_</span></div>
+                        <p class="agent-role reveal" style="--d:.2s">Convierte una idea en <b>arquitectura documentada</b> y un plan de trabajo por hitos. <b>No escribe código</b>: piensa, decide y entrega tareas.</p>
+                        <ul class="check">
+                            <li class="reveal" style="--d:.28s">Elicitación <b>socrática</b> de ideas y requisitos.</li>
+                            <li class="reveal" style="--d:.34s">Canvas por módulo con <b>contratos</b> (command/query/event) y diagramas C4 en Mermaid.</li>
+                            <li class="reveal" style="--d:.4s"><b>ADRs</b> y riesgos; plan maestro con hitos y MoSCoW.</li>
+                            <li class="reveal" style="--d:.46s">Handoff a <b>plan</b> y a <b>developer</b>.</li>
+                        </ul>
+                    </div>
+                    <div class="ficha reveal" style="--d:.5s">
+                        <div class="row"><div class="k">Versión</div><div class="v">v6</div></div>
+                        <div class="row"><div class="k">Home</div><div class="v mono">documents/arquitectura/</div></div>
+                        <div class="row"><div class="k">Skills</div>
+                            <div class="chips">
+                                <span class="chip">module-decomposition</span>
+                                <span class="chip">architecture-decisions</span>
+                                <span class="chip">delivery-planning</span>
+                            </div>
+                        </div>
+                        <div class="row"><div class="k">Comando</div><div class="v mono">/arquitecto &lt;idea&gt;</div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             08 · DEVELOPER
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø8</b> · AGENTE 03</span>
+                <span class="pg"><b>08</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="split">
+                    <div>
+                        <div class="kicker reveal" style="--d:.05s">Desarrollo</div>
+                        <div class="agent-name reveal" style="--d:.12s">developer<span class="tick">_</span></div>
+                        <p class="agent-role reveal" style="--d:.2s">Escribe y refactoriza <b>código limpio y mantenible</b>, con reglas de calidad siempre activas.</p>
+                        <ul class="check">
+                            <li class="reveal" style="--d:.28s"><b>DRY inteligente</b>, modularidad progresiva, naming descriptivo, KISS/YAGNI.</li>
+                            <li class="reveal" style="--d:.34s">Jerarquía de estilo: <b>custom &gt; PEP 8 &gt; SOTA &gt; Google</b>.</li>
+                            <li class="reveal" style="--d:.4s"><b>7 skills on-demand</b> que se cargan solo cuando la tarea lo pide.</li>
+                            <li class="reveal" style="--d:.46s">No incluye reglas de seguridad: eso es rol de <b>cyberseguridad</b>, que audita cada actualización.</li>
+                        </ul>
+                    </div>
+                    <div class="ficha reveal" style="--d:.5s">
+                        <div class="row"><div class="k">Versión</div><div class="v">v8</div></div>
+                        <div class="row"><div class="k">Skills</div>
+                            <div class="chips">
+                                <span class="chip">python-style</span><span class="chip">code-review</span>
+                                <span class="chip">code-simplification</span><span class="chip">test-driven-development</span>
+                                <span class="chip">api-and-interface-design</span><span class="chip">incremental-implementation</span>
+                                <span class="chip">frontend-engineering</span>
+                            </div>
+                        </div>
+                        <div class="row"><div class="k">Gate</div><div class="v">auditado por cyberseguridad</div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             09 · SYSADMIN
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø9</b> · AGENTE 04</span>
+                <span class="pg"><b>09</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="split">
+                    <div>
+                        <div class="kicker reveal" style="--d:.05s">Operación de servidores</div>
+                        <div class="agent-name reveal" style="--d:.12s">sysadmin<span class="tick">_</span></div>
+                        <p class="agent-role reveal" style="--d:.2s">Administra servidores <b>Linux, FreeBSD y macOS</b> con disciplina y guardarraíles de seguridad.</p>
+                        <ul class="check">
+                            <li class="reveal" style="--d:.28s">Vendoriza el ruleset <b>heinzel</b> adaptado a opencode.</li>
+                            <li class="reveal" style="--d:.34s">Trabaja por <b>SSH o en local</b>, con reglas por distro y procedimiento.</li>
+                            <li class="reveal" style="--d:.4s"><b>Memoria 100% por proyecto</b>: un cliente por proyecto en documents/memory/.</li>
+                            <li class="reveal" style="--d:.46s">Disambiguación por cliente para no mezclar contextos.</li>
+                        </ul>
+                    </div>
+                    <div class="ficha reveal" style="--d:.5s">
+                        <div class="row"><div class="k">Versión</div><div class="v">v3</div></div>
+                        <div class="row"><div class="k">Memoria</div><div class="v mono">documents/memory/</div></div>
+                        <div class="row"><div class="k">Skills</div>
+                            <div class="chips">
+                                <span class="chip">heinzel-rules</span><span class="chip">heinzel-housekeeping</span>
+                                <span class="chip">heinzel-security</span><span class="chip">heinzel-email</span>
+                                <span class="chip">heinzel-fleet-audit</span><span class="chip">calisto-landlock</span>
+                            </div>
+                        </div>
+                        <div class="row"><div class="k">Upstream</div><div class="v">procedimiento guiado de actualización</div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             10 · SEGURIDAD OPCIONAL — LANDLOCK
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø10</b> · SEGURIDAD</span>
+                <span class="pg"><b>10</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="split">
+                    <div>
+                        <div class="kicker reveal" style="--d:.05s">Add-on opcional de sysadmin</div>
+                        <div class="agent-name reveal" style="--d:.12s">landlock_rosh<span class="tick">_</span></div>
+                        <p class="agent-role reveal" style="--d:.2s">Cuando el servidor es crítico, la sesión remota puede quedar en <b>solo lectura impuesta por el kernel</b>. El agente lee y diagnostica; escribir, borrar o cambiar permisos deja de ser una opción.</p>
+                        <ul class="check">
+                            <li class="reveal" style="--d:.28s">Se <b>ofrece, no se impone</b>: en hosts críticos o cuando pedís acceso de solo lectura.</li>
+                            <li class="reveal" style="--d:.34s"><b>ro</b>: jaula real de filesystem. <b>log</b>: escritura con auditoría; una traza, no un control.</li>
+                            <li class="reveal" style="--d:.4s">Vive en el servidor remoto: el binario viaja en la imagen y se instala en el target.</li>
+                            <li class="reveal" style="--d:.46s">Si el host ya está restringido, el agente <b>no busca la vuelta</b>: reporta y te deja decidir.</li>
+                            <li class="reveal amber" style="--d:.52s">Límites claros: bloquea archivos; daemons, señales y red quedan fuera.</li>
+                        </ul>
+                    </div>
+                    <div class="ficha reveal" style="--d:.56s">
+                        <div class="row"><div class="k">Versión</div><div class="v">v1.9.0</div></div>
+                        <div class="row"><div class="k">Modos</div>
+                            <div class="chips"><span class="chip">ro</span><span class="chip amber">log</span></div>
+                        </div>
+                        <div class="row"><div class="k">Integración</div><div class="v mono">command= en authorized_keys</div></div>
+                        <div class="row"><div class="k">Auditoría</div><div class="v mono">journald · archivo</div></div>
+                        <div class="row"><div class="k">Binario</div><div class="v mono">Linux x86_64 · estático</div></div>
+                    </div>
+                </div>
+
+                <div class="callout reveal" style="--d:.66s">
+                    <p>La seguridad no depende de que el modelo <b>decida portarse bien</b>: la impone el kernel. Es el compromiso del proyecto con los servidores que administra.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             11 · CIBERSEGURIDAD
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø11</b> · AGENTE 05</span>
+                <span class="pg"><b>11</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="split">
+                    <div>
+                        <div class="kicker reveal" style="--d:.05s">Auditoría y seguridad</div>
+                        <div class="agent-name reveal" style="--d:.12s">cyberseguridad<span class="tick">_</span></div>
+                        <p class="agent-role reveal" style="--d:.2s">Audita <b>código, infraestructura y agentes de IA</b>. Es el filtro de seguridad obligatorio antes de dar por aprobado cualquier agente nuevo.</p>
+                        <ul class="check">
+                            <li class="reveal" style="--d:.28s">Auditoría de código (OWASP), APIs, dependencias, secretos y criptografía.</li>
+                            <li class="reveal" style="--d:.34s">Pentest, recon y OSINT <b>autorizados</b>.</li>
+                            <li class="reveal" style="--d:.4s">Respuesta a incidentes, forense, SIEM/SOC y threat hunting.</li>
+                            <li class="reveal" style="--d:.46s">Seguridad de <b>IA/LLM</b>: prompt injection y evaluaciones de riesgo.</li>
+                            <li class="reveal amber" style="--d:.52s">Cloud, contenedores, IAM y cumplimiento.</li>
+                        </ul>
+                    </div>
+                    <div class="ficha reveal" style="--d:.56s">
+                        <div class="row"><div class="k">Versión</div><div class="v">v5</div></div>
+                        <div class="row"><div class="k">Catálogo</div><div class="v">metodologías vendorizadas (OWASP, AI RMF, PCI/HIPAA, cloud)</div></div>
+                        <div class="row"><div class="k">Rol en el proyecto</div><div class="v mono">gate obligatorio de seguridad</div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             12 · AGENT-BUILDER
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø12</b> · AGENTE 06</span>
+                <span class="pg"><b>12</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="split">
+                    <div>
+                        <div class="kicker reveal" style="--d:.05s">Meta-agente</div>
+                        <div class="agent-name reveal" style="--d:.12s">agent-builder<span class="tick">_</span></div>
+                        <p class="agent-role reveal" style="--d:.2s">Crea <b>otros agentes</b>: investiga, planifica, construye y audita antes de proponerte el resultado.</p>
+                        <ul class="check">
+                            <li class="reveal" style="--d:.28s">Orquesta <b>investigador → planning gate → developer → cyberseguridad</b>.</li>
+                            <li class="reveal" style="--d:.34s">Regla de Oro: determinístico → <b>guardrails</b>; reutilizable → <b>skills</b>; universal → <b>.md</b>.</li>
+                            <li class="reveal" style="--d:.4s">Trabaja efímero en <b>/tmp</b> y requiere <b>decisión humana</b> ante hallazgos medios/altos.</li>
+                            <li class="reveal" style="--d:.46s">Alcance <b>global</b> (config del usuario) o <b>local</b> (versionado en el proyecto).</li>
+                        </ul>
+                    </div>
+                    <div class="ficha reveal" style="--d:.5s">
+                        <div class="row"><div class="k">Versión</div><div class="v">v5</div></div>
+                        <div class="row"><div class="k">Ciclos</div><div class="v">múltiples plan ↔ developer</div></div>
+                        <div class="row"><div class="k">Gate final</div><div class="v mono">obligatorio</div></div>
+                        <div class="row"><div class="k">Destino</div><div class="v mono">global · ~/.config/opencode/</div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             13 · CÓMO SE CONSTRUYEN
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø13</b> · RIGOR</span>
+                <span class="pg"><b>13</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Cómo se construyen</div>
+                <h2 class="title sm reveal" style="--d:.12s">El mismo rigor, <span class="hl">reproducible</span>.</h2>
+
+                <div class="flow">
+                    <div class="step reveal" style="--d:.24s">
+                        <div class="sn">PASO 01</div>
+                        <h3>investigador</h3>
+                        <p>Rastrea repositorios públicos en <b>seis idiomas</b> y reúne las fuentes más adecuadas.</p>
+                    </div>
+                    <div class="arrow reveal" style="--d:.3s">→</div>
+                    <div class="step reveal" style="--d:.34s">
+                        <div class="sn">PASO 02</div>
+                        <h3>agent-builder</h3>
+                        <p>Selecciona fuentes complementarias y <b>vendoriza</b> el agente a partir de ellas.</p>
+                    </div>
+                    <div class="arrow reveal" style="--d:.4s">→</div>
+                    <div class="step reveal" style="--d:.44s">
+                        <div class="sn">PASO 03</div>
+                        <h3>cyberseguridad</h3>
+                        <p>Audita: busca <b>prompt injection</b> y verifica que los permisos sean seguros.</p>
+                    </div>
+                    <div class="arrow reveal" style="--d:.5s">→</div>
+                    <div class="step reveal" style="--d:.54s; border-color: rgba(255,176,32,0.45);">
+                        <div class="sn" style="color: var(--amber);">PASO 04</div>
+                        <h3>agente listo</h3>
+                        <p>Con su <b>procedimiento de actualización</b> documentado, para mantenerse en el tiempo.</p>
+                    </div>
+                </div>
+
+                <div class="callout reveal" style="--d:.66s">
+                    <p>Cada agente documenta cómo <b>actualizarse desde sus fuentes originales</b>. Ese trabajo no es de una sola vez: es una pieza que se mantiene.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             14 · SKILLS GLOBALES
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø14</b> · SKILLS</span>
+                <span class="pg"><b>14</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Skills globales sin agente portador</div>
+                <h2 class="title sm reveal" style="--d:.12s">Capacidades extra, siempre a mano.</h2>
+
+                <div class="cards c2 mt44">
+                    <div class="card reveal" style="--d:.24s">
+                        <h3><span class="dot"></span>frontend-slides</h3>
+                        <p>Crea <b>presentaciones HTML autocontenidas y animadas</b> desde cero o convirtiendo un PowerPoint, con descubrimiento visual de estilo anti-"AI slop" y <b>34 plantillas bold</b>. Exporta a PDF localmente.</p>
+                        <p style="margin-top:16px;"><span class="chip">/frontend-slides</span> <span class="chip" style="margin-left:8px;">deps en la imagen</span></p>
+                    </div>
+                    <div class="card amber reveal" style="--d:.36s">
+                        <h3><span class="dot"></span>mermaid2png</h3>
+                        <p>Renderiza <b>diagramas Mermaid</b> a PNG <b>localmente</b>, sin servicios de terceros. Ideal para acompañar la documentación de arquitectura con imágenes listas para publicar.</p>
+                        <p style="margin-top:16px;"><span class="chip amber">.mmd → PNG</span> <span class="chip amber" style="margin-left:8px;">offline</span></p>
+                    </div>
+                </div>
+
+                <div class="callout reveal" style="--d:.5s">
+                    <p>El deploy las lleva a la configuración global de opencode, así que funcionan igual <b>dentro del contenedor y en una instalación tradicional</b>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             15 · INFORMES (md2pdf)
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø15</b> · INFORMES</span>
+                <span class="pg"><b>15</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Informes listos para compartir</div>
+                <h2 class="title sm reveal" style="--d:.12s">Del Markdown al PDF, <span class="hl">con estilo</span>.</h2>
+                <p class="lead reveal" style="--d:.2s">Los agentes generan Markdown y <b>md2pdf</b> lo convierte a <b>PDF o HTML</b> con estilos agradables para lectura y publicación.</p>
+
+                <div class="cards c3 mt44">
+                    <div class="card reveal" style="--d:.3s"><h3><span class="dot"></span>5 estilos</h3><p><b>github</b>, <b>pandoc</b>, <b>newsprint</b>, <b>notion</b> y <b>paper</b>.</p></div>
+                    <div class="card reveal" style="--d:.38s"><h3><span class="dot"></span>Tablas inteligentes</h3><p>Maquetadas según el contenido de cada columna (<b>auto-layout</b>) y con corte de palabras largas.</p></div>
+                    <div class="card amber reveal" style="--d:.46s"><h3><span class="dot"></span>Comando global</h3><p>Disponible como <b>/md2pdf</b>, tanto en PDF como en HTML.</p></div>
+                </div>
+
+                <div class="callout reveal" style="--d:.58s">
+                    <p>En el contenedor, md2pdf y sus estilos ya vienen <b>integrados en la imagen</b>. En opencode tradicional se instalan con <b>--install-tools</b>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             16 · IDENTIDAD DEL AGENTE
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø16</b> · IDENTIDAD</span>
+                <span class="pg"><b>16</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Identidad del agente</div>
+                <h2 class="title sm reveal" style="--d:.12s">Una identidad propia, <span class="hl">separada de la tuya</span>.</h2>
+
+                <div class="cards c2 mt44">
+                    <div class="card reveal" style="--d:.24s">
+                        <h3><span class="dot"></span>Llave SSH</h3>
+                        <p>Para usar en <b>servidores remotos</b> sin exponer tu llave personal.</p>
+                    </div>
+                    <div class="card amber reveal" style="--d:.34s">
+                        <h3><span class="dot"></span>gitconfig</h3>
+                        <p>Define el <b>autor de los commits</b> del agente y es personalizable.</p>
+                    </div>
+                </div>
+
+                <p class="lead reveal" style="--d:.46s; margin-top: 40px;">Ambas viven en <b>~/.config/opencode/identity/</b> y se enlazan dentro del contenedor al iniciar. Así los commits y accesos del agente quedan <b>claramente diferenciados</b> de los tuyos.</p>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             17 · ESTRUCTURA DE PARÁMETROS
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø17</b> · EJECUCIÓN</span>
+                <span class="pg"><b>17</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Cómo se ejecuta</div>
+                <h2 class="title sm reveal" style="--d:.12s">Tres mundos, <span class="hl">mutuamente excluyentes</span>.</h2>
+
+                <pre class="code tree mt34 reveal" style="--d:.22s"><span class="grp">parámetros</span>
+│
+├── <span class="acc">IMAGEN</span>       <span class="opt">--renew</span> · <span class="opt">--rebuild</span> · <span class="opt">--update</span>
+│
+├── <span class="acc">GESTIÓN</span>      <span class="opt">--ps</span> / <span class="opt">--ls</span>   ·   <span class="opt">--kill</span> / <span class="opt">--rm</span> &lt;patrón&gt;
+│
+└── <span class="acc">EJECUCIÓN</span>    <span class="opt">&lt;proyecto&gt;</span>
+    ├── <span class="opt">--no-climb</span>            no busca .git hacia arriba
+    ├── <span class="opt">--tui | --web</span>         flags &gt; OPENCODE_GUI &gt; web
+    ├── <span class="opt">--extra-ports</span> &lt;n&gt;,&lt;n&gt; puertos extra host→contenedor
+    └── <span class="opt">web</span> (default)         servidor web
+        ├── <span class="opt">--port</span> &lt;1-65535&gt;   default 4096
+        ├── <span class="opt">-config</span> &lt;ruta&gt;     datos en otra ubicación
+        └── <span class="opt">--network-host</span>     comparte la red del host
+<span class="cmt">ℹ  --help / -h  y  --version  funcionan en cualquier rama</span></pre>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             18 · INSTALACIÓN Y USO
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø18</b> · PUESTA EN MARCHA</span>
+                <span class="pg"><b>18</b> / 19</span>
+            </div>
+            <div class="body">
+                <div class="kicker reveal" style="--d:.05s">Instalación y uso</div>
+                <h2 class="title sm reveal" style="--d:.12s">Listo en <span class="hl">unos pocos comandos</span>.</h2>
+
+                <div class="cards c2 mt34">
+                    <div class="reveal" style="--d:.22s">
+                        <div class="code-label">Instalación</div>
+                        <pre class="code"><span class="cmd">git clone</span> <span class="arg">&lt;url-del-repo&gt;</span>
+<span class="cmd">cd</span> opencode-container
+<span class="cmd">chmod +x</span> opencode.sh
+<span class="cmt"># acceso cómodo desde cualquier carpeta</span>
+<span class="cmd">ln -s</span> <span class="arg">"$(pwd)/opencode.sh"</span> ~/.local/bin/
+opencode.sh --rebuild <span class="cmt"># o --renew para actualizarlo</span>
+<span class="cmt"># desplegar agentes, skills, estilos y comandos</span>
+<span class="cmd">./src/agents_update.sh</span> <span class="cmt"># o --check</span></pre>
+                    </div>
+                    <div class="reveal" style="--d:.32s">
+                        <div class="code-label">Uso diario</div>
+                        <pre class="code"><span class="cmd">./opencode.sh</span> /ruta/proyecto          <span class="cmt"># web · 4096</span>
+<span class="cmd">./opencode.sh</span> /ruta/proyecto <span class="flag">--tui</span>    <span class="cmt"># terminal</span>
+<span class="cmd">OPENCODE_GUI=tui ./opencode.sh</span> /ruta/proyecto
+<span class="cmd">./opencode.sh</span> /ruta/proyecto <span class="flag">--port</span> <span class="arg">4097</span>
+<span class="cmd">./opencode.sh</span> /ruta/proyecto <span class="flag">--extra-ports</span> <span class="arg">3000,8080</span>
+<span class="cmd">./opencode.sh</span> /ruta/proyecto <span class="flag">--password</span> <span class="arg">"pwd"</span>
+<span class="cmd">./opencode.sh</span> <span class="flag">--ps</span>                    <span class="cmt"># activos</span>
+<span class="cmd">./opencode.sh</span> <span class="flag">--rebuild</span>               <span class="cmt"># imagen</span></pre>
+                    </div>
+                </div>
+
+                <div class="callout reveal" style="--d:.46s">
+                    <p>Requisitos: <b>Podman</b> y Linux o macOS. En el contenedor las herramientas ya vienen integradas; en opencode tradicional se suman con <b>./src/agents_update.sh --install-tools</b>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             19 · CIERRE
+             ============================================================ -->
+        <section class="slide">
+            <div class="frame"><span class="b3"></span><span class="b4"></span></div>
+            <div class="head">
+                <span class="node">NODO <b>Ø19</b> · CIERRE</span>
+                <span class="pg"><b>19</b> / 19</span>
+            </div>
+            <div class="body" style="display: flex; flex-direction: column; justify-content: center; height: calc(100% - 60px);">
+                <div class="kicker reveal" style="--d:.05s">Compatible ante todo</div>
+                <h2 class="title reveal" style="--d:.12s">Este launcher no reemplaza a opencode: <span class="hl">lo acompaña</span>.</h2>
+                <p class="lead reveal" style="--d:.24s; max-width: 1250px;">Mismos agentes, comandos, skills y configuración, tanto dentro del contenedor como en una <b>instalación tradicional</b>. Un único script, <b>agents_update.sh</b>, mantiene todo al día en ambos entornos.</p>
+
+                <div class="reveal" style="--d:.4s; margin-top: 56px; display: inline-flex; align-items: center; gap: 18px; align-self: flex-start; border: 1px solid rgba(56,189,248,0.4); border-radius: 14px; padding: 26px 34px; background: linear-gradient(90deg, rgba(56,189,248,0.10), rgba(56,189,248,0.02));">
+                    <span style="width: 14px; height: 14px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 14px rgba(56,189,248,0.8);"></span>
+                    <span style="font-family: var(--font-mono); font-size: 30px; color: var(--paper);">
+                        <span style="color: var(--amber);">$</span> opencode.sh <span style="color: var(--cyan);">/ruta/a/tu/proyecto</span>
+                    </span>
+                </div>
+
+                <p class="lead reveal" style="--d:.52s; margin-top: 44px; font-family: var(--font-mono); font-size: 20px; letter-spacing: 0.06em;"><b style="color: var(--cyan);">opencode.sh</b> by <b style="color: var(--amber);">Calisto</b> · v4.1.0 · elaborado a partir del README del proyecto</p>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- ============================================================
+     CHROME (fuera del stage)
+     ============================================================ -->
+<div class="deck-progress" id="deckProgress"></div>
+<nav class="deck-nav" id="deckNav" aria-label="Navegación de slides"></nav>
+<!-- Copia de solo lectura: sin hotzone ni botón de edición. -->
+
+<script>
+    /* ===========================================
+       SLIDE PRESENTATION CONTROLLER
+       Fixed 16:9 stage · keyboard · touch · wheel · progress
+       =========================================== */
+    class SlidePresentation {
+        constructor() {
+            this.slides = Array.from(document.querySelectorAll('.slide'));
+            this.currentSlide = 0;
+            this.stage = document.getElementById('deckStage');
+            this.progress = document.getElementById('deckProgress');
+            this.nav = document.getElementById('deckNav');
+            this.lock = false;
+            this.buildNav();
+            this.setupStageScale();
+            this.setupKeyboardNav();
+            this.setupTouchNav();
+            this.setupWheelNav();
+            this.showSlide(0);
+        }
+
+        buildNav() {
+            this.slides.forEach((slide, i) => {
+                const seg = document.createElement('button');
+                seg.type = 'button';
+                seg.className = 'seg';
+                seg.title = `Slide ${i + 1}`;
+                seg.setAttribute('aria-label', `Ir al slide ${i + 1}`);
+                seg.addEventListener('click', () => this.showSlide(i));
+                this.nav.appendChild(seg);
+            });
+            this.segments = Array.from(this.nav.querySelectorAll('.seg'));
+        }
+
+        setupStageScale() {
+            const scale = () => {
+                const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+                const x = (window.innerWidth - 1920 * factor) / 2;
+                const y = (window.innerHeight - 1080 * factor) / 2;
+                this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+            };
+            scale();
+            window.addEventListener('resize', scale);
+        }
+
+        setupKeyboardNav() {
+            document.addEventListener('keydown', (event) => {
+                if (event.target.getAttribute('contenteditable')) return;
+                switch (event.key) {
+                    case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown':
+                        event.preventDefault(); this.next(); break;
+                    case 'ArrowLeft': case 'ArrowUp': case 'PageUp':
+                        event.preventDefault(); this.prev(); break;
+                    case 'Home': event.preventDefault(); this.showSlide(0); break;
+                    case 'End': event.preventDefault(); this.showSlide(this.slides.length - 1); break;
+                }
+            });
+        }
+
+        setupTouchNav() {
+            let start_x = 0, start_y = 0;
+            document.addEventListener('touchstart', (event) => {
+                start_x = event.changedTouches[0].clientX;
+                start_y = event.changedTouches[0].clientY;
+            }, { passive: true });
+            document.addEventListener('touchend', (event) => {
+                const dx = event.changedTouches[0].clientX - start_x;
+                const dy = event.changedTouches[0].clientY - start_y;
+                if (Math.abs(dx) < 50 && Math.abs(dy) < 50) return;
+                if (Math.abs(dx) > Math.abs(dy)) { (dx < 0) ? this.next() : this.prev(); }
+                else { (dy < 0) ? this.next() : this.prev(); }
+            }, { passive: true });
+        }
+
+        setupWheelNav() {
+            window.addEventListener('wheel', (event) => {
+                if (this.lock) return;
+                if (Math.abs(event.deltaY) < 24) return;
+                this.lock = true;
+                (event.deltaY > 0) ? this.next() : this.prev();
+                setTimeout(() => { this.lock = false; }, 700);
+            }, { passive: true });
+        }
+
+        next() { this.showSlide(this.currentSlide + 1); }
+        prev() { this.showSlide(this.currentSlide - 1); }
+
+        showSlide(index) {
+            this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+            this.slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === this.currentSlide);
+                slide.classList.toggle('visible', i === this.currentSlide);
+                slide.removeAttribute('contenteditable');
+            });
+            this.segments.forEach((seg, i) => seg.classList.toggle('active', i === this.currentSlide));
+            this.progress.style.width = `${((this.currentSlide + 1) / this.slides.length) * 100}%`;
+        }
+    }
+
+    const presentation = new SlidePresentation();
+    window.presentation = presentation;
+
+    /* Copia de solo lectura: editor inline deshabilitado por completo.
+       Sin hotzone, sin botón EDITAR, sin tecla E, sin autosave Ctrl+S
+       y sin restauración de ediciones previas desde localStorage. */
+</script>
+</body>
+</html>

@@ -58,9 +58,9 @@ Los prompts que invoquen subagentes deben usar el ID completo (`investigador/inv
 | Agente (agrupación) | Subcarpeta | Versión primario | Rol |
 |---------------------|------------|------------------|------|
 | `investigador` | `src/agents/investigador/` | 10 | Investigación web por subagentes con dos modos (simplificado EN/ES y extendido EN/FR/ES/DE/ZH/RU); reutiliza búsquedas recientes; informe en español citado (introducción, cuerpo unificado por temas, discrepancias, conclusión y fuentes), guardado en `documents/investigaciones/` y convertible a PDF con `/md2pdf` |
-| `sysadmin` | `src/agents/sysadmin/` | 1 | Sysadmin disciplinado (ruleset **heinzel** adaptado a opencode): gestión de servidores Linux/FreeBSD/macOS vía SSH o local, con guardarraíles de seguridad, memoria 100% por proyecto (`<proyecto>/documents/memory/`, un cliente por proyecto), disambiguación por cliente y skills on-demand (`heinzel-rules`, `heinzel-housekeeping`, `heinzel-security`, `heinzel-email`, `heinzel-fleet-audit`). Actualización desde upstream: ver `upgrade-heinzel.md` (meta-archivo, no se despliega) |
+| `sysadmin` | `src/agents/sysadmin/` | 3 | Sysadmin disciplinado (ruleset **heinzel** adaptado a opencode + add-on **`calisto-landlock`** de Calisto): gestión de servidores Linux/FreeBSD/macOS vía SSH o local, con guardarraíles de seguridad, memoria 100% por proyecto (`<proyecto>/documents/memory/`, un cliente por proyecto), disambiguación por cliente y skills on-demand (`heinzel-rules`, `heinzel-housekeeping`, `heinzel-security`, `heinzel-email`, `heinzel-fleet-audit`, `calisto-landlock`). Actualización desde upstream: ver `upgrade-heinzel.md` (meta-archivo, no se despliega); add-ons custom: `ADDONS.md` |
 | `developer` | `src/agents/developer/` | 8 | Desarrollador senior que escribe código limpio, mantenible y bien estructurado (reglas en inglés, lenguaje-agnósticas): DRY inteligente, modularidad progresiva, diseño de clases, naming, comentarios mínimos, KISS/YAGNI. Referencia de estilo `python-style.md` con jerarquía (custom > PEP 8 > SOTA > Google) aplicable a otros lenguajes. 7 skills on-demand (python-style, code-review, code-simplification, test-driven-development, api-and-interface-design, incremental-implementation, frontend-engineering). **No incluye reglas de ciberseguridad** (rol del agente `cyberseguridad`); construcción y cada actualización pasan por el gate de seguridad de `cyberseguridad`. Actualización desde upstream: ver `upgrade-developer.md` (meta-archivo, no se despliega) |
-| `agent-builder` | `src/agents/agent-builder/` | 4 | Meta-agente creador de agentes: orquesta `investigador → planificación propia (Planning Gate) → developer → cyberseguridad` aplicando la **Regla de Oro (determinístico→Guardrails, reutilizable→skills, universal→.md)**, efímero en `/tmp` (sin escribir en `documents/investigaciones/`), requiere decisión humana ante hallazgos medios/altos, múltiples ciclos plan↔developer y gate final obligatorio. Hook como bloque `## Guardrails` (opencode sin hook nativo). Ver `README.md` para diagrama y `skills/agent-architecture/SKILL.md` para checklist. Actualización: ver `upgrade-agent-builder.md` |
+| `agent-builder` | `src/agents/agent-builder/` | 5 | Meta-agente creador de agentes: orquesta `investigador → planificación propia (Planning Gate) → developer → cyberseguridad` aplicando la **Regla de Oro (determinístico→Guardrails, reutilizable→skills, universal→.md)**, efímero en `/tmp` (sin escribir en `documents/investigaciones/`), requiere decisión humana ante hallazgos medios/altos, múltiples ciclos plan↔developer y gate final obligatorio. Hook como bloque `## Guardrails` (opencode sin hook nativo). Ver `README.md` para diagrama y `skills/agent-architecture/SKILL.md` para checklist. Actualización: ver `upgrade-agent-builder.md` |
 | `cyberseguridad` | `src/agents/cyberseguridad/` | 5 | Auditor de ciberseguridad (catálogo de 29 metodologías vendorizado de `briiirussell/cybersecurity-skills`, MIT): auditoría de código, APIs, dependencias, secretos, cripto, cloud/container/IAM, seguridad de IA, threat modeling, CVE, cumplimiento y respuesta a incidentes. Solo audita y reporta; no corrige. `mode: all` para poder ejecutarse como primario o como subagente del `agent-builder` |
 | `arquitecto` | `src/agents/arquitecto/` | 6 | Agente global arquitecto de software: elicitación socrática de ideas/requisitos → canvas por módulo con contratos (command/query/event), diagramas C4 en Mermaid, ADRs y riesgos → plan maestro con subproyectos/hitos/MoSCoW → packs de tareas por hito. No escribe código: su home es `<proyecto>/documents/arquitectura/` con `INDEX.md` (registro de proyectos: `| Proyecto | Descripción | Estado | Fecha de creación | Fecha de última actualización |`) y una subcarpeta `<proyecto>/` por proyecto gestionado; `edit/write: allow` con el alcance restringido **por prompt** (guardrails). Handoff a `plan` (built-in, F2) y `developer`. 3 skills on-demand (`module-decomposition`, `architecture-decisions`, `delivery-planning`) + comando `/arquitecto`. Decisiones de diseño y piezas vendorizadas: `PROVENANCE.md`; actualización de piezas upstream: `upgrade-arquitecto.md` (meta-archivo, no se despliega). Auditorías y gate final: `documents/reports/cyberseguridad-2026-09-08-arquitecto*.md` |
 
@@ -76,11 +76,27 @@ Skills sin agente portador, horneadas en la imagen y desplegadas a la config glo
 ## Actualización de heinzel (agente sysadmin)
 
 El agente `sysadmin` vendoriza el ruleset de [`wintermeyer/heinzel`](https://github.com/wintermeyer/heinzel):
-las reglas viven en `src/agents/sysadmin/skills/heinzel-rules/references/` y las 4 skills en
-`src/agents/sysadmin/skills/`. No hay flag `--download` en `agents_update.sh`: la actualización se
-hace siguiendo el **procedimiento guiado** `src/agents/sysadmin/upgrade-heinzel.md` (fetch de
-upstream → diff estructurado → re-vendorizar con mapa de reescrituras Claude-Code→opencode →
-plegar cambios a `sysadmin.md` y bumpear `version:` → validación → deploy).
+las reglas viven en `src/agents/sysadmin/skills/heinzel-rules/references/` y las
+skills en `src/agents/sysadmin/skills/`. No hay flag `--download` en
+`agents_update.sh`: la actualización se hace siguiendo el **procedimiento guiado**
+`src/agents/sysadmin/upgrade-heinzel.md` (fetch de upstream → diff estructurado →
+re-vendorizar con mapa de reescrituras Claude-Code→opencode → plegar cambios a
+`sysadmin.md` y bumpear `version:` → validación → deploy).
+
+### Add-ons custom (`calisto-*`)
+
+No todo lo que lleva el agente viene de heinzel. Los componentes propios se
+declaran en `src/agents/<agente>/ADDONS.md` (meta-archivo, no se despliega) y usan
+el prefijo `calisto-` para distinguirlos. El caso actual es
+`src/agents/sysadmin/skills/calisto-landlock/`:
+
+- **No** se copia desde upstream ni se sobrescribe.
+- **No** se borra cuando se limpian skills que desaparecieron de heinzel.
+- Se valida en el Paso 3b/6 de `upgrade-heinzel.md` y se incluye en el gate de
+  `cyberseguridad`.
+- La documentación de desarrollo del binario vive en
+  `src/tools/landlock/DEVELOPMENT.md`; la skill es solo el procedimiento
+  operativo del agente.
 
 ## Política de versiones
 

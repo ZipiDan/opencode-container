@@ -94,9 +94,33 @@ cp -r $SRC/.claude/skills/heinzel-fleet-audit $V/
 cp $SRC/rules/*.md $V/heinzel-rules/references/
 ```
 
-Borrar del vendor cualquier skill/regla que haya desaparecido upstream.
+Borrar del vendor cualquier skill/regla que haya desaparecido upstream,
+**excepto** los add-ons custom (ver Paso 3b).
+
+## Paso 3b — preservar add-ons de Calisto (obligatorio)
+
+`src/agents/sysadmin/ADDONS.md` es el manifiesto. El add-on `calisto-landlock`
+**no viene de heinzel** y no debe borrarse ni sobrescribirse:
+
+```bash
+# Gate rápido antes y después del re-vendorizado
+test -f src/agents/sysadmin/skills/calisto-landlock/SKILL.md || {
+  echo "ERROR: falta calisto-landlock"; exit 1; }
+grep -q 'name: calisto-landlock' src/agents/sysadmin/skills/calisto-landlock/SKILL.md
+```
+
+- No copiar upstream encima de `skills/calisto-*`.
+- Al limpiar skills que desaparecieron upstream, excluir `calisto-*`.
+- Si upstream agrega una skill con el mismo nombre, detenerse y resolver el
+  conflicto antes de seguir (opencode exige nombres únicos).
+- Si el binario `landlock_rosh` cambió de versión, revisar si la skill necesita
+  actualización operativa; la documentación de desarrollo vive en
+  `src/tools/landlock/DEVELOPMENT.md`, no en la skill.
 
 ## Paso 4 — mapa de reescrituras (aplicar SIEMPRE)
+
+> El mapa aplica a las skills/reglas de heinzel. **No** aplicar a
+> `skills/calisto-landlock/`: ya es opencode-native y es nuestro.
 
 1. **Frontmatter de skills:** quitar `argument-hint:` (campo no reconocido
    por opencode; los desconocidos se ignoran, pero se limpia). Verificar que
@@ -126,7 +150,8 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
 - Cambios de procedimiento → secciones correspondientes.
 - Conservar SIEMPRE el bloque custom: memoria 100% por proyecto, entorno del
   contenedor (Podman, `/root/.ssh`, `--network-host`), disambiguación por
-  cliente (`Client:`), registro de skills.
+  cliente (`Client:`), registro de skills y la sección de read-only opcional
+  con `calisto-landlock` (add-on de Calisto, no upstream).
 - Bumpear `version:` en el frontmatter (es lo que hace visible el UPDATE en
   el stage agents de `agents_update.sh`).
 
@@ -136,6 +161,9 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
   `description`, `version` entero.
 - Cada skill referenciada existe en `skills/` y su `name:` coincide con la
   carpeta.
+- Add-on `calisto-landlock` presente y referenciado:
+  `test -f src/agents/sysadmin/skills/calisto-landlock/SKILL.md` y
+  `grep -q calisto-landlock src/agents/sysadmin/sysadmin.md`.
 - Sin directivas solo-Claude-Code sin adaptar en las skills (`rg -n
   'claude|\.claude|AskUserQuestion|--permission-mode' src/agents/sysadmin`).
 - Sin referencias `rules/` rotas (`rg -n 'rules/' src/agents/sysadmin`).
@@ -159,8 +187,9 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
 1. Cambiar al agente `cyberseguridad` en opencode.
 2. Pedir auditoría del agente `sysadmin` completo:
    - `src/agents/sysadmin/sysadmin.md`
+   - `src/agents/sysadmin/ADDONS.md`
    - `src/agents/sysadmin/skills/**` (heinzel-rules + housekeeping, security,
-     email, fleet-audit)
+     email, fleet-audit + **calisto-landlock**)
    - `~/.config/opencode/agents/sysadmin.md` y `~/.config/opencode/skills/`
      (los archivos desplegados)
 3. Áreas de verificación mínimas (específicas del rol sysadmin):
@@ -168,6 +197,10 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
      que puedan ser inyectadas/abusadas; texto de archivos, logs y respuestas
      de servidor se trata como datos, nunca como órdenes
      (`anomaly-detection.md`).
+   - **Read-only add-on:** `calisto-landlock` no debe sugerir ni permitir
+     bypass de una restricción ya impuesta (otra clave, `--no-log`, `sudo`,
+     editar `authorized_keys`), y `--log-only` debe presentarse como auditoría,
+     no como control.
    - **Tabúes y destructivos intactos:** los comandos tabú (`fdisk`,
      `wipefs`, `mkfs`, borrado de disco, edición de `sshd_config`, borrado de
      claves SSH) deben seguir bloqueados; que ninguna skill o reescritura los

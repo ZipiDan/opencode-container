@@ -100,12 +100,14 @@ Apply on every vendorized repo:
 5. `~/.claude` → `~/.config/opencode`
 6. `rules/<x>.md` → `./x.md` inside `references/` or `skill` reference
 7. Remove `argument-hint:` (unknown to opencode) and verify the path-derived ID (owner flat, subagents nested).
+8. Preserve custom add-ons declared in `src/agents/<agent>/ADDONS.md` (e.g. `calisto-*` skills): never delete or overwrite them during a re-vendorization.
 
 ## Delivery Checklist (run before git diff)
 
 - [ ] Every rule classified (hook/skill/.md) — no prose guard left as "should"
 - [ ] No deterministic guard lives only in prose — it is in `## Guardrails`
 - [ ] No reusable procedure lives inline — it is a skill
+- [ ] Custom add-ons from `ADDONS.md` preserved (not deleted, not overwritten)
 - [ ] `.md` <200 lines or split
 - [ ] Skill `SKILL.md` <500 lines, description includes when to use (<=1536 chars)
 - [ ] Frontmatter parseable (`mode`, `version` int; `name` optional and ignored by V2)

@@ -13,12 +13,13 @@ proyecto, con las herramientas ya dispuestas y tus carpetas locales siempre a la
 ## Presentación
 
 <a href="opencode-container.html">
-  <img src="opencode-container-preview.png" alt="Vista previa de la presentación: portada, agentes, ejecución y cierre" width="600">
+  <img src="opencode-container-preview.png" alt="Vista previa de la presentación: portada, agentes, seguridad por kernel y cierre" width="600">
 </a>
 
-Un recorrido visual por el proyecto: qué aporta, los agentes especializados que lo acompañan
-y cómo se ejecuta. **[Abrir la presentación](opencode-container.html)** — HTML autocontenido,
-se abre directamente en el navegador.
+Un recorrido visual por el proyecto: qué aporta, los agentes especializados que lo acompañan,
+la seguridad opcional por kernel y cómo se ejecuta. **[Abrir la presentación](opencode-container.html)** — HTML autocontenido,
+se abre directamente en el navegador. También está la
+[copia de solo lectura](opencode-container-readonly.html), sin chrome de edición.
 
 ## Por qué existe este proyecto
 
@@ -45,6 +46,9 @@ tal como estaba.
   versiones, automatización y auditoría.
 - **Agentes especializados** que se suman a los de opencode para cubrir las tareas
   del día a día, desde la investigación hasta la operación de servidores.
+- **Seguridad opcional por kernel**: el agente `sysadmin` puede desplegar
+  `landlock_rosh` para dejar un servidor remoto en solo lectura, incluso para
+  root, cuando la tarea es diagnosticar y no tocar.
 - **Tus carpetas locales, primero**: el contenedor trabaja sobre tus directorios
   reales; nada de islas desconectadas.
 - **Un solo flujo de actualización** para el contenedor y para opencode tradicional.
@@ -104,6 +108,65 @@ publicación: `github`, `pandoc`, `newsprint`, `notion` y `paper`. Las tablas se
 maquetan según el contenido de cada columna (auto-layout) y cortan las palabras
 largas, tanto en PDF como en HTML. Está disponible como comando global `/md2pdf`.
 
+## Seguridad que no depende del prompt: `landlock_rosh`
+
+Un agente puede equivocarse: un `rm` de más, un `sed -i` sobre el archivo
+equivocado, un `chmod` que no era. `landlock_rosh` existe para que ese error no
+llegue al servidor: encierra la sesión remota en una jaula **read-only impuesta
+por el kernel** (Landlock + seccomp), incluso para root.
+
+Es un **add-on opcional** del agente `sysadmin`, no un requisito del launcher.
+Se ofrece cuando pedís acceso de solo lectura o en un host crítico; si no se
+pide, no se despliega. La sesión sigue sirviendo para leer logs, estado de
+servicios, discos, red y todo lo que no implique escribir.
+
+**Qué aporta**
+
+- **Barrera real, no una promesa:** bloquea escrituras, borrados, `chmod`,
+  `chown` y `truncate` directos; también a root.
+- **Dos modos honestos:** `ro` (jaula real) y `log` (permite escribir y deja
+  traza; no protege).
+- **Integración transparente:** `command=".../landlock_rosh"` en
+  `authorized_keys`; el cliente no elige el modo.
+- **Auditoría:** journald o archivo con rotación; comando, usuario, IP y exit
+  code.
+- **Límites claros:** es una barrera de *filesystem*. No bloquea daemons
+  (`systemctl`, `docker`, `gluster`), señales, netlink ni `touch -m`. Para eso
+  hace falta una allowlist o un modo write-guarded (futuro).
+
+**Cómo se instala (manual, en 30 segundos)**
+
+En el contenedor ya está: `/usr/local/bin/landlock_rosh` viaja en la imagen como
+*payload*; se ejecuta en el servidor remoto, no en tu máquina. En opencode
+tradicional:
+
+```bash
+./src/agents_update.sh --install-tools      # deja landlock_rosh en ~/.local/bin
+```
+
+En el servidor remoto (esto es lo que la skill hace por vos):
+
+```bash
+BIN=$(command -v landlock_rosh || echo "$HOME/.local/bin/landlock_rosh")
+scp "$BIN" usuario@host:/tmp/
+ssh usuario@host 'sudo install -m 755 /tmp/landlock_rosh /usr/local/bin/'
+ssh usuario@host 'sudo /usr/local/bin/landlock_rosh --install-log'
+# imprime la línea; pegala en authorized_keys reemplazando la de esa clave
+"$BIN" --print-ssh-line --pubkey ~/.ssh/id_ed25519.pub
+```
+
+El flujo completo —con backup, reemplazo atómico de la línea y verificación— lo
+hace el agente con la skill `calisto-landlock` y `scripts/pin-key.sh`. Pedile al
+sysadmin que "deje este host read-only" y te muestra el plan y el rollback antes
+de tocar nada.
+
+**Por qué importa:** el agente puede elegir no escribir. El kernel no negocia.
+
+Límites y verificación: `src/tools/landlock/README.md` (tool) y
+`src/agents/sysadmin/skills/calisto-landlock/references/` (procedimiento del
+agente). El add-on se preserva en las actualizaciones de heinzel
+(`src/agents/sysadmin/ADDONS.md`).
+
 ## Compatibilidad y actualización
 
 Este desarrollo se esfuerza por mantenerse **completamente compatible con opencode
@@ -113,10 +176,10 @@ contenedorizado como para una instalación tradicional de opencode.
 
 La diferencia es mínima:
 
-- **En el contenedor**, las herramientas (`md2pdf`, etc.) ya vienen integradas en la
-  imagen.
-- **En opencode tradicional**, las herramientas se instalan de forma explícita con
-  `./agents_update.sh --install-tools`.
+- **En el contenedor**, las herramientas (`md2pdf`, `landlock_rosh`, etc.) ya
+  vienen integradas en la imagen.
+- **En opencode tradicional**, las herramientas se instalan de forma explícita
+  con `./agents_update.sh --install-tools`.
 
 El flujo de deploy y actualización es el mismo en ambos casos y se describe en
 detalle más abajo, en [Agentes personalizados](#agentes-personalizados-deploy-y-actualización).
@@ -204,7 +267,8 @@ monta el contenedor, así que **un solo paso cubre ambos entornos**:
 Reiniciá opencode (contenedor o tradicional) para que tome los agentes.
 
 > **Solo para opencode tradicional (no el contenedor):** las herramientas de software
-> como `md2pdf` no vienen preinstaladas y hay que instalarlas explícitamente:
+> como `md2pdf` y `landlock_rosh` no vienen preinstaladas y hay que instalarlas
+> explícitamente:
 >
 > ```bash
 > ./src/agents_update.sh --install-tools          # a ~/.local/bin
@@ -219,8 +283,10 @@ Reiniciá opencode (contenedor o tradicional) para que tome los agentes.
 > md2pdf --doctor
 > ```
 >
-> En el contenedor todas las herramientas y sus dependencias ya están integradas en la
-> imagen, por lo que ni `--install-tools` ni `--doctor` son necesarios.
+> `landlock_rosh` es un binario estático Linux x86_64 sin dependencias: en macOS
+> no se ejecuta localmente, pero sirve para copiarlo a servidores Linux remotos.
+> En el contenedor todas las herramientas y sus dependencias ya están integradas
+> en la imagen, por lo que ni `--install-tools` ni `--doctor` son necesarios.
 
 ## Uso
 
@@ -484,11 +550,11 @@ se respaldan y se eliminan durante la migración.
 | **skills** | `src/agents/*/skills/<nombre>/**` | `~/.config/opencode/skills/<nombre>/` |
 | **styles** | `src/tools/css-styles/**` | `~/.config/opencode/css-styles/` |
 | **commands** | `src/commands/*.md` | `~/.config/opencode/commands/` |
-| **tools** | `src/tools/*` (raíz, p.ej. `md2pdf.py`) | `~/.local/bin` (solo con `--install-tools`) |
+| **tools** | `src/tools/*` (raíz, p.ej. `md2pdf.py`, `landlock_rosh`) | `~/.local/bin` (solo con `--install-tools`) |
 
-La etapa **tools** es la única diferencia entre entornos: en el contenedor `md2pdf` y
-los estilos ya vienen horneados en la imagen, mientras que en opencode tradicional se
-instalan explícitamente con `--install-tools`.
+La etapa **tools** es la única diferencia entre entornos: en el contenedor `md2pdf`,
+`landlock_rosh` y los estilos ya vienen horneados en la imagen, mientras que en opencode
+tradicional se instalan explícitamente con `--install-tools`.
 
 Reglas del script:
 

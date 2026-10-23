@@ -12,6 +12,54 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [4.1.0] — 2026-10-23
+
+### Added
+- **`landlock_rosh` 1.9.0** (`src/tools/landlock_rosh`): binario estático x86_64
+  que ejecuta una shell/comando en un filesystem read-only por Landlock +
+  seccomp (también restringe root). Flags nuevas: `-c` (contrato de login shell),
+  `--log-only` (escritura con auditoría, sin sandbox) y `--print-ssh-line`
+  (genera la línea de `authorized_keys` en modo `ro`/`log`).
+- **Skill `calisto-landlock`** (add-on de Calisto, no heinzel): procedimiento
+  operativo para ofrecer, desplegar, verificar y respetar el acceso read-only.
+  Incluye `scripts/pin-key.sh` (backup, reemplazo atómico de la línea de la
+  clave y verificación).
+- **`src/agents/sysadmin/ADDONS.md`**: manifiesto de add-ons custom; el
+  re-vendorizado de heinzel los preserva (Paso 3b de `upgrade-heinzel.md`).
+- **Imagen**: `Containerfile` copia `landlock_rosh` a `/usr/local/bin` como
+  payload para servidores remotos (no se ejecuta localmente). En opencode
+  tradicional se instala con `agents_update.sh --install-tools`.
+- **Documentación del tool**: `src/tools/landlock/README.md`,
+  `DEVELOPMENT.md`, `PROVENANCE.md`, `SHA256SUMS` y suite de regresión 1.9.0.
+
+### Changed
+- **`sysadmin` v3**: agrega la sección opcional de read-only por kernel y la
+  regla de no bypass; el flujo normal no cambia y landlock no se auto-despliega.
+- **`agent-builder`**: guardrail para no borrar/sobrescribir add-ons `calisto-*`
+  declarados en `ADDONS.md`; checklist de vendorizado actualizado.
+- **Docs**: README/AGENTS con la tabla de tools, el modo contenedor vs legacy y
+  los límites reales (filesystem; daemons, señales, netlink y `utime` quedan
+  fuera). `upgrade-heinzel.md` preserva el add-on y lo incluye en el gate de
+  `cyberseguridad`.
+
+### Removed
+- Prototipo Python (`landlock_rosh.py`), `verify_root.py`, artefactos de
+  análisis de sesiones y snapshots `.tar.gz` históricos. La fuente de verdad es
+  el crate Rust en `src/tools/landlock/crate/`.
+- `reports/` consolidado en `documents/reports/` (contenido idéntico): el
+  histórico de auditorías queda en un solo lugar.
+
+### Notes
+- **Upgrade**: correr `src/agents_update.sh` para desplegar `sysadmin` v3 y la
+  skill `calisto-landlock`. Sin ese paso la skill no se anuncia y el agente
+  sigue en v2: el add-on vive en `src/agents/sysadmin/skills/` y no se
+  auto-instala.
+- **Imagen**: reconstruir (`--rebuild`) para hornear `landlock_rosh` en
+  `/usr/local/bin`. Es payload para servidores remotos; no se ejecuta como
+  sandbox local.
+- **Release**: `opencode-container-src-v4.1.0.tar.gz` (raíz `src/`, sin
+  `.opencode/`), SHA256 `74b3b67a03dcf40ec724cc9694e4c2307066884c364890a87ed728396c729970`.
+
 ## [4.0.0] — 2026-10-23
 
 ### Added

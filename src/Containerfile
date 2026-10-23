@@ -61,6 +61,14 @@ RUN chmod +x /usr/local/bin/md2pdf
 # montada en ~/.config/opencode/css-styles/ tiene prioridad)
 COPY tools/css-styles/ /usr/local/share/md2pdf/css-styles/
 
+# landlock_rosh: sandbox read-only para diagnóstico remoto.
+# Es un binario estático x86_64 que se usa en servidores REMOTOS; en el
+# contenedor solo vive como payload para copiarlo al target. No se ejecuta
+# localmente (el smoke test es solo de build y condicional por arquitectura).
+COPY tools/landlock_rosh /usr/local/bin/landlock_rosh
+RUN chmod 755 /usr/local/bin/landlock_rosh \
+    && if [ "$(uname -m)" = "x86_64" ]; then /usr/local/bin/landlock_rosh --version; fi
+
 # Crear la estructura de directorios usada por opencode.sh para XDG
 RUN mkdir -p /home/opencode/.config \
              /home/opencode/.local/state \

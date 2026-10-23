@@ -1,0 +1,12 @@
+[package]
+name = "landlock_rosh"
+version = "1.9.0"
+edition = "2021"
+
+[dependencies]
+libc = "0.2"
+
+[profile.release]
+lto = true
+opt-level = "z"
+strip = true

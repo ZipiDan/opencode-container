@@ -461,13 +461,18 @@ instalación), **no modifica `opencode.sh`** y su resultado es el mismo para el
 contenedor y para opencode tradicional: la config global se monta dentro del
 contenedor y también es leída por cualquier instalación local de opencode.
 
-**Deploy (estándar OpenCode):** el script **preserva el árbol de subcarpetas**:
-`src/agents/investigador/investigador-en.md` se copia a
-`~/.config/opencode/agents/investigador/investigador-en.md`. OpenCode escanea
-`{agent,agents}/**/*.md` **recursivamente** y cada archivo fija su nombre con el campo
-`name:` del frontmatter, de modo que se tienen **nombres limpios** (`investigador`,
-`investigador-en`…) aunque los archivos estén en subcarpetas. **No hace falta registro**
-en `opencode.json`: el directorio global `agents/` se lee solo.
+**Deploy (layout híbrido por rol de archivo):** el dueño (`<agente>/<agente>.md`
+o un archivo en la raíz) se copia plano a `~/.config/opencode/agents/<agente>.md`,
+y cualquier otro archivo de la carpeta (subagente) conserva su ruta, por ejemplo
+`src/agents/investigador/investigador-en.md` →
+`~/.config/opencode/agents/investigador/investigador-en.md`. El layout **no
+depende de `mode:`**: un dueño puede ser `primary` o `all`. OpenCode V2 escanea
+`{agent,agents}/**/*.md` **recursivamente** y deriva el ID de la ruta relativa;
+**el campo `name:` del frontmatter se ignora**. Así los dueños tienen nombres
+limpios (`investigador`) y los subagentes conservan la pertenencia
+(`investigador/investigador-en`). **No hace falta registro** en `opencode.json`:
+el directorio global `agents/` se lee solo. Los dueños anidados del layout viejo
+se respaldan y se eliminan durante la migración.
 
 ### Un solo script, cinco etapas
 
@@ -475,7 +480,7 @@ en `opencode.json`: el directorio global `agents/` se lee solo.
 
 | Etapa | Origen (repo) | Destino (global) |
 |-------|---------------|------------------|
-| **agents** | `src/agents/**/*.md` | `~/.config/opencode/agents/<rel>` |
+| **agents** | `src/agents/**/*.md` | `~/.config/opencode/agents/<agente>.md` (primario) / `<agente>/<subagente>.md` |
 | **skills** | `src/agents/*/skills/<nombre>/**` | `~/.config/opencode/skills/<nombre>/` |
 | **styles** | `src/tools/css-styles/**` | `~/.config/opencode/css-styles/` |
 | **commands** | `src/commands/*.md` | `~/.config/opencode/commands/` |

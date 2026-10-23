@@ -28,9 +28,9 @@ Test: *if you can name the incident a guard was written after, it has outgrown p
 ```yaml
 ---
 description: One-line, imperative, includes when to use (<=150 chars)
-name: agent-builder          # must match folder, ^[a-z0-9]+(-[a-z0-9]+)*$
+name: agent-builder          # optional; V2 derives the ID from the path and ignores this field
 version: 1                   # integer, bump on every content change
-mode: primary                # or subagent
+mode: primary                # primary | subagent | all (all = usable as both)
 permission:
   bash: allow | deny
   read: allow
@@ -55,9 +55,9 @@ permission:
 
 Rules:
 - Minimal permissions: grant only what the workflow needs. `agent-builder` never writes `src/agents/**` directly — `developer` does (both scopes build in `/tmp`).
-- Scope: **global** (default) → deployed via `agents_update.sh` to `~/.config/opencode/{agents,skills,commands}`; **local** → copied from `/tmp` to `<proyecto>/.opencode/{agents,skills,commands}` (`/workspace/.opencode/...` inside container) after user approval, no `agents_update.sh`, versioned in project's git.
+- Scope: **global** (default) → deployed via `agents_update.sh` to `~/.config/opencode/{agents,skills,commands}` (owner flat, subagents nested); **local** → owner at `<proyecto>/.opencode/agents/<slug>.md`, subagents under `<proyecto>/.opencode/agents/<slug>/`, skills/commands under `<proyecto>/.opencode/{skills,commands}` (`/workspace/.opencode/...` inside container) after user approval, no `agents_update.sh`, versioned in project's git.
 - No `edit: allow` globally for orchestrators or auditors. See `cyberseguridad` (`documents/reports/**,/tmp/**` only) as reference.
-- Verify `name:` matches folder and is lowercase-dashed (both global and local).
+- Verify the **path-derived ID**: owner at `agents/<slug>.md` → `<slug>`; subagent at `agents/<slug>/<sub>.md` → `<slug>/<sub>`. Keep it lowercase-dashed (both global and local). `name:` is optional and ignored in V2.
 - Agent working docs live under `documents/<area>/` (arquitectura, investigaciones, memory, reports). Never create new root-level output folders for agent output.
 
 ## Prompt Structure Template
@@ -99,7 +99,7 @@ Apply on every vendorized repo:
 4. `claude -p` / `--permission-mode auto` → `opencode run --agent <name> --auto`
 5. `~/.claude` → `~/.config/opencode`
 6. `rules/<x>.md` → `./x.md` inside `references/` or `skill` reference
-7. Remove `argument-hint:` (unknown to opencode) and verify `name:` matches folder.
+7. Remove `argument-hint:` (unknown to opencode) and verify the path-derived ID (owner flat, subagents nested).
 
 ## Delivery Checklist (run before git diff)
 
@@ -108,7 +108,8 @@ Apply on every vendorized repo:
 - [ ] No reusable procedure lives inline — it is a skill
 - [ ] `.md` <200 lines or split
 - [ ] Skill `SKILL.md` <500 lines, description includes when to use (<=1536 chars)
-- [ ] Frontmatter parseable (`name`, `mode`, `version` int)
+- [ ] Frontmatter parseable (`mode`, `version` int; `name` optional and ignored by V2)
 - [ ] Permissions minimal, `edit/write` restricted
+- [ ] Layout: owner flat (`agents/<slug>.md`, mode `primary` or `all`); subagents nested (`agents/<slug>/<sub>.md`); prompts use full subagent IDs (`<slug>/<sub>`)
 - [ ] No `claude/.claude` or `--permission-mode` remnants (`rg -n 'claude|\.claude' src/agents/<new>`)
 - [ ] Scope verified: global → `agents_update.sh --check` shows expected agents+skills; local → `ls -R <proyecto>/.opencode/{agents,skills,commands}` (`/workspace/...` in container) + `@<name>` mention test

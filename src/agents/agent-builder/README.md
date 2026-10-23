@@ -12,17 +12,19 @@ Ver `skills/agent-architecture/SKILL.md` para la tabla de enrutamiento y checkli
 
 Todos los artefactos intermedios viven en `/tmp/opencode/agent-builder/<slug>/` y se borran al final (éxito o fallo). No se escribe en `documents/investigaciones/` durante este flujo. El agente final, una vez aprobado, se materializa en `src/agents/<slug>/` y se despliega con `agents_update.sh`.
 
+`developer` y `cyberseguridad` son `mode: all`: se pueden usar como primarios o como subagentes del `agent-builder`. El planning lo hace el propio `agent-builder` y debe pasar el Planning Gate antes de invocar a `developer`.
+
 ```mermaid
 flowchart TD
     U[Usuario: quiero agente X que haga Y] --> I0[Intake agent-builder<br/>valida idea, slug, mkdir /tmp/.../slug]
-    I0 --> I1[Investigación<br/>task: investigador ES+EN<br/>→ /tmp/.../01-investigation.md<br/>busca repos/skills reutilizables,<br/>evalúa stars/licencia/comentarios]
+    I0 --> I1[Investigación<br/>task: investigador/investigador-en + -es<br/>→ /tmp/.../01-investigation.md<br/>busca repos/skills reutilizables,<br/>evalúa stars/licencia/comentarios]
     I1 --> D{Decisión usuario<br/>A / B / C / D / A*}
     D -- A: Vendorizar repo --> P
     D -- "A*: Pre-vendorizado<br/>(solo si >500★ + MIT,<br/>preparado en /tmp/.../03-vendor/)<br/>muestra desc + skills" --> P
     D -- B: Construcción propia --> P
     D -- C: Híbrido --> P
     D -- D: Reutilizar skill --> END1[Fin, sin nuevo agente]
-    P[Plan<br/>task: plan built-in<br/>→ /tmp/.../02-plan.md<br/>objetivo, archivos, Golden Rule,<br/>riesgos, gates] --> B
+    P[Plan (self)<br/>→ /tmp/.../02-plan.md<br/>+ Planning Gate<br/>objetivo, archivos, Golden Rule,<br/>riesgos, gates] --> B
     B[Build<br/>task: developer<br/>scaffold src/agents/slug/,<br/>frontmatter mínimo,<br/>skills, rewrites] --> C1
     C1[Auditoría<br/>task: cyberseguridad<br/>→ /tmp/.../04-audit.md<br/>prompt injection, exfiltración,<br/>permisos, secrets] --> SEV{Severidad}
     SEV -- medio/alto --> U2[STOP + aviso a usuario<br/>decide: abortar/mitigar/<br/>aceptar riesgo documentado]

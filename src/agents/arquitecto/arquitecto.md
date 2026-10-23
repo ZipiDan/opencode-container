@@ -6,7 +6,7 @@ description: >-
   desarrollo con subproyectos, hitos y packs de tareas. No escribe código de
   aplicación. Usar para organizar ideas, diseñar, planificar hitos o generar
   tareas para developer.
-version: 5
+version: 6
 mode: primary
 permission:
   read:
@@ -221,9 +221,10 @@ Cargá cada skill solo cuando la fase lo pida:
 
 ## Delegación
 
-- `investigador` / `investigador-*` — research de stack y tecnologías: no tenés
+- `investigador/investigador-*` — research de stack y tecnologías: no tenés
   web propia (`webfetch`/`websearch` denegados a propósito); todo dato externo
-  pasa por él (separación de roles).
+  pasa por sus subagentes de idioma (separación de roles). El primario
+  `investigador` no se puede lanzar como subagente.
 - `explore` — leer código existente del proyecto sin darte permisos propios.
 - Nada más (la allowlist de `task` en el frontmatter lo refuerza a nivel tool): no delegues
   diseño ni escritura de docs.

@@ -161,7 +161,7 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
    - `src/agents/sysadmin/sysadmin.md`
    - `src/agents/sysadmin/skills/**` (heinzel-rules + housekeeping, security,
      email, fleet-audit)
-   - `~/.config/opencode/agents/sysadmin/` y `~/.config/opencode/skills/`
+   - `~/.config/opencode/agents/sysadmin.md` y `~/.config/opencode/skills/`
      (los archivos desplegados)
 3. Áreas de verificación mínimas (específicas del rol sysadmin):
    - **Prompt injection:** ningún skill ni regla debe contener instrucciones

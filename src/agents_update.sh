@@ -34,13 +34,16 @@
 # entornos. El README.md de los estilos se despliega también para dar contexto
 # a los agentes (alternativas y ayuda con estilos).
 #
-# Los agentes se organizan en subcarpetas; OpenCode escanea {agent,agents}/**/*.md
-# de forma recursiva (sin registro previo) y nombra a cada agente según su ruta
-# relativa (p. ej. agents/investigador/investigador-en.md → investigador/investigador-en).
-# Cada archivo puede fijar su nombre con el campo 'name:' del frontmatter.
-# Los .md que no tienen 'mode:' (p. ej. README.md o el meta-doc upgrade-heinzel.md)
-# NO se despliegan como agentes. Las skills viven en DOS fuentes: subcarpetas de un
-# agente (src/agents/<agente>/skills/<nombre>/) y el directorio standalone
+# Los agentes se organizan en subcarpetas en el repo, pero el deploy aplica un
+# layout híbrido: el archivo dueño (<agente>/<agente>.md, o un archivo en la raíz)
+# va plano a agents/<nombre>.md, y el resto de los archivos de la carpeta
+# (subagentes) conservan su ruta, de modo que su ID refleje la pertenencia
+# (p. ej. agents/investigador/investigador-en.md → investigador/investigador-en).
+# El layout NO depende de 'mode:' (un dueño puede ser primary o all). OpenCode V2
+# deriva el ID de la ruta y NO usa el campo 'name:' del frontmatter (se ignora).
+# Los .md sin 'mode:' (README.md, meta-docs upgrade-*) NO se despliegan como
+# agentes. Las skills viven en DOS fuentes: subcarpetas de un agente
+# (src/agents/<agente>/skills/<nombre>/) y el directorio standalone
 # (src/skills/<nombre>/), ambas se despliegan a
 # ~/.config/opencode/skills/<nombre>/ (opencode las detecta como skills/*/SKILL.md).
 #
@@ -109,8 +112,13 @@ Stages:
                              baked into the container image (e.g. /usr/local/bin/md2pdf),
                              so this is only for host-only opencode installs.
 
-OpenCode scans {agent,agents}/**/*.md recursively with no registry entry. The
-global config directory is read by any local opencode AND is mounted inside the
+OpenCode scans {agent,agents}/**/*.md recursively with no registry entry. V2
+derives each agent ID from the relative path and ignores the frontmatter
+'name:' field. Layout is decided by the file role, not by 'mode:': the owner
+file (<agent>/<agent>.md or a root file) deploys flat (agents/<name>.md); any
+other file in an agent folder deploys nested (agents/<agent>/<subagent>.md).
+Old nested owner files are backed up and removed during migration. The global
+config directory is read by any local opencode AND is mounted inside the
 launcher container, so one sync covers both environments. Skills are detected
 at skills/<name>/SKILL.md. They may live under an agent
 (src/agents/<agent>/skills/<name>/) or standalone (src/skills/<name>/); both
@@ -123,7 +131,8 @@ Only the files under src/agents/, src/skills/, src/tools/ and src/commands/ are
 managed here; default OpenCode agents (build, plan, etc.) are never touched.
 
 Options:
-  --check                     Show what would change, without writing anything.
+  --check                     Show what would change, without writing anything
+                              (includes REMOVE for migrated nested owner files).
   --force                     Apply the changes without asking for confirmation.
   --no-commands               Skip the commands stage.
   --no-styles                 Skip the styles stage (deploy agents+skills+commands only).
@@ -199,6 +208,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Backup de los archivos dueños anidados que se eliminan durante la migración.
+# Se calcula después de --dest para que un deploy de prueba use su propio árbol.
+BACKUP_ROOT="$(dirname "${DEST_DIR}")/backups"
+BACKUP_DIR="${BACKUP_ROOT}/agents-$(date +%Y%m%d-%H%M%S)"
 
 if [[ ! -d "$AGENTS_SRC" ]]; then
   echo "[ERROR] Agents directory not found: $AGENTS_SRC" >&2
@@ -429,6 +443,21 @@ agent_version() {
   sed -n '2,/^---$/p' "$file" | awk '/^[[:space:]]*version:[[:space:]]*[0-9]+[[:space:]]*$/ { v=$2 } END { print v+0 }'
 }
 
+# Ruta relativa destino según el rol del archivo:
+#   <agente>/<agente>.md o archivo en la raíz → plano (dueño/primario)
+#   cualquier otro archivo dentro de la carpeta → anidado (subagente)
+agent_dst_rel() {
+  local rel="$1"
+  local base dir
+  base="$(basename "$rel" .md)"
+  dir="$(dirname "$rel")"
+  if [[ "$dir" == "." || "$base" == "$dir" ]]; then
+    basename "$rel"
+  else
+    printf '%s\n' "$rel"
+  fi
+}
+
 # ¿Es un agente gestionable? (tiene frontmatter con campo mode:; README no es agente)
 is_agent_file() {
   local file="$1"
@@ -470,7 +499,8 @@ echo "  Tools:    ${YELLOW}(no instaladas por defecto; usa --install-tools para 
 echo ""
 
 # --- Stage 1: agents (version + checksum) ---
-declare -a managed_rel=() managed_src=()
+# Layout híbrido por rol: dueño → DEST/<basename>.md; subagente → DEST/<rel>.
+declare -a managed_rel=() managed_src=() managed_dst_rel=()
 while IFS= read -r src; do
   is_agent_file "$src" || continue
   rel="$(realpath --relative-to="$AGENTS_SRC" "$src")"
@@ -478,6 +508,7 @@ while IFS= read -r src; do
   [[ "$rel" == *"/skills/"* ]] && continue
   managed_rel+=("$rel")
   managed_src+=("$src")
+  managed_dst_rel+=("$(agent_dst_rel "$rel")")
 done < <(find "$AGENTS_SRC" -type f -iname '*.md' ! -iname 'readme.md' | sort)
 
 if [[ ${#managed_rel[@]} -eq 0 ]]; then
@@ -485,16 +516,16 @@ if [[ ${#managed_rel[@]} -eq 0 ]]; then
   exit 1
 fi
 
-# Colisiones de nombre de agente (path relativo sin extensión). Un sistema de
-# archivos case-insensitive (macOS/Windows) podría chocar con rutas que solo
-# difieren en mayúsculas; se rechazan por seguridad.
+# Colisiones por ID final (ruta destino sin extensión). Un sistema de archivos
+# case-insensitive (macOS/Windows) podría chocar con IDs que solo difieren en
+# mayúsculas; se rechazan por seguridad.
 declare -A seen_name=()
-for rel in "${managed_rel[@]}"; do
-  name="${rel%.md}"
+for dst_rel in "${managed_dst_rel[@]}"; do
+  name="${dst_rel%.md}"
   lower="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
   if [[ -n "${seen_name[$lower]+x}" ]]; then
-    echo "[ERROR] Duplicate agent name '$name' found in the repo (two paths differ only by case)." >&2
-    echo "Agent names must be unique in the destination folder." >&2
+    echo "[ERROR] Duplicate agent ID '$name' found in the repo (two files map to the same destination)." >&2
+    echo "Agent IDs must be unique in the destination folder." >&2
     exit 1
   fi
   seen_name[$lower]=1
@@ -503,27 +534,33 @@ done
 for i in "${!managed_rel[@]}"; do
   rel="${managed_rel[$i]}"
   src="${managed_src[$i]}"
-  dst="${DEST_DIR}/${rel}"
+  dst_rel="${managed_dst_rel[$i]}"
+  dst="${DEST_DIR}/${dst_rel}"
   src_ver="$(agent_version "$src")"
 
   if [[ ! -f "$dst" ]]; then
-    queue_change "agents" "$rel" "$src" "$dst" "INSTALL" "version $src_ver"
-    continue
+    queue_change "agents" "$dst_rel" "$src" "$dst" "INSTALL" "version $src_ver"
+  else
+    dst_ver="$(agent_version "$dst")"
+    src_hash="$(sha256sum "$src" | awk '{print $1}')"
+    dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
+
+    if [[ "$src_ver" -gt "$dst_ver" ]]; then
+      queue_change "agents" "$dst_rel" "$src" "$dst" "UPDATE" "version $dst_ver -> $src_ver"
+    elif [[ "$src_ver" -eq "$dst_ver" ]]; then
+      if [[ "$src_hash" != "$dst_hash" ]]; then
+        # Misma versión pero contenido distinto: la copia instalada fue editada localmente.
+        queue_change "agents" "$dst_rel" "$src" "$dst" "REPLACE" "version $src_ver"
+      fi
+    else
+      skipped_note+=("$dst_rel (installed version $dst_ver is newer than repo version $src_ver)")
+    fi
   fi
 
-  dst_ver="$(agent_version "$dst")"
-  src_hash="$(sha256sum "$src" | awk '{print $1}')"
-  dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
-
-  if [[ "$src_ver" -gt "$dst_ver" ]]; then
-    queue_change "agents" "$rel" "$src" "$dst" "UPDATE" "version $dst_ver -> $src_ver"
-  elif [[ "$src_ver" -eq "$dst_ver" ]]; then
-    if [[ "$src_hash" != "$dst_hash" ]]; then
-      # Misma versión pero contenido distinto: la copia instalada fue editada localmente.
-      queue_change "agents" "$rel" "$src" "$dst" "REPLACE" "version $src_ver"
-    fi
-  else
-    skipped_note+=("$rel (installed version $dst_ver is newer than repo version $src_ver)")
+  # Migración: el dueño estaba anidado en el layout viejo. Se mueve a backup
+  # y se elimina. Los subagentes conservan su ruta (rel == dst_rel).
+  if [[ "$rel" != "$dst_rel" && -f "${DEST_DIR}/${rel}" ]]; then
+    queue_change "agents" "$rel" "" "${DEST_DIR}/${rel}" "REMOVE" "migrated to ${dst_rel}"
   fi
 done
 
@@ -623,6 +660,20 @@ skills_stage() {
 [[ "$SKIP_STYLES" == "true" ]] || sync_plain "styles" "$STYLES_SRC" "$STYLES_DEST" 1
 [[ "$SKIP_COMMANDS" == "true" ]] || sync_plain "commands" "$COMMANDS_SRC" "$COMMANDS_DEST" 0
 
+# Mueve una ruta vieja al backup y elimina su carpeta si queda vacía.
+backup_remove() {
+  local rel="$1" path="$2"
+  mkdir -p "${BACKUP_DIR}/$(dirname "$rel")" || {
+    echo "  [ERROR] Failed to create backup directory for $rel" >&2
+    exit 1
+  }
+  if ! mv "$path" "${BACKUP_DIR}/${rel}"; then
+    echo "  [ERROR] Failed to move $rel to backup" >&2
+    exit 1
+  fi
+  rmdir "$(dirname "$path")" 2>/dev/null || true
+}
+
 if [[ "$CHECK_MODE" == "true" ]]; then
   echo "[--check mode: showing what would change. No changes will be made.]"
   echo ""
@@ -634,6 +685,11 @@ if [[ "$changed" -eq 0 ]]; then
   exit 0
 fi
 
+has_remove=false
+for kind in "${pending_kind[@]}"; do
+  [[ "$kind" == "REMOVE" ]] && has_remove=true
+done
+
 echo "The following ${RED}custom files changed${NC} in the repo compared to your installed copies:"
 echo ""
 for i in "${!pending_rel[@]}"; do
@@ -641,6 +697,7 @@ for i in "${!pending_rel[@]}"; do
     INSTALL) note="will be installed (${pending_ver[$i]})" ;;
     UPDATE) note="will be updated (${pending_ver[$i]})" ;;
     REPLACE) note="was modified locally and will be replaced (${pending_ver[$i]})" ;;
+    REMOVE) note="will be backed up and removed (${pending_ver[$i]})" ;;
   esac
   printf '%s  %s\n' "${RED}- [${pending_stage[$i]}] ${pending_rel[$i]}${NC}" "$note"
 done
@@ -662,6 +719,11 @@ echo ""
 echo "Only the files under src/agents/, src/tools/ (incl. css-styles/) and"
 echo "src/commands/ are managed by this script (skills via src/agents/*/skills/)."
 echo "The default OpenCode agents (build, plan) and any other user files are never touched."
+if [[ "$has_remove" == "true" ]]; then
+  echo ""
+  echo "${YELLOW}Files marked [REMOVE] are old nested owner files; they will be moved to${NC}"
+  echo "${YELLOW}${BACKUP_DIR} before removal.${NC}"
+fi
 
 if [[ "$CHECK_MODE" == "true" ]]; then
   echo ""
@@ -702,6 +764,13 @@ for i in "${!pending_rel[@]}"; do
   kind="${pending_kind[$i]}"
   rel="${pending_rel[$i]}"
   dst="${pending_dst[$i]}"
+  if [[ "$kind" == "REMOVE" ]]; then
+    backup_remove "$rel" "$dst"
+    printf '  [REMOVED] %s/%s (backup: %s/%s)\n' \
+      "${pending_stage[$i]}" "$rel" "$BACKUP_DIR" "$rel"
+    updated=$((updated + 1))
+    continue
+  fi
   mkdir -p "$(dirname "$dst")" || {
     echo "  [ERROR] Failed to create directory for $rel" >&2
     exit 1

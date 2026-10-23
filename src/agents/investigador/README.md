@@ -3,24 +3,24 @@
 Agente de investigación web multilingüe. Orquesta búsquedas en paralelo mediante subagentes, unifica los hallazgos en español citando fuentes, los muestra en pantalla y los guarda en `documents/investigaciones/`.
 
 Tiene **dos modos**:
-- **Simplificado (por defecto):** solo busca en español e inglés (`investigador-es`, `investigador-en`).
-- **Extendido:** busca en todos los idiomas disponibles (`investigador-en/fr/es/de/zh/ru`).
+- **Simplificado (por defecto):** solo busca en español e inglés (`investigador/investigador-es`, `investigador/investigador-en`).
+- **Extendido:** busca en todos los idiomas disponibles (`investigador/investigador-{en,fr,es,de,zh,ru}`).
 
 Además, **reutiliza búsquedas recientes**: si ya se investigó el mismo tema con un subagente hace menos de 1 día (y el tema no cambió), no vuelve a ejecutar esa búsqueda; reutiliza los hallazgos del informe previo.
 
-Este directorio (`src/agents/investigador/`) contiene todos los archivos del agente. El deploy **preserva la subcarpeta** en la config global, y cada archivo lleva un `name:` en el frontmatter que **fija el nombre del agente** (idéntico al descriptor `name:` de OpenCode): aunque el archivo viva en una subcarpeta, el agente se llama simplemente `investigador` (primario) o `investigador-en`, `investigador-fr`, etc. (subagentes).
+Este directorio (`src/agents/investigador/`) contiene todos los archivos del agente. El deploy aplica el layout híbrido: el primario va plano a `~/.config/opencode/agents/investigador.md` (ID `investigador`) y los subagentes conservan la carpeta en `~/.config/opencode/agents/investigador/` (IDs `investigador/investigador-en`, etc.). OpenCode V2 deriva el ID de la ruta y **no usa el `name:` del frontmatter**.
 
 ## Componentes
 
-| Archivo (repo) | Archivo desplegado | Agente (via `name:`) | Modo | Versión | Idioma |
-|----------------|--------------------|----------------------|------|---------|--------|
-| `investigador.md` | `agents/investigador/investigador.md` | `investigador` | primary | 9 | — (orquesta) |
-| `investigador-en.md` | `agents/investigador/investigador-en.md` | `investigador-en` | subagent | 2 | EN |
-| `investigador-fr.md` | `agents/investigador/investigador-fr.md` | `investigador-fr` | subagent | 2 | FR |
-| `investigador-es.md` | `agents/investigador/investigador-es.md` | `investigador-es` | subagent | 2 | ES |
-| `investigador-de.md` | `agents/investigador/investigador-de.md` | `investigador-de` | subagent | 2 | DE |
-| `investigador-zh.md` | `agents/investigador/investigador-zh.md` | `investigador-zh` | subagent | 2 | ZH |
-| `investigador-ru.md` | `agents/investigador/investigador-ru.md` | `investigador-ru` | subagent | 1 | RU |
+| Archivo (repo) | Archivo desplegado | ID | Modo | Versión | Idioma |
+|----------------|--------------------|----|------|---------|--------|
+| `investigador.md` | `agents/investigador.md` | `investigador` | primary | 10 | — (orquesta) |
+| `investigador-en.md` | `agents/investigador/investigador-en.md` | `investigador/investigador-en` | subagent | 2 | EN |
+| `investigador-fr.md` | `agents/investigador/investigador-fr.md` | `investigador/investigador-fr` | subagent | 2 | FR |
+| `investigador-es.md` | `agents/investigador/investigador-es.md` | `investigador/investigador-es` | subagent | 2 | ES |
+| `investigador-de.md` | `agents/investigador/investigador-de.md` | `investigador/investigador-de` | subagent | 2 | DE |
+| `investigador-zh.md` | `agents/investigador/investigador-zh.md` | `investigador/investigador-zh` | subagent | 2 | ZH |
+| `investigador-ru.md` | `agents/investigador/investigador-ru.md` | `investigador/investigador-ru` | subagent | 1 | RU |
 
 ## Uso
 

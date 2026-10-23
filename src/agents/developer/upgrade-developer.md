@@ -173,7 +173,7 @@ relevantes de upstream:
 2. Pedir auditoría del agente `developer` completo:
    - `src/agents/developer/developer.md`
    - `src/agents/developer/skills/**` (la skill `python-style` + los 6 skills)
-   - `~/.config/opencode/agents/developer/` y `~/.config/opencode/skills/`
+   - `~/.config/opencode/agents/developer.md` y `~/.config/opencode/skills/`
      (los archivos desplegados)
 3. Áreas de verificación mínimas:
    - **Prompt injection:** ningún skill ni regla debe contener instrucciones

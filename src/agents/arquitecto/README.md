@@ -31,8 +31,9 @@ de atributos de calidad, estimaciones solo en rangos con supuestos.
 - `plan` (built-in): ejecución efímera en `.opencode/plans/`; `arquitecto`:
   documentación duradera en `documents/arquitectura/`. Frontera física, no de estilo.
 - `developer`: escribe el código a partir de los packs de tareas del hito.
-- `investigador*`: research de stack/tecnologías — el arquitecto no tiene web
-  (`webfetch`/`websearch` deny, separación de roles).
+- `investigador/investigador-*`: research de stack/tecnologías — el arquitecto
+  no tiene web (`webfetch`/`websearch` deny, separación de roles). El primario
+  `investigador` no se lanza como subagente.
 - `explore`: lectura del código existente para la fase de Detección.
 
 ## Uso

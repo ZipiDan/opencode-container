@@ -12,6 +12,40 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [4.0.0] — 2026-10-23
+
+### Added
+- **Test post-migración** (`documents/reports/test-post-migracion-agentes.md` +
+  `test-agentes-hibrido.py`): verifica el registro de agentes/subagentes, skills y
+  comandos sin invocar modelos; incluye `GET /api/agent/{id}` por elemento, rutas
+  desplegadas, ausencia de IDs viejos y el Planning Gate del `agent-builder`.
+- **Planning Gate** en `agent-builder`: `02-plan.md` obligatorio con headings, layout de
+  IDs y sin `PENDIENTE`/`TBD` antes de lanzar `developer`; template incluido.
+
+### Changed
+- **BREAKING — layout de agentes**: los dueños se despliegan planos
+  (`agents/<agente>.md`) y los subagentes conservan su carpeta
+  (`agents/<agente>/<subagente>.md`). OpenCode V2 deriva el ID de la ruta; los IDs
+  `arquitecto/arquitecto`, `developer/developer`, etc. pasan a `arquitecto`, `developer`.
+- **`agents_update.sh`**: layout por rol de archivo (no por `mode:`), colisiones por ID
+  final, migración de dueños anidados con backup y `REMOVE` visible en `--check`.
+- **`developer` y `cyberseguridad`**: `mode: all` para usarse como primarios y como
+  subagentes del `agent-builder`.
+- **Prompts y docs**: `investigador` y `arquitecto` usan IDs completos de subagentes;
+  `agent-builder` reemplaza `task: plan` por planning propio + gate; READMEs,
+  `AGENTS.md`, `agent-architecture` y `/arquitecto` actualizados.
+- **Versiones de agentes**: `investigador` 10, `arquitecto` 6, `agent-builder` 4,
+  `developer` 8, `cyberseguridad` 5.
+
+### Removed
+- `task: plan` en `agent-builder` (el built-in `plan` es `mode: primary`; V2 no permite
+  lanzarlo como subagente).
+
+### Notes
+- Las sesiones viejas que guardaron IDs anteriores (`arquitecto/arquitecto`, etc.)
+  reciben `AgentNotFoundError` al reanudarse; hay que elegir el agente nuevo. El
+  historial de la sesión no se pierde.
+
 ## [3.9.0] — 2026-10-22
 
 ### Added

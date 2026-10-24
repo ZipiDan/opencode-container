@@ -17,9 +17,8 @@ proyecto, con las herramientas ya dispuestas y tus carpetas locales siempre a la
 </a>
 
 Un recorrido visual por el proyecto: qué aporta, los agentes especializados que lo acompañan,
-la seguridad opcional por kernel y cómo se ejecuta. **[Abrir la presentación](opencode-container.html)** — HTML autocontenido,
-se abre directamente en el navegador. También está la
-[copia de solo lectura](opencode-container-readonly.html), sin chrome de edición.
+la seguridad opcional por kernel y cómo se ejecuta. **[Abrir la presentación](opencode-container-readonly.html)** — HTML autocontenido,
+se abre directamente en el navegador.
 
 ## Por qué existe este proyecto
 
@@ -166,6 +165,52 @@ Límites y verificación: `src/tools/landlock/README.md` (tool) y
 `src/agents/sysadmin/skills/calisto-landlock/references/` (procedimiento del
 agente). El add-on se preserva en las actualizaciones de heinzel
 (`src/agents/sysadmin/ADDONS.md`).
+
+## Problemas conocidos
+
+Dos molestias de la **interfaz web** de opencode que aparecen al arrancar con un
+proyecto nuevo. La TUI (`--tui`) no las tiene: ahí la carpeta y el selector de
+agentes están siempre presentes. Son del cliente web de opencode, no del
+launcher; acá queda el workaround para no perder tiempo buscándolo.
+
+**La carpeta del proyecto no aparece en la lista**
+
+El contenedor siempre trabaja sobre `/workspace`: es ahí donde se monta la
+carpeta que le pasaste al launcher, y es ahí donde vive el historial de sesiones
+(`/workspace/.opencode/`). La primera vez que entrás a un proyecto con un puerto
+propio (`--port`), la web puede no mostrarlo y hay que agregarlo a mano:
+
+1. Clic en el ícono de proyectos (la cuadrícula con un <img src="assets/inicio.png" alt="Icono de inicio" width="30%">.
+2. En la sección **Proyectos**, elegí agregar uno nuevo para abrir el diálogo
+   **Abrir proyecto** <img src="assets/proyecto.png" alt="Icono de inicio" width="30%">.
+3. Escribí `/workspace` —la ruta *dentro* del contenedor, no la del host— y
+   confirmá con **Seleccionar carpeta**.
+<img src="assets/selccion_proyecto.png" alt="Icono de inicio" width="30%">.
+A partir de ahí el proyecto queda registrado y las sesiones se listan solas.
+
+**No aparece la sección de agentes para cambiar de agente**
+
+No es un bug de permisos ni de configuración de los agentes: la web trae
+desactivada por defecto la opción que muestra ese selector en el editor. Se
+habilita una sola vez:
+
+1. Entrá a **Ajustes**. <img src="assets/ajustes.png" alt="Icono de inicio" width="30%">
+2. En el panel derecho, activá **Mostrar agente**.
+<img src="assets/mostrar_agentes.png" alt="Icono de inicio" width="30%">
+
+El propio texto de la opción lo aclara: *"Cambiar de agente en el editor. Si se
+oculta, se usa el agente Build de forma predeterminada"*. Mientras esté apagada,
+todo corre con `build` y los agentes instalados parecen no existir.
+
+**Por qué no se parchea**
+
+Ambos problemas fueron reportados varias veces en el proyecto de opencode y
+cerrados por los bots por falta de actividad. Parchear el código iría contra la
+premisa del proyecto: opencode se conserva tal cual y el valor se agrega
+**alrededor** —contenedor, agentes, skills, herramientas—, lo que mantiene la
+compatibilidad y transparencia al 100% con opencode tradicional y permite seguir sus versiones sin
+mantener un fork. Mientras tanto, estos dos clics son el precio de la web. Y en general son
+necesarios 1 sola vez por puerto de la interfaz web que uses.
 
 ## Compatibilidad y actualización
 

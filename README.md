@@ -180,12 +180,19 @@ carpeta que le pasaste al launcher, y es ahí donde vive el historial de sesione
 (`/workspace/.opencode/`). La primera vez que entrás a un proyecto con un puerto
 propio (`--port`), la web puede no mostrarlo y hay que agregarlo a mano:
 
-1. Clic en el ícono de proyectos (la cuadrícula con un <img src="assets/inicio.png" alt="Icono de inicio" width="30%">.
-2. En la sección **Proyectos**, elegí agregar uno nuevo para abrir el diálogo
-   **Abrir proyecto** <img src="assets/proyecto.png" alt="Icono de inicio" width="30%">.
-3. Escribí `/workspace` —la ruta *dentro* del contenedor, no la del host— y
+Clic en el ícono de proyectos.
+<img src="assets/inicio.png" alt="Icono de inicio" width="30">
+
+En la sección **Proyectos**, elegí agregar uno nuevo para abrir el diálogo.
+   **Abrir proyecto** 
+
+<img src="assets/proyecto.png" alt="Icono de inicio" width="200">
+
+Escribí `/workspace` —la ruta *dentro* del contenedor, no la del host— y
    confirmá con **Seleccionar carpeta**.
-<img src="assets/selccion_proyecto.png" alt="Icono de inicio" width="30%">.
+
+<img src="assets/selccion_proyecto.png" alt="Icono de inicio" width="400">.
+
 A partir de ahí el proyecto queda registrado y las sesiones se listan solas.
 
 **No aparece la sección de agentes para cambiar de agente**
@@ -194,9 +201,13 @@ No es un bug de permisos ni de configuración de los agentes: la web trae
 desactivada por defecto la opción que muestra ese selector en el editor. Se
 habilita una sola vez:
 
-1. Entrá a **Ajustes**. <img src="assets/ajustes.png" alt="Icono de inicio" width="30%">
-2. En el panel derecho, activá **Mostrar agente**.
-<img src="assets/mostrar_agentes.png" alt="Icono de inicio" width="30%">
+Entrá a **Ajustes**.
+
+<img src="assets/ajustes.png" alt="Icono de inicio" width="70">
+
+En el panel derecho, activá **Mostrar agente**.
+
+<img src="assets/mostrar_agentes.png" alt="Icono de inicio" width="500">
 
 El propio texto de la opción lo aclara: *"Cambiar de agente en el editor. Si se
 oculta, se usa el agente Build de forma predeterminada"*. Mientras esté apagada,

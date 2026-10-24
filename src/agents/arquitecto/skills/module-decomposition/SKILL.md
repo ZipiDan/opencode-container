@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: module-decomposition
 description: >-
   Procedimiento de descomposición modular (agente arquitecto): elicitación de

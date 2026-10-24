@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Estilos CSS para md2pdf
 
 Estilos alternativos para dar formato a los informes Markdown generados con

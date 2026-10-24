@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 # mermaid2png.py — renderiza diagramas Mermaid (.mmd) a PNG localmente.
 # Pipeline: npx @mermaid-js/mermaid-cli + chrome-headless-shell (sin servicios de terceros).
 # Uso:  python3 mermaid2png.py caso_1c.mmd            -> caso_1c.png al lado

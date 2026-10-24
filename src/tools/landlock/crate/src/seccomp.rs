@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 //! Filtro seccomp-BPF: bloquea syscalls de cambio de modo/propietario/xattr
 //! que Landlock NO cubre (gap: chmod/chown/setxattr).
 //!

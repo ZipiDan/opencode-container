@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: api-and-interface-design
 description: Design APIs and interfaces with explicit contracts, boundary validation, stable naming (Hyrum's Law), and versioning. Use when designing APIs, public functions, classes, or module interfaces.
 ---

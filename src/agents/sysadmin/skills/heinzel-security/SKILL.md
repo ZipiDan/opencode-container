@@ -1,4 +1,7 @@
 ---
+# SPDX-FileCopyrightText: 2026 Stefan Wintermeyer
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: heinzel-security
 description: Run a heinzel security audit on a server — SSH
   hardening (password auth, weak algos, root login), firewall,

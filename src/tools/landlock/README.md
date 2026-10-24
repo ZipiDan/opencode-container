@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Landlock read-only shell — `landlock_rosh` 1.9.0
 
 Launcher que ejecuta una shell o un comando **dentro de una jaula read-only

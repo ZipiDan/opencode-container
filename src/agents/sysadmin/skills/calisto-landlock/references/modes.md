@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Modes
 
 `landlock_rosh` can be integrated in five ways. Only **M3** and **M5** give a

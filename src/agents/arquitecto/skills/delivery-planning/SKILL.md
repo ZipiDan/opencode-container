@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: delivery-planning
 description: >-
   Planificación de entregas para el agente arquitecto: WBS con regla del 100% →

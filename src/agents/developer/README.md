@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Developer agent
 
 Senior software developer that writes clean, maintainable, and well-structured

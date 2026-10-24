@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Troubleshooting
 
 ## `landlock_rosh: cannot execute binary file` / `Exec format error`

@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: mermaid2png
 description: Renderiza diagramas Mermaid (.mmd) a PNG localmente con mermaid-cli y Chrome headless, sin servicios de terceros. Usar cuando el usuario pida generar PNG/imagen desde un diagrama Mermaid o un archivo .mmd.
 version: 2

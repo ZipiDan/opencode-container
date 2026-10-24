@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Plantilla MADR (default del agente)
 
 Basado en: adr/madr (MIT OR CC0-1.0), https://github.com/adr/madr y

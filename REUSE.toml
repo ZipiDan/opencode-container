@@ -1,0 +1,61 @@
+# Información de licencia para archivos que no admiten header SPDX
+# (copias literales de terceros, binarios, imágenes y archivos generados).
+# Los archivos con header propio no se repiten acá.
+version = 1
+
+SPDX-PackageName = "opencode-container"
+SPDX-PackageSupplier = "Daniel Zipitría (Calisto)"
+SPDX-PackageDownloadLocation = "NOASSERTION"
+
+# --- Copias literales de frontend-slides (MIT, Zara Zhang) ---
+[[annotations]]
+path = [
+  "src/skills/frontend-slides/bold-template-pack/**",
+  "src/skills/frontend-slides/STYLE_PRESETS.md",
+  "src/skills/frontend-slides/animation-patterns.md",
+  "src/skills/frontend-slides/html-template.md",
+  "src/skills/frontend-slides/viewport-base.css",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2025 Zara Zhang"
+SPDX-License-Identifier = "MIT"
+
+# --- Catálogo de cybersecurity-skills (MIT, Bri Russell) ---
+[[annotations]]
+path = [
+  "src/agents/cyberseguridad/skills/cyberseguridad-catalog/references/**",
+  "src/agents/cyberseguridad/UPSTREAM-LICENSE-MIT.txt",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "Bri Russell"
+SPDX-License-Identifier = "MIT"
+
+# --- Propio: binario, checksums y archivos de control sin header ---
+[[annotations]]
+path = [
+  ".gitignore",
+  ".opencode/agents/.gitkeep",
+  ".opencode/commands/.gitkeep",
+  ".opencode/skills/.gitkeep",
+  "src/tools/landlock_rosh",
+  "src/tools/landlock/SHA256SUMS",
+  "src/tools/landlock/crate/Cargo.lock",
+  "documents/reports/arquitecto-flujo-2026-09-08/backup-drift/*.instalado-predeploy",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Daniel Zipitría (Calisto)"
+SPDX-License-Identifier = "MPL-2.0"
+
+# --- Propio: documentación generada y material visual (CC BY-SA 4.0) ---
+[[annotations]]
+path = [
+  "assets/*.png",
+  "documents/reports/*.pdf",
+  "documents/reports/*.html",
+  "documents/reports/*.txt",
+  "opencode-container*.png",
+  "opencode-container*.html",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Daniel Zipitría (Calisto)"
+SPDX-License-Identifier = "CC-BY-SA-4.0"

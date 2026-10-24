@@ -1,3 +1,7 @@
+<!-- SPDX-FileCopyrightText: 2026 Stefan Wintermeyer -->
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Scheduled Housekeeping
 
 How to run heinzel housekeeping on a schedule —

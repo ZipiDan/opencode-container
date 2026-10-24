@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: agent-architecture
 description: Golden Rule router for opencode agents — classify every rule as hook/prompt-guard, skill, or .md; enforce frontmatter/permissions minimalism and vendor rewrites. Use when creating, vendorizing or refactoring any agent or skill.
 ---

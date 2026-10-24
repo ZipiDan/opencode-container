@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2025 Zara Zhang
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 """
 Extract all content from a PowerPoint file (.pptx).
 Returns a JSON structure with slides, text, and images.

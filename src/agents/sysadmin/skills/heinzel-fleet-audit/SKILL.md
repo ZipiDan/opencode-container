@@ -1,4 +1,7 @@
 ---
+# SPDX-FileCopyrightText: 2026 Stefan Wintermeyer
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: heinzel-fleet-audit
 description: Compare key policies across all servers in
   documents/memory/servers/ to surface silent drift. Makes no configuration

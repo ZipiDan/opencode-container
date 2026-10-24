@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Upgrade arquitecto — procedimiento de actualización del agente
 
 > **Meta-archivo: NO se despliega.** Sin `mode:` y fuera de `skills/`, queda en

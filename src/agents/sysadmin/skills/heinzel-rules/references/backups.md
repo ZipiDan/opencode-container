@@ -1,3 +1,7 @@
+<!-- SPDX-FileCopyrightText: 2026 Stefan Wintermeyer -->
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Backups Before Modifying Config Files
 
 Before editing any config file, back it up:

@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 description: Busca en internet en español sobre el tema asignado y devuelve un resumen estructurado con fuentes citadas.
 name: investigador-es
 version: 2

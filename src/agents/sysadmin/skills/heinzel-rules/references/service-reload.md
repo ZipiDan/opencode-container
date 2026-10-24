@@ -1,3 +1,7 @@
+<!-- SPDX-FileCopyrightText: 2026 Stefan Wintermeyer -->
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Service Reload & Restart Policy
 
 When the user asks heinzel to reload or restart a

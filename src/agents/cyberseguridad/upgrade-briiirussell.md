@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Upgrade briiirussell — actualización del agente cyberseguridad
 
 > **Meta-archivo: NO se despliega.** `agents_update.sh` solo copia archivos

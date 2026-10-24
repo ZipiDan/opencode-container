@@ -1,4 +1,7 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 # agents_update.sh — Sincroniza los agentes personalizados, los estilos CSS y los
 # comandos del repo hacia la configuración global de opencode, y puede instalar
 # las tools (scripts) en el entorno del usuario.

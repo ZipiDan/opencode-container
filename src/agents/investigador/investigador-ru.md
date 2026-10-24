@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 description: Ищет в интернете новости на русском языке по заданной теме и возвращает структурированное резюме с указанием источников.
 name: investigador-ru
 version: 1

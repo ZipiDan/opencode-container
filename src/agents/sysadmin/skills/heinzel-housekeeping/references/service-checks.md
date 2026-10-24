@@ -1,3 +1,7 @@
+<!-- SPDX-FileCopyrightText: 2026 Stefan Wintermeyer -->
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Service-Specific Checks
 
 These checks are triggered by services listed in the server's

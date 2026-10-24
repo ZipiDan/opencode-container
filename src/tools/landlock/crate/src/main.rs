@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 //! landlock_rosh — shell/comando encerrado por Landlock en SOLO LECTURA.
 //! Versión en Rust. Binario estático (musl), sin Python.
 //!

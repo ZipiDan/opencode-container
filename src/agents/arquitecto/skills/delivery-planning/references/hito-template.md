@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Template de hito (con criterios de aceptación verificables)
 
 Copiar a `documents/arquitectura/plan/PLAN.md` como sección por hito. Un hito es un

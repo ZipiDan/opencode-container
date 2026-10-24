@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 # pptx-extract.sh — wrapper que elige el intérprete con python-pptx y corre extract-pptx.py.
 # Uso: bash scripts/pptx-extract.sh <input.pptx> [output_dir]
 # Seguridad: no sourcea archivos del proyecto ni usa intérpretes de variables de entorno.

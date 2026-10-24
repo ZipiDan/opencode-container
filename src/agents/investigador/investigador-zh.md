@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 description: 用中文在互联网上搜索指定主题，并返回带引用来源的结构化摘要。
 name: investigador-zh
 version: 2

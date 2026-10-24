@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Agentes personalizados
 
 Copia canónica de los agentes personalizados del launcher. Son la **fuente de verdad**: se editan aquí, se versionan en git y se propagan a la configuración global de opencode (`~/.config/opencode/agents/`) con `agents_update.sh`.

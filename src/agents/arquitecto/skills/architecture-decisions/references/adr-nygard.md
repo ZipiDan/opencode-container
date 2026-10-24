@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Esqueleto mínimo de ADR (5 secciones, estilo Nygard)
 
 Esquema conceptual del post original de Michael Nygard:

@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Agente cyberseguridad — auditor de ciberseguridad para agentes de IA
 
 > **Meta-documento: no se despliega.** `agents_update.sh` solo despliega `.md`
@@ -95,3 +98,11 @@ quiere, o elegirse por sesión).
 
 Ahorro estimado 25-40% en sesiones de auditoría reales, sin perder ninguna
 capacidad del catálogo.
+## Licencias
+
+- **Agente, router, generador y documentación** (`cyberseguridad.md`,
+  `build-catalog.mjs`, `SKILL.md`, este README): MPL-2.0 (código) / CC BY-SA 4.0
+  (docs), según el repo.
+- **Catálogo vendorizado** (`skills/cyberseguridad-catalog/references/**`): MIT
+  de Bri Russell, copia literal sin modificar y sin header propio (anotada en
+  `REUSE.toml`). Texto original en `UPSTREAM-LICENSE-MIT.txt`.

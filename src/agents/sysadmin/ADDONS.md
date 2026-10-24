@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Add-ons de Calisto (no upstream)
 
 Este archivo **no se despliega** (no tiene `mode:` ni vive en `skills/`). Es el
@@ -22,6 +25,9 @@ agente `sysadmin`.
   skill solo se actualiza si cambia el comportamiento operativo.
 - **Documentación de desarrollo:** `src/tools/landlock/DEVELOPMENT.md` (no
   duplicar en la skill).
+- **Licencia:** MPL-2.0, igual que el resto del código propio del repo. Es un
+  add-on de Calisto, no de heinzel: no se borra ni se sobrescribe en el
+  re-vendorizado.
 
 ## Reglas para un upgrade de heinzel
 

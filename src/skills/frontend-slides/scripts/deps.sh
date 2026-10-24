@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 # deps.sh — Diagnóstico e instalación aislada de las dependencias de Frontend Slides.
 #
 # Uso:

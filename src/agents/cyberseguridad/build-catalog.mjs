@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 /**
  * build-catalog.mjs — Genera el catálogo vendorizado de ciberseguridad.
  *

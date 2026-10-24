@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # opencode-container
 
 Un lugar seguro donde pensar, construir y operar con [opencode](https://opencode.ai):
@@ -802,3 +805,59 @@ Solo mueve directorios preexistentes y nunca sobrescribe.
   raíz de git). Los montajes anidados proveen un aislamiento físico adicional entre
   proyectos.
 - La carpeta de trabajo por defecto dentro del contenedor es `/workspace`.
+
+## Licencia, agradecimientos y uso
+
+Este proyecto es software libre, pero **no de un solo color**: hay código propio,
+documentación propia y componentes de terceros. La separación es explícita para
+que nadie confunda autoría.
+
+| Contenido | Licencia |
+|---|---|
+| Código y artefactos funcionales propios (launcher, entrypoint, `agents_update.sh`, `landlock_rosh`, `md2pdf`, skills, agentes, comandos) | **MPL-2.0** (`LICENSE`) |
+| Documentación propia (este README, `AGENTS.md`, `CHANGELOG.md`, `BITACORA.md`, informes en `documents/`) | **CC BY-SA 4.0** |
+| Componentes de terceros (OpenCode, heinzel, frontend-slides, cybersecurity-skills, MADR, ddd-crew) | **Su licencia original**, intacta |
+| Fragmentos de código embebidos en esta documentación (bloques de ejemplo) | **MPL-2.0**, para que puedas copiarlos sin fricción |
+
+La atribución completa, con titulares y origen de cada pieza, está en
+[`THIRD-PARTY.md`](THIRD-PARTY.md). Los textos íntegros viven en `LICENSES/`.
+
+### ¿Usar este launcher cambia la licencia de mi proyecto?
+
+**No.** Ejecutar `opencode.sh`, usar los agentes o generar informes con `md2pdf`
+no convierte tu trabajo en obra derivada: la licencia cubre el programa, no lo
+que produces con él. Solo si **copiás un archivo de este repo** a tu proyecto
+(por ejemplo `md2pdf.py` o una skill), ese archivo viaja con su licencia.
+
+### Qué implica MPL-2.0
+
+Es copyleft **por archivo**: si modificás un archivo del proyecto y lo
+distribuís, tenés que publicar esa modificación bajo MPL-2.0 y conservar los
+avisos. Podés usar el launcher internamente, integrarlo en un flujo mayor y
+agregar archivos propios sin obligación de liberarlos.
+
+### Agradecimientos
+
+Este proyecto existe gracias a trabajo ajeno, y se agradece explícitamente:
+
+- [opencode](https://github.com/sst/opencode) (SST) — el motor sobre el que corre
+  todo esto. MIT.
+- [heinzel](https://github.com/wintermeyer/heinzel) (Stefan Wintermeyer) — el
+  ruleset del agente `sysadmin`. MIT.
+- [frontend-slides](https://github.com/zarazhangrui/frontend-slides) (Zara
+  Zhang) — la skill de presentaciones y su pack de plantillas. MIT.
+- [cybersecurity-skills](https://github.com/briiirussell/cybersecurity-skills)
+  (Bri Russell) — el catálogo de metodologías del agente `cyberseguridad`. MIT.
+- [MADR](https://github.com/adr/madr) y el patrón ADR de Michael Nygard — las
+  plantillas de decisiones de arquitectura.
+- [ddd-crew](https://github.com/ddd-crew) — el canvas de módulos y el vocabulario
+  de relaciones (CC BY-SA 4.0).
+- [Debian](https://www.debian.org/) y cada mantenedor de paquete — el sistema
+  operativo base del contenedor. Su atribución viaja en la imagen
+  (`/usr/share/doc/<paquete>/copyright` y `/usr/share/common-licenses/`).
+
+La intención es construir entre todos, no apropiarse de nada: lo propio va con
+MPL-2.0 para que las mejoras vuelvan, y lo ajeno se conserva tal cual lo publicó
+su autor.
+
+Consultas de licencia: abrí un issue en el repositorio.

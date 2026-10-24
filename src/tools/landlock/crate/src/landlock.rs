@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 //! Landlock syscalls (444/445/446) + prctl(NO_NEW_PRIVS) sin dependencias de ctypes.
 //! Estructuras con `#[repr(C)]` → el layout coincide con el que el kernel espera
 //! (el problema de padding/alignment que dio bugs en la versión Python se resuelve solo).

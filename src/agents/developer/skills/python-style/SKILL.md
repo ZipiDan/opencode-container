@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: python-style
 description: Style and code-quality reference for the developer agent. Priority hierarchy: custom rules > PEP 8 > SOTA sota-python > Google (docstrings). Language-agnostic in spirit — maps to Python, TypeScript/JS, Go, Rust. Load before writing or modifying code.
 ---

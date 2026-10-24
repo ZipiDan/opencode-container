@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 //! Fallback para kernels < 5.13 (sin Landlock): bubblewrap con mount namespace read-only.
 //!
 //! bubblewrap (bwrap) crea un mount namespace donde:

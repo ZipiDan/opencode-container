@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Esquema de parámetros
 
 > Referencia formal de combinaciones válidas. Documenta la intención de diseño que el parser de `opencode.sh` debería respetar.

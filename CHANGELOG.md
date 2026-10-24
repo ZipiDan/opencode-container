@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Changelog
 
 Todas las versiones notables de **opencode-container** (launcher de opencode en
@@ -11,6 +14,31 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > su historial se reconstruye desde los mensajes de commit.
 
 ## [Unreleased]
+
+## [4.1.1] — 2026-10-24
+
+### Added
+- **Licenciamiento del proyecto**: `LICENSE` raíz con **MPL-2.0** para el código
+  y los artefactos funcionales propios; documentación propia bajo **CC BY-SA
+  4.0**; componentes de terceros conservan su licencia original (OpenCode,
+  heinzel, frontend-slides y cybersecurity-skills en MIT; ddd-crew en CC BY-SA
+  4.0). Se suman `LICENSES/` (textos íntegros), `THIRD-PARTY.md` (atribución y
+  mapa de licencias) y `REUSE.toml` (rutas que no admiten header).
+- Headers SPDX en 173 archivos: código, agentes, skills, comandos y
+  documentación. Los agentes y skills llevan el comentario dentro del
+  frontmatter YAML para no romper el parser de opencode.
+- README: sección "Licencia, agradecimientos y uso", con la aclaración de que
+  usar el launcher no cambia la licencia de los proyectos del usuario.
+- AGENTS.md: regla de headers SPDX obligatorios y qué hacer al vendorizar.
+
+### Changed
+- `src/tools/landlock/crate/Cargo.toml`: `license = "MPL-2.0"`.
+- `PROVENANCE.md` de landlock, arquitecto y frontend-slides, README de
+  cyberseguridad y `ADDONS.md` de sysadmin: reemplazan "sin licencia" por la
+  política vigente.
+- **Sin cambios de comportamiento**: build, launcher y rutas de la imagen
+  quedan exactamente como estaban. Los avisos de licencia viajan con el repo y
+  el tarball de fuentes, no dentro de la imagen.
 
 ## [4.1.0] — 2026-10-23
 

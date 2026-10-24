@@ -1,9 +1,15 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # PROVENANCE — frontend-slides
 
 ## Origen
 
 - **Upstream**: https://github.com/zarazhangrui/frontend-slides
-- **Licencia**: MIT (Copyright © 2025 Zara Zhang). Compatible con este repo.
+- **Licencia**: MIT (Copyright © 2025 Zara Zhang). Las copias literales
+  conservan MIT y no llevan header propio (anotadas en `REUSE.toml`); las
+  reescrituras de Calisto se licencian MPL-2.0 conservando el aviso MIT. Ver
+  `THIRD-PARTY.md` en la raíz.
 - **Snapshot vendorizado**: commit `9906a34` (main, 2026-06-23).
 - **Tipo**: skill (no agente). Vive en `src/skills/frontend-slides/` (stage global de skills).
 

@@ -1,3 +1,7 @@
+<!-- SPDX-FileCopyrightText: ddd-crew -->
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Vocabulario de relaciones entre módulos
 
 Aclaración: esta referencia usa **solo los NOMBRES** de los patrones de

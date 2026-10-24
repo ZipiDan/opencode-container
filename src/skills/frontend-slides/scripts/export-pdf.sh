@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2025 Zara Zhang
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 # export-pdf.sh — Exporta una presentación HTML de Frontend Slides a PDF.
 #
 # Uso:

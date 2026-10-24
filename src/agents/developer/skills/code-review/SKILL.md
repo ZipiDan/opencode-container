@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: code-review
 description: Review code against five axes (correctness, readability, architecture, security, performance) and emit categorized findings with severity labels, concrete fixes, and anti-rationalization refutations. Use when asked to review code, review a pull request, or audit a change for quality before merge.
 ---

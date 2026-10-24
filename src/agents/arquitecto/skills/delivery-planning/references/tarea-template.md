@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Template de tarea (DoD + ruta exacta + verificación)
 
 Patrón de granularidad adaptado de obra/superpowers `writing-plans` (MIT):

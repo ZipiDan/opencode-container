@@ -1,4 +1,7 @@
 ---
+# SPDX-FileCopyrightText: 2025 Zara Zhang
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: frontend-slides
 description: Crea presentaciones HTML impresionantes (animadas, autocontenidas) desde cero o convirtiendo PowerPoint, con descubrimiento visual de estilo anti-"AI slop". Usar cuando se quiera armar una presentación/deck, convertir un PPT/PPTX a web, o generar slides para una charla/pitch. También exporta a PDF localmente. Vendorizada de zarazhangrui/frontend-slides (MIT).
 version: 1

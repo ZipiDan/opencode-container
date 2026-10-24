@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # TODO — opencode.sh
 
 Registro de problemas y nuevas características a incorporar al launcher.
@@ -21,4 +24,4 @@ Registro de problemas y nuevas características a incorporar al launcher.
 | 8 | Review | Prueba runtime del envelope de `arquitecto` (R5) | Verificar en sesión desechable: enum de `task` muestra solo `investigador*`/`explore` (no `general`); escritura en `/tmp/opencode/arquitecto/**` sin prompt y en rutas fuera de `documents/arquitectura/**` con prompt; `read` de `.env` pide permiso pese a `--auto`; `/arquitecto` corre bajo su envelope (`agent:`). Pendiente del gate [6]-r2. | Pendiente | 2026-09-08 05:12 | — |
 | 9 | Review | Check LICENSE.md del hub ADR (architecture-decision-record) | Regla 1 de PROVENANCE: el repo reporta NOASSERTION (obra propia CC BY-NC-SA + templates con licencia individual). Mientras no se lea LICENSE.md, `architecture-decisions` usa solo MADR (MIT/CC0) y Nygard como esqueleto genérico propio, sin texto verbatim. | Pendiente | 2026-09-08 05:12 | — |
 | 10 | Decision | Re-evaluar `api-contract` (weisser-dev) en el próximo update | Pieza A* descartada para v1 por decisión del driver (2026-09-08): tablas de naming/error-envelope/pagination/checklist MIT, ~60 líneas como `references/contratos-tablas.md` en `module-decomposition`. Reevaluar según PROVENANCE "Evaluación A*". | Pendiente | 2026-09-08 05:12 | — |
-| 11 | Decision | Licencia raíz del repo y skills derivadas CC BY-SA (A-L4) | Sin `LICENSE` declarada en el repo; las skills derivadas de ddd-crew (CC BY-SA 4.0) viajan con atribución inline pero la share-alike sobre obra colectiva queda ambigua sin licencia raíz. Decidir licencia del repo o nota por skill derivada. Hallazgo Low abierto del gate [6]. | Pendiente | 2026-09-08 05:12 | — |
+| 11 | Decision | Licencia raíz del repo y skills derivadas CC BY-SA (A-L4) | **Resuelto (2026-10-24):** `LICENSE` raíz = MPL-2.0 para código y artefactos funcionales propios; documentación propia = CC BY-SA 4.0; terceros conservan su licencia (MIT/CC BY-SA) sin re-licenciar. Los derivados de ddd-crew quedan explícitamente en CC BY-SA 4.0. Atribución en `THIRD-PARTY.md`, textos en `LICENSES/`, rutas de terceros en `REUSE.toml` y headers SPDX por archivo. Hallazgo A-L4 cerrado. | Resuelto | 2026-09-08 05:12 | 2026-10-24 |

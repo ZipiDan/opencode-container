@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Upgrade — frontend-slides (procedimiento)
 
 Meta-documento de mantenimiento. **No es una skill ni un agente** (sin frontmatter `mode:`/`name:`

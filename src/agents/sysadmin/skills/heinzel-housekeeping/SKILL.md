@@ -1,4 +1,7 @@
 ---
+# SPDX-FileCopyrightText: 2026 Stefan Wintermeyer
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: heinzel-housekeeping
 description: Run a heinzel housekeeping (health) inspection on a
   server — disk, memory, load, pending updates, firewall, SSL

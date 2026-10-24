@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 # Compila el binario estático (musl) de landlock_rosh.
 # Requiere: rustup target add x86_64-unknown-linux-musl
 set -euo pipefail

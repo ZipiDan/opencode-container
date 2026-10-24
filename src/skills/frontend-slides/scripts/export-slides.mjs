@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 // export-slides.mjs — Exporta una presentación Frontend Slides (HTML) a PDF.
 //
 // Uso (lo invoca scripts/export-pdf.sh):

@@ -1,3 +1,7 @@
+<!-- SPDX-FileCopyrightText: ddd-crew -->
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Canvas de módulo (una página por módulo)
 
 Adaptado de: ddd-crew/bounded-context-canvas (CC BY-SA 4.0),

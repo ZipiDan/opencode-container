@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Agente investigador
 
 Agente de investigación web multilingüe. Orquesta búsquedas en paralelo mediante subagentes, unifica los hallazgos en español citando fuentes, los muestra en pantalla y los guarda en `documents/investigaciones/`.

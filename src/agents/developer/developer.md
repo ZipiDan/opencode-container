@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 description: Senior software developer that writes clean, maintainable, and well-structured code following the driver's personal coding standards plus strict quality rules (DRY, modularity, class design, naming, concise comments, KISS/YAGNI). Applies a style hierarchy for Python and other languages (custom rules > PEP 8 > SOTA > Google for docstrings). Use for writing or modifying any code, refactoring, and code review.
 name: developer
 version: 8

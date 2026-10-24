@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 # pin-key.sh — reemplaza la línea de una clave en authorized_keys por la línea
 # forzada de landlock_rosh. Pensado para ejecutarse EN EL TARGET (o contra un
 # archivo local en tests). No genera claves y no toca otras claves.

@@ -1,4 +1,7 @@
 ---
+# SPDX-FileCopyrightText: 2026 Stefan Wintermeyer
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: heinzel-email
 description: Send an email about a managed server — ad-hoc text
   and/or file attachments. Use when the user asks to "email me

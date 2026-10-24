@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Handoff design.md → tasks.md (formato del pack)
 
 Estructura adaptada de: Fission-AI/OpenSpec (MIT),

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 //! Auditoría de comandos ejecutados bajo landlock_rosh (v1.6).
 //!
 //! Backends autodetectados por artefactos reales del sistema:

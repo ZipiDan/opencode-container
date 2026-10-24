@@ -1,3 +1,7 @@
+<!-- SPDX-FileCopyrightText: 2026 Stefan Wintermeyer -->
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # SSH — Password Authentication & Hardening
 
 **Note:** Reading `sshd_config` is safe. The the `sysadmin` agent prompt taboo is

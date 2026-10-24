@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # agent-builder — creador de agentes
 
 Meta-agente que crea nuevos agentes opencode vía `investigador → plan → developer → cyberseguridad`, aplicando la **Regla de Oro de los Labs** y exigiendo decisión humana ante hallazgos medios/altos.

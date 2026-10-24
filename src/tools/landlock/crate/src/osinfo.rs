@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 //! Información del SO: parseo de /etc/os-share compartido por el fallback bwrap
 //! (hints de instalación) y la auditoría (validación de distro soportada).
 

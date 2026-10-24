@@ -1,9 +1,13 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Procedencia — agente `arquitecto` (ledger de piezas y decisiones)
 
 **Fecha de verificación de datos**: 2026-09-07/08 (estrellas/licencias/fechas leídos vía páginas y API de GitHub; cambian con el tiempo — re-verificar antes de cada update).
 **Búsqueda**: 6 idiomas, investigadores ES/EN/FR/DE/RU/ZH + checks propios (opencode docs, `opencode agents list`).
 **Propósito**: permitir reconstruir cada pieza, justificar su elección y actualizarla (equivalente a `upgrade-heinzel.md` / `UPSTREAM-LICENSE-MIT.txt` del patrón sysadmin/cyberseguridad).
 **Destino en el build**: migrar a `src/agents/arquitecto/PROVENANCE.md` (meta-archivo, versionado en git, no desplegado); cada skill llevará además atribución inline con su fuente exacta.
+**Licencia del repo**: código y artefactos funcionales propios → MPL-2.0; documentación → CC BY-SA 4.0; piezas de terceros conservan su licencia. Los derivados de ddd-crew quedan en CC BY-SA 4.0 (share-alike). Ver `THIRD-PARTY.md` y `REUSE.toml` en la raíz.
 
 ## Criterios aplicados (los 4 filtros)
 

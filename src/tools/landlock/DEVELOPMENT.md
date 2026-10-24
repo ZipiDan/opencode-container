@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Desarrollo de `landlock_rosh`
 
 Guía para quien modifique el binario. La documentación **operativa** del agente

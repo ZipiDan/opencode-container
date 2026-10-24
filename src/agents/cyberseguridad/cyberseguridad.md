@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 description: Cybersecurity auditor for AI agents (catalog vendored from briiirussell/cybersecurity-skills, MIT). Performs security audits, vulnerability assessments, secure code review, authorized pentest/recon/OSINT, incident response triage, threat hunting, cloud/container/IAM audits, AI/LLM security review, threat modeling, CVE research, compliance reviews (PCI, HIPAA, GDPR) and risk assessment — always read-only: it audits and reports, never fixes. Use for any cybersecurity task on code, infrastructure, cloud, containers, identity, or AI systems.
 name: cyberseguridad
 version: 5

@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # Provenance — `landlock_rosh`
 
 ## Origen
@@ -10,8 +13,8 @@ de Python y distribuir un binario estático.
 - Fuente: `src/tools/landlock/crate/`
 - Binario empaquetado: `src/tools/landlock_rosh`
 - Tests: `src/tools/landlock/crate/tests/regresion.sh`
-- Licencia: no hay una licencia externa declarada; es código interno del
-  proyecto. Si se publica fuera del repo, definir licencia antes.
+- Licencia: MPL-2.0 (Daniel Zipitría / Calisto). El binario se distribuye en el
+  repo junto a su fuente (`src/tools/landlock/crate/`), como exige MPL §3.2.
 
 ## Historial de versiones
 

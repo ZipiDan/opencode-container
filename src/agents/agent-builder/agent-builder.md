@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 description: Meta-agent that builds new opencode agents via investigador→planning-gate→developer→cyberseguridad loop, enforcing the Golden Rule (deterministic→prompt-guard, reusable→skills, universal→.md) and requiring human decision on medium/high security findings. Use when the user wants to create, vendorize or refactor an agent/skill.
 name: agent-builder
 version: 5

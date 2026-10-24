@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 name: architecture-decisions
 description: >-
   Ciclo de vida de decisiones de arquitectura para el agente arquitecto: gate de

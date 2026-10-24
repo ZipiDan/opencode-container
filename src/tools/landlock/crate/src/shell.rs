@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+// SPDX-License-Identifier: MPL-2.0
+
 //! Instalación/desinstalación de landlock_rosh como shell del sistema (v1.7).
 //!
 //! Flags administrativas (root, SIN sandbox, idempotentes):

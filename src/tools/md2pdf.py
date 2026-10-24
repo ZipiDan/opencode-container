@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
+
 """Genera un PDF (o HTML) estilizado a partir de un informe Markdown.
 
 Uso:

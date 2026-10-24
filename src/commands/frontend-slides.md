@@ -1,4 +1,6 @@
 ---
+# SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
+# SPDX-License-Identifier: MPL-2.0
 description: Crea una presentación HTML (deck) desde cero o convirtiendo un PPT/PPTX a web, con descubrimiento visual de estilo, y exporta a PDF localmente
 ---
 

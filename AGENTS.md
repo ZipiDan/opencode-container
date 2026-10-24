@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto) -->
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+
 # AGENTS.md
 
 ## What this repo is
@@ -232,3 +235,16 @@ Arquitectura → Planificación → Tareas.
 - This rule overrides any default proactiveness guidance. Even if a task is fully complete, do not commit or push it on your own initiative.
 - The user will tell you when to commit (`"haz commit"`, `"commiteá"`, `"push"`, etc.). Only then stage, commit and/or push as requested.
 - You may run read-only git commands freely (`git status`, `git log`, `git diff`, `git show`, etc.) without asking.
+
+## Licencias (STRICT)
+
+- **Todo archivo nuevo nace con header SPDX.** Es lo que marca qué cubre la MPL-2.0, que es copyleft **por archivo**:
+  - Código (`.sh`, `.py`, `.rs`, `.mjs`, `.js`, `.css`, `Containerfile`): `#`/`//`/`/* */` después del shebang.
+  - Markdown funcional (agentes, skills, comandos con frontmatter): comentario YAML **dentro** del frontmatter. Nunca un `<!-- -->` antes del `---`: rompe el parser de opencode.
+  - Markdown de documentación: `<!-- SPDX-... -->` en la primera línea.
+- Titular: `SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)`. En archivos derivados se agrega la línea del upstream (`2026 Stefan Wintermeyer`, `2025 Zara Zhang`, `ddd-crew`).
+- Tabla de licencias: código y artefactos funcionales propios → **MPL-2.0**; documentación propia → **CC BY-SA 4.0**; terceros → **su licencia original**.
+- **Las copias literales de terceros no se tocan.** No se les agrega header ni se re-licencian: se anotan en `REUSE.toml` y se declaran en `THIRD-PARTY.md`.
+- Al vendorizar algo nuevo: actualizar `THIRD-PARTY.md` (titular, licencia, origen, qué se modificó), sumar el texto a `LICENSES/` si es una licencia nueva, y anotar la ruta en `REUSE.toml`.
+- Excepción de share-alike: los derivados de ddd-crew quedan en **CC BY-SA 4.0** (no se pueden pasar a MPL).
+- Verificación opcional: `reuse lint`, sobre un checkout limpio (el venv y los artefactos locales no están versionados y ensucian el conteo).

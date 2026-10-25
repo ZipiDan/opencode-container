@@ -15,7 +15,7 @@ proyecto, con las herramientas ya dispuestas y tus carpetas locales siempre a la
 
 ## Presentación
 
-<a href="opencode-container.html">
+<a href="opencode-container-readonly.html">
   <img src="opencode-container-preview.png" alt="Vista previa de la presentación: portada, agentes, seguridad por kernel y cierre" width="600">
 </a>
 

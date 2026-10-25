@@ -37,6 +37,7 @@ path = [
   ".opencode/agents/.gitkeep",
   ".opencode/commands/.gitkeep",
   ".opencode/skills/.gitkeep",
+  "publish/redact.txt",
   "src/tools/landlock_rosh",
   "src/tools/landlock/SHA256SUMS",
   "src/tools/landlock/crate/Cargo.lock",

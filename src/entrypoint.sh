@@ -69,6 +69,20 @@ if [[ -x /workspace/python/bin/python && -f /workspace/python/pyvenv.cfg ]]; the
     unset PIP_USER
 fi
 
+# Credenciales compartidas entre proyectos.
+# opencode v2 guarda las credenciales en SQLite (tabla `credential` de
+# opencode.db) y esa base es POR PROYECTO: el auth.json heredado se importa una
+# sola vez, en el primer arranque de v2 sobre cada base, y después se ignora.
+# Por eso el launcher mantiene un auth.json canónico en el volumen compartido y
+# este paso reconcilia la base del proyecto en cada arranque: siembra lo que
+# falta, actualiza lo que sembró antes (key rotada) y respeta los logins hechos
+# a mano dentro del proyecto.
+# OPENCODE_CREDENTIALS_SEED=0 lo desactiva (flag --no-credentials-seed).
+if [[ "${OPENCODE_CREDENTIALS_SEED:-1}" != "0" ]] && command -v opencode-credentials >/dev/null 2>&1; then
+    opencode-credentials seed ||
+        echo "[credenciales] AVISO: no se pudo reconciliar auth.json (el contenedor sigue)." >&2
+fi
+
 MODE="${OPENCODE_MODE:-web}"
 
 case "$MODE" in

@@ -9,8 +9,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="4.1.1"
-TAG_RELEASE="v4.1.1"
+VERSION="4.2.0"
+TAG_RELEASE="v4.2.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"
@@ -125,7 +125,7 @@ check_podman() {
 
 show_help() {
   cat <<EOF
-${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--extra-ports <n>,<n>...] [--tui] [--web] [--no-climb] [--rebuild] [--update] [--network-host] [--password <pwd>] [--auto|--no-auto]
+${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--extra-ports <n>,<n>...] [--tui] [--web] [--no-climb] [--rebuild] [--update] [--network-host] [--password <pwd>] [--auto|--no-auto] [--no-credentials-seed]
        $0 --rebuild
        $0 --update
        $0 --renew
@@ -133,6 +133,9 @@ ${BLUE}Uso:${NC} $0 <ruta_del_proyecto> [-config <ruta>] [--port <puerto>] [--ex
        $0 --kill <patrón> | --rm <patrón>
        $0 --pair <patrón>
        $0 --kill-all | --killall
+       $0 --credentials-set <integración>
+       $0 --credentials-export <ruta_del_proyecto>
+       $0 --sync-credentials <patrón>
        $0 --version
        $0 -h | --help
 
@@ -152,13 +155,16 @@ ${BLUE}Descripción:${NC}
          agents/, commands/ → agentes y comandos personalizados.
          identity/          → identidad git/ssh del agente.
          share/             → datos de opencode compartidos:
-           auth.json        → credenciales (/connect).
+           auth.json        → credenciales canónicas (API keys). El entrypoint
+                              las siembra en la base de cada proyecto.
            db/              → cuentas OAuth (GitHub, GitLab, etc.).
            repos/           → clones internos.
          No se ve afectado por -config.
 
        Del proyecto (por defecto <proyecto>/${DEFAULT_PROJECT_DATA_SUBDIR}/):
          state/             → file locks de ejecución (efímero).
+         data/opencode.db   → base SQLite del proyecto: sesiones, mensajes,
+                              TODOs y credenciales (aislado por proyecto).
          data/storage/      → sesiones, mensajes, metadatos (aislado).
          data/snapshot/     → snapshots de git para undo/revert (aislado).
          data/log/          → logs de ejecución (aislado).
@@ -176,6 +182,14 @@ ${BLUE}Descripción:${NC}
 
      Usa -config <ruta> para redirigir state/ y data/
      a una ubicación personalizada.
+
+     Credenciales (opencode v2): las credenciales viven en la base SQLite de
+     cada proyecto (opencode.db, tabla credential), no en auth.json. En cada
+     arranque el launcher reconcilia la base del proyecto contra el auth.json
+     canónico de share/: siembra las API keys que faltan, actualiza las que ya
+     sembró (key rotada) y respeta los logins hechos a mano en el proyecto
+     (override local). Las credenciales OAuth no se comparten: sus refresh
+     tokens rotan y compartirlos invalidaría los logins de los otros proyectos.
 
 ${BLUE}Parámetros:${NC}
     <ruta_del_proyecto>          Ruta al directorio del proyecto.
@@ -252,16 +266,34 @@ ${BLUE}Parámetros:${NC}
                                  ejecución (web y TUI). Pide confirmación
                                  antes de actuar si el terminal lo permite.
                                  Alias: --killall.
+    --credentials-set <integración>
+                                 Pide la API key sin mostrar lo tecleado y la
+                                 escribe en share/auth.json (0600). Es el alta
+                                 y la rotación canónica: el próximo arranque
+                                 la siembra en cada proyecto.
+    --credentials-export <ruta>  Vuelca las API keys del proyecto indicado al
+                                 auth.json canónico. Promueve a todos los
+                                 proyectos un login hecho dentro de la TUI.
+                                 No exporta credenciales OAuth.
+    --sync-credentials <patrón>  Aplica el auth.json canónico en un contenedor
+                                 ya en ejecución (mismo patrón que --kill).
+                                 Si el modelo no aparece, reiniciá el contenedor.
+    --no-credentials-seed        No siembra auth.json al arrancar el contenedor:
+                                 el proyecto gestiona sus propias credenciales.
 
 ${BLUE}Combinaciones de parámetros:${NC}
-    Los parámetros se separan en tres mundos mutuamente excluyentes:
+    Los parámetros se separan en cuatro mundos mutuamente excluyentes:
 
       • Mundo IMAGEN:    --renew | --rebuild | --update   (gestionan la imagen)
       • Mundo GESTIÓN:  --ps/--ls (listar) | --kill/--rm <patrón>
                         | --pair <patrón> (links de acceso) | --kill-all (detener)
+      • Mundo CREDENCIALES: --credentials-set <integración>
+                        | --credentials-export <proyecto>
+                        | --sync-credentials <patrón>   (auth.json canónico)
       • Mundo EJECUCIÓN:  <proyecto> + [-config] [--port] [--extra-ports <n>,<n>...]
                           [--tui|--web] [--network-host]
                           [--password <pwd>] [--auto|--no-auto]
+                          [--no-credentials-seed]
 
     Árbol de combinaciones válidas (-h es compatible con cualquier rama):
 
@@ -280,10 +312,17 @@ ${BLUE}Combinaciones de parámetros:${NC}
     │       Un link por origen (127.0.0.1 + LAN real), de un solo uso.
     ├── --kill-all             detiene TODOS los contenedores opencode
     │                          (web y TUI; pide confirmación; alias --killall)
+    ├── --credentials-set <integración>
+    │                          escribe la API key en share/auth.json (0600)
+    ├── --credentials-export <proyecto>
+    │                          promueve las API keys del proyecto al canónico
+    ├── --sync-credentials <patrón>
+    │                          aplica el canónico en un contenedor en ejecución
     └── <proyecto>             lanza opencode en el proyecto
         ├── --no-climb         desactiva la búsqueda de .git hacia atrás
         │                      (también: --no-search-git)
         ├── --auto | --no-auto auto-aprueba permisos (default: --auto)
+        ├── --no-credentials-seed  no siembra auth.json al arrancar
         ├── --tui              arranca terminal interactiva (nombre: opencode-tuiN)
         │   ├── -config <ruta>
         │   ├── --network-host
@@ -297,9 +336,12 @@ ${BLUE}Combinaciones de parámetros:${NC}
             └── --extra-ports <n>,<n>,...   publica puertos extra host→contenedor
 
     Reglas clave:
-      • No mezclar flags de mundos distintos (IMAGEN/GESTIÓN/EJECUCIÓN).
+      • No mezclar flags de mundos distintos (IMAGEN/GESTIÓN/CREDENCIALES/EJECUCIÓN).
       • --renew y --rebuild son mutuamente excluyentes.
       • --ps/--ls, --kill/--rm, --pair y --kill-all son mutuamente excluyentes entre sí.
+      • --credentials-set, --credentials-export y --sync-credentials son
+        mutuamente excluyentes entre sí; sólo el export acepta <proyecto> y
+        -config (los demás rechazan flags de ejecución).
       • --pair usa el mismo patrón que --kill y no acepta --password ni --port.
       • --tui ignora --port (no hay servidor web).
       • --tui/--no-web y --web son mutuamente excluyentes.
@@ -336,6 +378,10 @@ ${BLUE}Ejemplos:${NC}
     $0 --pair 4096
     $0 --pair opencode-4096
     $0 --kill-all
+    $0 --credentials-set opencode-go          # alta/rotación de la key canónica
+    $0 --credentials-export ./proyecto        # comparte el login de ese proyecto
+    $0 --sync-credentials 4096                # aplica el canónico en un contenedor vivo
+    $0 ./proyecto --no-credentials-seed       # el proyecto usa credenciales propias
 
 ${BLUE}Nota:${NC}
     Config global (API keys, share)    → ${GLOBAL_CONFIG_DIR}/  (no afectado por -config)
@@ -363,6 +409,12 @@ ${BLUE}Nota:${NC}
     para acceder a carpetas ni ejecutar herramientas. Usá --no-auto si querés
     que opencode vuelva a pedir confirmación, u OPENCODE_PERMISSION del host
     para reglas de permisos personalizadas (JSON inline).
+    Credenciales compartidas: opencode v2 las guarda en la base de cada
+    proyecto. share/auth.json es la fuente canónica y se siembra en cada
+    arranque; un login hecho dentro del proyecto (TUI → Connect) es un override
+    local que se respeta, y se promueve al resto con --credentials-export.
+    Para rotar la key de todos los proyectos: --credentials-set <integración>
+    y reiniciar (o --sync-credentials en los que estén corriendo).
 EOF
 }
 
@@ -521,6 +573,38 @@ resolve_project_root() {
     cur="$(dirname "$cur")"
   done
   printf '%s\n' "$(realpath -m "$path")"
+}
+
+# Resuelve las rutas del proyecto en las variables globales PROJECT_PATH (con
+# realpath + trepada opcional a la raíz git) y PROJECT_DATA_DIR (state/data).
+# Lo usan el flujo de ejecución y los comandos de credenciales, para no
+# duplicar las reglas de resolución.
+resolve_project_paths() {
+  PROJECT_PATH="${PROJECT_PATH/#\~/$HOME}"
+  PROJECT_PATH=$(realpath -m "$PROJECT_PATH") || error_exit "Ruta de proyecto inválida: $PROJECT_PATH"
+
+  if [[ ! -d "$PROJECT_PATH" ]]; then
+    error_exit "El directorio del proyecto no existe: $PROJECT_PATH"
+  fi
+
+  # Resolución automática del project root: si se pasa un subdirectorio de un
+  # repo git, trepar hacia atrás (tope en $HOME) para montar la raíz real.
+  if [[ "$NO_CLIMB" == "false" ]]; then
+    local resolved_root
+    resolved_root="$(resolve_project_root "$PROJECT_PATH")"
+    if [[ "$resolved_root" != "$PROJECT_PATH" ]]; then
+      echo -e "${YELLOW}[INFO]${NC} Project root resuelto a: ${resolved_root} (se encontró .git en un ancestro)."
+      echo -e "${YELLOW}[INFO]${NC} Para usar exactamente ${PROJECT_PATH} pasá --no-climb (alias --no-search-git)."
+      PROJECT_PATH="$resolved_root"
+    fi
+  fi
+
+  if [[ -z "$PROJECT_DATA_DIR" ]]; then
+    PROJECT_DATA_DIR="${PROJECT_PATH}/${DEFAULT_PROJECT_DATA_SUBDIR}"
+  fi
+
+  PROJECT_DATA_DIR="${PROJECT_DATA_DIR/#\~/$HOME}"
+  PROJECT_DATA_DIR=$(realpath -m "$PROJECT_DATA_DIR") || error_exit "Ruta de datos inválida: $PROJECT_DATA_DIR"
 }
 
 # Valida que un valor sea un puerto TCP válido (1-65535). Devuelve 0 si es válido.
@@ -1005,6 +1089,82 @@ check_image() {
 }
 
 # ==========================
+# CREDENCIALES COMPARTIDAS
+# ==========================
+# opencode v2 guarda las credenciales en SQLite (credential de opencode.db) y
+# esa base es por proyecto. El auth.json de ~/.config/opencode/share/ es la
+# fuente canónica: el entrypoint lo siembra en cada proyecto al arrancar y
+# estos comandos lo mantienen al día (alta/rotación/promoción).
+
+# Ejecuta la herramienta de credenciales de la imagen sin arrancar opencode.
+# Los mounts los define el llamador en CREDENTIALS_MOUNTS; stdin se propaga.
+run_credentials_tool() {
+  local subcommand="$1"
+  shift
+  podman run --rm -i \
+    --entrypoint /usr/local/bin/opencode-credentials \
+    "${CREDENTIALS_MOUNTS[@]}" \
+    "${OPENCODE_IMAGE}" "$subcommand" "$@"
+}
+
+# --credentials-set <integración>: pide la key sin eco y la escribe en el
+# auth.json canónico. La key no pasa por argv ni queda en el historial.
+credentials_set() {
+  local integration="$1" key=""
+
+  check_image
+  if [[ -t 0 ]]; then
+    printf 'API key para %s: ' "$integration" >&2
+    IFS= read -rs key
+    printf '\n' >&2
+  else
+    IFS= read -r key
+  fi
+  if [[ -z "$key" ]]; then
+    error_exit "No se recibió ninguna key para '${integration}'."
+  fi
+
+  CREDENTIALS_MOUNTS=(-v "${GLOBAL_DATA_DIR}:/share:Z")
+  printf '%s\n' "$key" |
+    run_credentials_tool put "$integration" --auth /share/auth.json ||
+    error_exit "No se pudo escribir la credencial en ${GLOBAL_DATA_DIR}/auth.json"
+}
+
+# --credentials-export <proyecto>: vuelca las API keys de la base del proyecto
+# al auth.json canónico, para compartir un login hecho dentro de la TUI.
+credentials_export() {
+  local db_path="${PROJECT_DATA_DIR}/data/opencode.db"
+
+  if [[ ! -f "$db_path" ]]; then
+    error_exit "No hay base de opencode en ${db_path} (¿el proyecto nunca arrancó?)."
+  fi
+
+  check_image
+  CREDENTIALS_MOUNTS=(
+    -v "${PROJECT_DATA_DIR}/data:/data:Z"
+    -v "${GLOBAL_DATA_DIR}:/share:Z"
+  )
+  run_credentials_tool export --db /data/opencode.db --auth /share/auth.json ||
+    error_exit "No se pudieron exportar las credenciales del proyecto."
+}
+
+# --sync-credentials <patrón>: aplica el auth.json canónico en un contenedor ya
+# en ejecución (mismo seed del arranque) sin reiniciarlo.
+credentials_sync() {
+  local pattern="$1" name
+
+  name=$(resolve_opencode_container "$pattern") || return 1
+  echo -e "${BLUE}[INFO]${NC} Sincronizando credenciales en: ${name}"
+  if ! podman exec "$name" opencode-credentials seed; then
+    error_exit "No se pudieron sincronizar las credenciales en '${name}' (¿imagen anterior a v4.2.0?)."
+  fi
+  # El catálogo de modelos del servidor puede estar cacheado en memoria.
+  podman exec "$name" opencode reload >/dev/null 2>&1 || true
+  echo -e "${GREEN}[OK]${NC} Credenciales sincronizadas en '${name}'."
+  echo -e "${YELLOW}[AVISO]${NC} Si el modelo nuevo no aparece, reiniciá el contenedor: $0 --kill ${pattern}"
+}
+
+# ==========================
 # FLUJO PRINCIPAL
 # ==========================
 # Referencia formal de combinaciones válidas: ver PARAMETERS.md
@@ -1037,6 +1197,12 @@ PAIR_PATTERN=""
 PASSED_PORT_SET=false
 SERVER_PASSWORD=""
 PASSWORD_SET=false
+# Mundo CREDENCIALES: --credentials-set | --credentials-export | --sync-credentials
+CREDENTIALS_MODE=""
+CREDENTIALS_TARGET=""
+# Siembra de credenciales compartidas al arrancar el contenedor (ver entrypoint).
+# --no-credentials-seed inyecta OPENCODE_CREDENTIALS_SEED=0.
+CREDENTIALS_SEED=true
 # Auto-aprobación de permisos en el contenedor (por defecto ON: el contenedor
 # es un sandbox aislado y no debería pedir permiso para acceder a carpetas).
 # --auto la fuerza; --no-auto la desactiva; el env OPENCODE_PERMISSION del host
@@ -1151,6 +1317,43 @@ while [[ $# -gt 0 ]]; do
     PAIR_PATTERN="$2"
     shift 2
     ;;
+  --credentials-set)
+    if [[ -z "$2" || "$2" == -* ]]; then
+      error_exit "La opción --credentials-set requiere el id de integración (p. ej. opencode-go)."
+    fi
+    if [[ -n "$CREDENTIALS_MODE" ]]; then
+      error_exit "Los comandos de credenciales (--credentials-set/--credentials-export/--sync-credentials) son mutuamente excluyentes."
+    fi
+    CREDENTIALS_MODE="set"
+    CREDENTIALS_TARGET="$2"
+    shift 2
+    ;;
+  --credentials-export)
+    if [[ -z "$2" || "$2" == -* ]]; then
+      error_exit "La opción --credentials-export requiere la ruta del proyecto."
+    fi
+    if [[ -n "$CREDENTIALS_MODE" ]]; then
+      error_exit "Los comandos de credenciales (--credentials-set/--credentials-export/--sync-credentials) son mutuamente excluyentes."
+    fi
+    CREDENTIALS_MODE="export"
+    PROJECT_PATH="$2"
+    shift 2
+    ;;
+  --sync-credentials)
+    if [[ -z "$2" || "$2" == -* ]]; then
+      error_exit "La opción --sync-credentials requiere un nombre o patrón (p. ej. 4096)."
+    fi
+    if [[ -n "$CREDENTIALS_MODE" ]]; then
+      error_exit "Los comandos de credenciales (--credentials-set/--credentials-export/--sync-credentials) son mutuamente excluyentes."
+    fi
+    CREDENTIALS_MODE="sync"
+    CREDENTIALS_TARGET="$2"
+    shift 2
+    ;;
+  --no-credentials-seed)
+    CREDENTIALS_SEED=false
+    shift
+    ;;
   -h | --help)
     show_help
     exit 0
@@ -1202,7 +1405,7 @@ if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" || "$KILL_ALL_MODE" == "tru
   fi
   if [[ "$RENEW" == "true" || "$REBUILD" == "true" || "$UPDATE" == "true" ||
     -n "$PROJECT_PATH" || "$TUI_MODE" == "true" || "$WEB_FLAG_SET" == "true" ||
-    "$NETWORK_HOST" == "true" ||
+    "$NETWORK_HOST" == "true" || -n "$CREDENTIALS_MODE" ||
     "$NO_CLIMB" == "true" || -n "$PROJECT_DATA_DIR" || "$PASSED_PORT_SET" == "true" ||
     "$EXTRA_PORTS_SET" == "true" ||
     "$PASSWORD_SET" == "true" || "$AUTO_SET" == "true" ]]; then
@@ -1225,6 +1428,54 @@ if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" || "$KILL_ALL_MODE" == "tru
     kill_all_opencode_containers
     exit $?
   fi
+fi
+
+# Mundo CREDENCIALES: --credentials-set escribe la key en el auth.json
+# canónico; --credentials-export la vuelca desde un proyecto; --sync-credentials
+# aplica el canónico en un contenedor en ejecución. Excluyente con los otros
+# mundos y con los flags de ejecución (el export sí acepta <proyecto> y -config).
+if [[ -n "$CREDENTIALS_MODE" ]]; then
+  if [[ "$PS_MODE" == "true" || "$KILL_MODE" == "true" || "$KILL_ALL_MODE" == "true" || "$PAIR_MODE" == "true" ]]; then
+    error_exit "Los comandos de credenciales no se combinan con --ps/--kill/--pair/--kill-all."
+  fi
+  if [[ "$RENEW" == "true" || "$REBUILD" == "true" || "$UPDATE" == "true" ]]; then
+    error_exit "Los comandos de credenciales no se combinan con flags de imagen (--rebuild/--update/--renew)."
+  fi
+  if [[ "$CREDENTIALS_SEED" == "false" ]]; then
+    error_exit "--no-credentials-seed aplica al arranque del contenedor; no se combina con los comandos de credenciales."
+  fi
+  if [[ "$TUI_FLAG_SET" == "true" || "$WEB_FLAG_SET" == "true" || "$PASSED_PORT_SET" == "true" ||
+    "$EXTRA_PORTS_SET" == "true" || "$NETWORK_HOST" == "true" || "$PASSWORD_SET" == "true" ||
+    "$AUTO_SET" == "true" ]]; then
+    error_exit "Los comandos de credenciales no aceptan flags de ejecución (--port/--tui/--web/--password/--extra-ports/--network-host/--auto)."
+  fi
+  case "$CREDENTIALS_MODE" in
+  set | sync)
+    if [[ -n "$PROJECT_PATH" || -n "$PROJECT_DATA_DIR" || "$NO_CLIMB" == "true" ]]; then
+      error_exit "--credentials-set y --sync-credentials no aceptan proyecto, -config ni --no-climb."
+    fi
+    ;;
+  export)
+    if [[ -z "$PROJECT_PATH" ]]; then
+      error_exit "--credentials-export requiere la ruta del proyecto."
+    fi
+    ;;
+  esac
+  case "$CREDENTIALS_MODE" in
+  set)
+    credentials_set "$CREDENTIALS_TARGET"
+    exit 0
+    ;;
+  sync)
+    credentials_sync "$CREDENTIALS_TARGET"
+    exit $?
+    ;;
+  export)
+    resolve_project_paths
+    credentials_export
+    exit 0
+    ;;
+  esac
 fi
 
 if [[ "$RENEW" == "true" && -z "$PROJECT_PATH" ]]; then
@@ -1279,30 +1530,7 @@ if [[ "$TUI_MODE" == "false" && "$EXTRA_PORTS_SET" == "true" ]]; then
   done
 fi
 
-PROJECT_PATH="${PROJECT_PATH/#\~/$HOME}"
-PROJECT_PATH=$(realpath -m "$PROJECT_PATH") || error_exit "Ruta de proyecto inválida: $PROJECT_PATH"
-
-if [[ ! -d "$PROJECT_PATH" ]]; then
-  error_exit "El directorio del proyecto no existe: $PROJECT_PATH"
-fi
-
-# Resolución automática del project root: si se pasa un subdirectorio de un
-# repo git, trepar hacia atrás (tope en $HOME) para montar la raíz real.
-if [[ "$NO_CLIMB" == "false" ]]; then
-  resolved_root="$(resolve_project_root "$PROJECT_PATH")"
-  if [[ "$resolved_root" != "$PROJECT_PATH" ]]; then
-    echo -e "${YELLOW}[INFO]${NC} Project root resuelto a: ${resolved_root} (se encontró .git en un ancestro)."
-    echo -e "${YELLOW}[INFO]${NC} Para usar exactamente ${PROJECT_PATH} pasá --no-climb (alias --no-search-git)."
-    PROJECT_PATH="$resolved_root"
-  fi
-fi
-
-if [[ -z "$PROJECT_DATA_DIR" ]]; then
-  PROJECT_DATA_DIR="${PROJECT_PATH}/${DEFAULT_PROJECT_DATA_SUBDIR}"
-fi
-
-PROJECT_DATA_DIR="${PROJECT_DATA_DIR/#\~/$HOME}"
-PROJECT_DATA_DIR=$(realpath -m "$PROJECT_DATA_DIR") || error_exit "Ruta de datos inválida: $PROJECT_DATA_DIR"
+resolve_project_paths
 
 # Configuración global: siempre en ~/.config/opencode/ (inamovible)
 GLOBAL_CONFIG_DIR="${GLOBAL_CONFIG_DIR/#\~/$HOME}"
@@ -1380,6 +1608,14 @@ if [[ -n "$PERMISSION_JSON" ]]; then
   if [[ "$AUTO_SET" == "true" ]]; then
     echo -e "${BLUE}[INFO]${NC} Auto-aprobación de permisos: $([ "$AUTO_APPROVE" == "true" ] && echo 'activada' || echo 'desactivada') (OPENCODE_PERMISSION)."
   fi
+fi
+
+# Siembra de credenciales compartidas en el arranque (entrypoint.sh). Se
+# desactiva con --no-credentials-seed cuando el proyecto necesita credenciales
+# propias y no quiere que el auth.json canónico las complete.
+if [[ "$CREDENTIALS_SEED" == "false" ]]; then
+  ENV_VARS+=(-e "OPENCODE_CREDENTIALS_SEED=0")
+  echo -e "${BLUE}[INFO]${NC} Siembra de credenciales desactivada (--no-credentials-seed)."
 fi
 
 NETWORK_ARGS=()

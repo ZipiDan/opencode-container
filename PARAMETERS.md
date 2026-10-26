@@ -9,10 +9,11 @@
 
 ## Filosofía: mundos separados estrictos
 
-El launcher tiene **tres mundos funcionales mutuamente excluyentes**:
+El launcher tiene **cuatro mundos funcionales mutuamente excluyentes**:
 
 - **Mundo IMAGEN**: gestiona la imagen del contenedor (build/update/renew). No necesita un proyecto ni configura el runtime.
 - **Mundo GESTIÓN**: opera sobre contenedores ya en ejecución (`--ps`/`--ls` para listar, `--kill`/`--rm` para detener, `--pair` para generar links de acceso). No requiere `<proyecto>`.
+- **Mundo CREDENCIALES**: mantiene el `auth.json` canónico de `share/` (`--credentials-set` para alta/rotación, `--credentials-export` para promover un login de un proyecto, `--sync-credentials` para aplicarlo en un contenedor vivo). Sólo el export acepta `<proyecto>`.
 - **Mundo EJECUCIÓN**: lanza un contenedor sobre un proyecto. Configura puerto, modo (TUI/web) y red.
 
 Los flags de un mundo **no se cruzan** con los del otro. Si se mezclan, el resultado es semánticamente incorrecto (un flag se ignora o no tiene sentido) y el parser emite `error_exit`.
@@ -56,6 +57,8 @@ Leyenda:
 | — | Diagonal, no se compara consigo mismo |
 
 > `--pair` y `--kill-all` no figuran como columnas en la tabla (se agregaron después): son acciones del mundo GESTIÓN, mutuamente excluyentes con `--ps`/`--kill` y con los mundos IMAGEN/EJECUCIÓN. `--pair` además rechaza `--port` y `--password`.
+>
+> `--credentials-set`, `--credentials-export`, `--sync-credentials` y `--no-credentials-seed` tampoco figuran en la tabla (v4.2.0): los tres primeros forman el mundo CREDENCIALES, mutuamente excluyentes entre sí y con los otros mundos; `--no-credentials-seed` es un flag del mundo EJECUCIÓN (se combina con `<proyecto>`).
 
 ## Árbol de combinaciones de parámetros
 
@@ -85,6 +88,16 @@ parámetros
 │       el puerto y el password se leen del contenedor resuelto.
 │       Un link por origen (127.0.0.1 + LAN real; sin interfaces virtuales).
 │
+├── --credentials-set <integración>  escribe la API key en share/auth.json (0600)
+│       La key se pide sin eco (o se lee de stdin si no hay TTY).
+│
+├── --credentials-export <proyecto>  vuelca las API keys del proyecto al canónico
+│       Acepta también -config y --no-climb (resuelve las rutas igual que la
+│       ejecución). Exporta sólo credenciales de tipo API key, no OAuth.
+│
+├── --sync-credentials <patrón>      aplica el canónico en un contenedor vivo
+│       Mismo patrón que --kill. No acepta <proyecto> ni -config.
+│
 └── <proyecto>                       lanza opencode en el proyecto
     │
     ├── --no-climb                   desactiva la búsqueda de .git hacia atrás
@@ -92,6 +105,8 @@ parámetros
     │
     ├── --auto | --no-auto           auto-aprueba permisos de opencode
     │                                (default: --auto; --no-auto vuelve a pedir)
+    │
+    ├── --no-credentials-seed        no siembra auth.json al arrancar
     │
     ├── --tui                        arranca terminal interactiva
     │   ├── -config <ruta>
@@ -117,14 +132,20 @@ Reglas de lectura:
 ## Sintaxis formal (BNF simplificada)
 
 ```
-invocacion       ::= mundo_imagen | mundo_gestion | mundo_ejecucion | "--help" | "--version"
+invocacion       ::= mundo_imagen | mundo_gestion | mundo_credenciales
+                     | mundo_ejecucion | "--help" | "--version"
 
 mundo_imagen     ::= ("--renew" | "--rebuild" | "--update") ["--help"]
 mundo_gestion    ::= ( "--ps" | "--ls"
                      | "--kill" <patrón> | "--rm" <patrón>
                      | "--pair" <patrón>
                      ) ["--help"]
+mundo_credenciales ::= "--credentials-set" <integración> ["--help"]
+                     | "--credentials-export" "<proyecto>"
+                       ["-config" "<ruta>"] ["--no-climb"] ["--help"]
+                     | "--sync-credentials" <patrón> ["--help"]
 mundo_ejecucion  ::= "<proyecto>" ["--no-climb"] ["--auto" | "--no-auto"]
+                     ["--no-credentials-seed"]
                      (modo_tui | modo_web) ["--help"]
 
 modo_tui         ::= ("--tui" | "--no-web") *tui_option
@@ -154,6 +175,10 @@ Restricciones adicionales:
 - `--pair` solo opera sobre contenedores web (`opencode-<puerto>`); un contenedor TUI produce `error_exit`.
 - Cualquier flag IMAGEN con cualquier flag GESTIÓN o EJECUCIÓN es **error de sintaxis**.
 - Cualquier flag GESTIÓN con cualquier flag IMAGEN o EJECUCIÓN es **error de sintaxis**.
+- `--credentials-set`, `--credentials-export` y `--sync-credentials` son **mutuamente excluyentes** entre sí y con los mundos IMAGEN/GESTIÓN/EJECUCIÓN (error de sintaxis en el parser).
+- `--credentials-set` y `--sync-credentials` **no aceptan** `<proyecto>`, `-config`, `--no-climb` ni flags de ejecución (`--port`, `--tui`, `--web`, `--password`, `--extra-ports`, `--network-host`, `--auto`).
+- `--credentials-export` **requiere** `<proyecto>` y acepta `-config` y `--no-climb`; rechaza los flags de ejecución. Falla si el proyecto no tiene `data/opencode.db`.
+- `--no-credentials-seed` sólo aplica con `<proyecto>`; combinarlo con los comandos de credenciales es **error de sintaxis**.
 - `--tui` **excluye** el uso de `--port` (no hay servidor).
 - `--tui` **excluye** `--password` (la auth básica es solo web; se avisa y se ignora).
 - `--password` tiene prioridad sobre la env var `OPENCODE_SERVER_PASSWORD` del host; si no se pasa el flag ni existe la env, se usa el default `opencode`. El password se imprime en el arranque web.
@@ -190,6 +215,11 @@ Estado de cada regla en el parser actual de `opencode.sh`:
 | `--user` eliminado (usuario fijo `opencode` en v2) | ✅ `error_exit` con explicación | Ninguna |
 | `--network-host` omite `-p` en web | ✅ Ya lo hace | Ninguna |
 | `--auto`/`--no-auto` (auto-aprueba permisos) | ✅ Implementado; default `--auto`; env `OPENCODE_PERMISSION` del host tiene prioridad | Ninguna |
+| Mundo CREDENCIALES (`--credentials-set`/`--credentials-export`/`--sync-credentials`) excluye los otros tres mundos | ✅ ya lo impone (error_exit) | Ninguna |
+| Los tres comandos de credenciales son mutuamente excluyentes | ✅ ya lo impone (error_exit) | Ninguna |
+| `--credentials-set`/`--sync-credentials` rechazan proyecto, `-config` y flags de ejecución | ✅ ya lo impone (error_exit) | Ninguna |
+| `--credentials-export` requiere `<proyecto>` y acepta `-config`/`--no-climb` | ✅ ya lo impone (error_exit) | Ninguna |
+| `--no-credentials-seed` sólo con `<proyecto>` | ✅ ya lo impone (error_exit si se mezcla con credenciales) | Ninguna |
 
 ## Optimizaciones sugeridas para el parser
 

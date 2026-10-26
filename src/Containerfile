@@ -136,6 +136,12 @@ ENV RUSTUP_HOME=/root/.rustup \
 COPY entrypoint.sh /usr/local/bin/opencode-entrypoint.sh
 RUN chmod +x /usr/local/bin/opencode-entrypoint.sh
 
+# Herramienta de credenciales compartidas: siembra el auth.json canónico en la
+# base SQLite del proyecto (opencode v2 guarda las credenciales por proyecto),
+# exporta las credenciales del proyecto al canónico y las escribe por stdin.
+COPY credentials.py /usr/local/bin/opencode-credentials
+RUN chmod +x /usr/local/bin/opencode-credentials
+
 # Directorio de trabajo por defecto: coincide con el volumen montado en opencode.sh
 WORKDIR /workspace
 

@@ -275,6 +275,8 @@ para los propios agentes.
 | Puertos extra publicados | `opencode.sh /ruta/a/tu/proyecto --extra-ports 3000,8080` |
 | Auth básica web | `opencode.sh /ruta/a/tu/proyecto --password "pwd"` (usuario: `opencode`; default: `opencode`) |
 | Link de acceso (pairing) | `opencode.sh --pair 4096` (o `--pair opencode-4096`) |
+| Alta/rotación de la API key canónica | `opencode.sh --credentials-set opencode-go` (prompt oculto) |
+| Compartir el login de un proyecto | `opencode.sh --credentials-export /ruta/a/tu/proyecto` |
 | Datos en otra ubicación | `opencode.sh /ruta/a/tu/proyecto -config /mnt/opencode-data` |
 | Compartir red del host | `opencode.sh /ruta/a/tu/proyecto --network-host` |
 | Listar contenedores | `opencode.sh --ps` (o `--ls`) |
@@ -419,13 +421,33 @@ LAN), usá `./opencode.sh --pair <puerto>`.
 > y no se pueden combinar con flags de gestión de imagen ni de ejecución.
 > `--pair` lee el password del contenedor: no acepta `--password` ni `--port`.
 
+### Credenciales compartidas
+
+Opencode v2 guarda las credenciales en SQLite, dentro de la base **de cada proyecto**
+(`opencode.db`). El launcher mantiene `~/.config/opencode/share/auth.json` como fuente
+canónica y la siembra en cada proyecto al arrancar (`opencode-credentials seed`).
+
+| Acción | Comando |
+|--------|---------|
+| Alta o rotación de una API key | `./opencode.sh --credentials-set opencode-go` |
+| Promover un login hecho en la TUI | `./opencode.sh --credentials-export ./proyecto` |
+| Aplicar el canónico a un contenedor vivo | `./opencode.sh --sync-credentials 4096` |
+| Proyecto con credenciales propias | `./opencode.sh ./proyecto --no-credentials-seed` |
+
+Precedencia: un login hecho a mano en el proyecto gana (override local) y no se
+propaga hasta correr `--credentials-export`; una credencial sembrada con key vieja se
+reemplaza en el siguiente arranque. Sólo se comparten API keys: las credenciales OAuth
+no, porque sus refresh tokens rotan y compartirlos invalidaría los logins de otros
+proyectos.
+
 ## Combinaciones de parámetros
 
-Los parámetros se distribuyen en tres **mundos mutuamente excluyentes**:
+Los parámetros se distribuyen en cuatro **mundos mutuamente excluyentes**:
 
 - **Mundo IMAGEN**: `--renew` / `--rebuild` / `--update` — gestionan la imagen del contenedor.
 - **Mundo GESTIÓN**: `--ps` / `--ls` / `--kill` / `--rm` / `--pair` — operan sobre contenedores en ejecución.
-- **Mundo EJECUCIÓN**: `<proyecto>` + flags runtime (`-config`, `--port`, `--extra-ports`, `--tui`, `--web`, `--network-host`) — lanzan un contenedor.
+- **Mundo CREDENCIALES**: `--credentials-set` / `--credentials-export` / `--sync-credentials` — mantienen el `auth.json` canónico.
+- **Mundo EJECUCIÓN**: `<proyecto>` + flags runtime (`-config`, `--port`, `--extra-ports`, `--tui`, `--web`, `--network-host`, `--no-credentials-seed`) — lanzan un contenedor.
 
 Los flags de un mundo **no se cruzan** con los del otro. La referencia formal completa
 (tabla única, BNF y reglas del parser) está en [`PARAMETERS.md`](PARAMETERS.md).
@@ -453,10 +475,18 @@ parámetros
 ├── --pair <patrón>                  genera links de acceso para un contenedor web
 │       (mismo patrón que --kill; lee el password del contenedor)
 │
+├── --credentials-set <integración>  escribe la API key en share/auth.json (0600)
+│
+├── --credentials-export <proyecto>  promueve las API keys del proyecto al canónico
+│
+├── --sync-credentials <patrón>      aplica el canónico en un contenedor en ejecución
+│
 └── <proyecto>                       lanza opencode en el proyecto
     │
     ├── --no-climb                   desactiva la búsqueda de .git hacia atrás
     │                                (también: --no-search-git)
+    │
+    ├── --no-credentials-seed        no siembra auth.json al arrancar
     │
     ├── --tui                        arranca terminal interactiva
     │   ├── -config <ruta>
@@ -474,9 +504,10 @@ parámetros
 
 ### Reglas clave
 
-- No mezclar flags de mundos distintos (IMAGEN/GESTIÓN/EJECUCIÓN).
+- No mezclar flags de mundos distintos (IMAGEN/GESTIÓN/CREDENCIALES/EJECUCIÓN).
 - `--renew` y `--rebuild` son mutuamente excluyentes (error del script).
 - `--ps`/`--ls`, `--kill`/`--rm`, `--pair` y `--kill-all` son mutuamente excluyentes entre sí.
+- `--credentials-set`, `--credentials-export` y `--sync-credentials` son mutuamente excluyentes entre sí; sólo el export acepta `<proyecto>` y `-config`.
 - `--pair` usa el mismo patrón que `--kill`; no acepta `--port` ni `--password` (los lee del contenedor).
 - `--tui` ignora `--port` (no hay servidor web).
 - `--tui`/`--no-web` y `--web` son mutuamente excluyentes.

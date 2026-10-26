@@ -15,6 +15,45 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [4.2.0] — 2026-10-26
+
+### Added
+- **Credenciales compartidas entre proyectos**: opencode v2 guarda las
+  credenciales en SQLite (`credential` de `opencode.db`) y esa base es por
+  proyecto, así que el `auth.json` heredado sólo se importa una vez y se ignora
+  después. El launcher ahora trata `~/.config/opencode/share/auth.json` como
+  fuente canónica y la siembra en cada proyecto al arrancar.
+- `opencode-credentials` (`src/credentials.py`, dentro de la imagen): reconcilia
+  la base del proyecto con el canónico usando el CLI oficial
+  (`opencode auth import|logout --standalone`). Precedencia: un login hecho a
+  mano en el proyecto gana (override), la key canónica presente es no-op, una
+  credencial sembrada con key vieja se reemplaza y lo que falta se siembra.
+  Sólo se comparten API keys: las OAuth no (sus refresh tokens rotan).
+- `opencode.sh --credentials-set <integración>`: alta/rotación con prompt oculto
+  (`read -rs`), escritura atómica y permisos `0600`; la key no pasa por `argv`.
+- `opencode.sh --credentials-export <proyecto>`: promueve las API keys de un
+  proyecto (login hecho en la TUI) al `auth.json` canónico.
+- `opencode.sh --sync-credentials <patrón>`: aplica el canónico en un contenedor
+  en ejecución (`podman exec` + `opencode reload`).
+- `opencode.sh <proyecto> --no-credentials-seed`: desactiva la siembra en ese
+  proyecto (`OPENCODE_CREDENTIALS_SEED=0`).
+- Banner de una línea al arrancar cuando el canónico tiene integraciones
+  gestionadas, recordando que un login en la TUI es override local y se
+  promueve con `--credentials-export`.
+
+### Changed
+- `resolve_project_paths()` extraído del flujo principal para reutilizar la
+  resolución de proyecto en `--credentials-export` (misma trepada a `.git`,
+  mismo `-config`).
+- Nuevo mundo CREDENCIALES en el parser, excluyente con IMAGEN/GESTIÓN/EJECUCIÓN
+  (documentado en `--help`, `PARAMETERS.md` y `AGENTS.md`).
+- `entrypoint.sh` reconcilia credenciales antes de lanzar opencode y deja pasar
+  los fallos con aviso (nunca bloquea el arranque).
+
+### Note
+- La imagen cambió: hay que reconstruirla (`--rebuild` o `--renew`) para que
+  `opencode-credentials` exista dentro del contenedor.
+
 ## [4.1.1] — 2026-10-24
 
 ### Added

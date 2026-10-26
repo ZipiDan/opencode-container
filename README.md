@@ -15,12 +15,12 @@ proyecto, con las herramientas ya dispuestas y tus carpetas locales siempre a la
 
 ## Presentación
 
-<a href="opencode-container-readonly.html">
+<a href="https://www.cilan.com.uy/blog/opencode-container/raw">
   <img src="opencode-container-preview.png" alt="Vista previa de la presentación: portada, agentes, seguridad por kernel y cierre" width="600">
 </a>
 
 Un recorrido visual por el proyecto: qué aporta, los agentes especializados que lo acompañan,
-la seguridad opcional por kernel y cómo se ejecuta. **[Abrir la presentación](opencode-container-readonly.html)** — HTML autocontenido,
+la seguridad opcional por kernel y cómo se ejecuta. **[Abrir la presentación](https://www.cilan.com.uy/blog/opencode-container/raw)** o **[Ver el código fuente](opencode-container-readonly.html)** — HTML autocontenido,
 se abre directamente en el navegador.
 
 ## Por qué existe este proyecto
@@ -440,6 +440,38 @@ reemplaza en el siguiente arranque. Sólo se comparten API keys: las credenciale
 no, porque sus refresh tokens rotan y compartirlos invalidaría los logins de otros
 proyectos.
 
+#### Cómo se propaga
+
+```
+--credentials-set (o editar el JSON a mano)
+        │
+        ▼
+~/.config/opencode/share/auth.json        fuente canónica (0600, una entrada por integración)
+        │   en cada arranque de contenedor
+        ▼
+entrypoint.sh → opencode-credentials seed
+        │
+        ▼
+<proyecto>/.opencode/data/opencode.db     tabla `credential` (una base por proyecto)
+```
+
+`--sync-credentials <patrón>` hace ese mismo `seed` en un contenedor que ya está
+corriendo (`podman exec`), sin reiniciarlo.
+
+| Estado de la base del proyecto | Qué hace el seed |
+|---|---|
+| No tiene la integración | la importa |
+| Ya tiene esa key (aunque el id difiera) | no-op |
+| Tiene una credencial sembrada por el launcher, con key vieja | la borra y la reimporta (rotación) |
+| Tiene un login hecho a mano en la TUI | no la toca (override local) |
+
+Verificación dentro del contenedor:
+
+```bash
+podman exec opencode-4096 opencode auth list               # "OpenCode Go  API key  stored"
+podman exec opencode-4096 opencode models | grep -c opencode-go/
+```
+
 ## Combinaciones de parámetros
 
 Los parámetros se distribuyen en cuatro **mundos mutuamente excluyentes**:
@@ -567,7 +599,7 @@ OPENCODE_GUI=tui ./opencode.sh /ruta/proyecto     # modo TUI vía env del host
 | Alcance | Ubicación (host) | Contenido |
 |---------|-------------------|-----------|
 | **Global** | `~/.config/opencode/` | `opencode.json` (API keys), `agents/`, `commands/`, `identity/`, `share/` |
-| **Por proyecto** | `<project>/.opencode/` | `data/` (opencode.db, sesiones, snapshots, logs), `state/` (locks) |
+| **Por proyecto** | `<project>/.opencode/` | `data/` (opencode.db con sesiones, mensajes y credenciales; snapshots, logs), `state/` (locks) |
 | **Por proyecto (raíz)** | `<project>/python/` | Venv canónico (venv-first, auto-creado/activado por `entrypoint.sh`, gitignoreado) |
 | **Por proyecto (raíz)** | `<project>/rust/` | `CARGO_HOME`/`CARGO_TARGET_DIR`: `registry/`, `target/`, `bin/` de cargo (aislado, gitignoreado) |
 
@@ -592,6 +624,10 @@ Dentro del contenedor, `entrypoint.sh` crea symlinks en `/home/opencode/.local/s
 | `db/` | `/home/opencode/.local/share/opencode-global/db/` |
 | `repos/` | `/home/opencode/.local/share/opencode-global/repos/` |
 
+> En opencode v2 el symlink de `auth.json` ya **no** comparte credenciales: sólo sirve
+> como semilla del import legacy, que corre una única vez por base. La compartición real
+> la hace `opencode-credentials seed` en cada arranque.
+
 ## Configuración
 
 La configuración global vive en `~/.config/opencode/` y no se ve afectada por `-config`:
@@ -602,7 +638,7 @@ La configuración global vive en `~/.config/opencode/` y no se ve afectada por `
 | `agents/` | Agentes personalizados |
 | `commands/` | Comandos personalizados |
 | `identity/` | Git/ssh identity del agente |
-| `share/auth.json` | Credenciales de `/connect` |
+| `share/auth.json` | Credenciales canónicas: se siembran en la base de cada proyecto al arrancar |
 | `share/db/` | Cuentas OAuth (GitHub, GitLab, Copilot, etc.) |
 | `share/repos/` | Clones internos |
 
@@ -798,6 +834,11 @@ rm -rf "${PROJECT}/.opencode/data/opencode"
 La migración es manual para evitar sobrescribir datos. Ejecutala una vez por proyecto
 existente. Después de migrar, `opencode.db` se creará dentro de `<project>/.opencode/data/`
 en el próximo arranque.
+
+> Con opencode v2, copiar `auth.json` sólo ayuda **antes** del primer arranque v2 del
+> proyecto: ese import corre una sola vez por base. Si el proyecto ya corre v2 sin
+> credenciales, usá `./opencode.sh --credentials-set <integración>` + reinicio, o
+> `--sync-credentials <patrón>` si está corriendo.
 
 ### Carpetas de trabajo de los agentes (v3.0.0)
 

@@ -248,3 +248,4 @@ Arquitectura → Planificación → Tareas.
 - Al vendorizar algo nuevo: actualizar `THIRD-PARTY.md` (titular, licencia, origen, qué se modificó), sumar el texto a `LICENSES/` si es una licencia nueva, y anotar la ruta en `REUSE.toml`.
 - Excepción de share-alike: los derivados de ddd-crew quedan en **CC BY-SA 4.0** (no se pueden pasar a MPL).
 - Verificación opcional: `reuse lint`, sobre un checkout limpio (el venv y los artefactos locales no están versionados y ensucian el conteo).
+

@@ -5,7 +5,7 @@
 
 ## What this repo is
 
-Container-based opencode launcher using Podman. Entrypoint is `opencode.sh`; it builds a Debian container image and runs opencode inside it against a user project. Each project runs in its own container instance with isolated sessions, snapshots and logs, while sharing credentials and config across all projects.
+Container-based opencode launcher using Podman. Entrypoint is `opencode.sh`; it builds a Debian container image and runs opencode inside it against a user project. Each project runs in its own container instance with isolated sessions, snapshots and logs, while sharing config across all projects; credentials live in each project's `opencode.db` and are seeded from `share/auth.json` at startup (see *Shared credentials*).
 
 ## Commands
 
@@ -28,6 +28,10 @@ Container-based opencode launcher using Podman. Entrypoint is `opencode.sh`; it 
 | Update image from scratch, replacing the previous one if the build succeeds | `./opencode.sh --renew` |
 | Share host network | `./opencode.sh /path/to/project --network-host` |
 | Auto-approve permissions (default: on) | `./opencode.sh /path/to/project` — add `--no-auto` to disable |
+| Add/rotate the canonical API key | `./opencode.sh --credentials-set opencode-go` (hidden prompt) |
+| Promote a project's TUI login to all projects | `./opencode.sh --credentials-export /path/to/project` |
+| Apply the canonical credentials to a running container | `./opencode.sh --sync-credentials 4096` |
+| Skip credential seeding for one project | `./opencode.sh /path/to/project --no-credentials-seed` |
 
 `--renew` and `--rebuild` are mutually exclusive.
 
@@ -46,13 +50,13 @@ Extra ports: `--extra-ports <n>,<n>,...` publishes each container port on the sa
 
 ## Architecture
 
-- `Containerfile` — Debian stable-backports base, installs dev/network tools, Ansible, opencode (via official v2 install script), and pyright.
-- `entrypoint.sh` — Container CMD, dispatches to `opencode` (web mode with args) or `opencode` (TUI mode) based on `OPENCODE_MODE`. Also sets up the agent's git/ssh identity via symlinks to `/root/.identity`.
+- `Containerfile` — Debian stable-backports base, installs dev/network tools, Ansible, opencode (via official v2 install script), and pyright. Ships `opencode-credentials` (from `credentials.py`), the credentials reconciler.
+- `entrypoint.sh` — Container CMD, dispatches to `opencode` (web mode with args) or `opencode` (TUI mode) based on `OPENCODE_MODE`. Also sets up the agent's git/ssh identity via symlinks to `/root/.identity` and seeds shared credentials into the project database (`opencode-credentials seed`).
 - `opencode.sh` — Host-side launcher: resolves paths, creates dirs, sets up mounts, runs Podman.
 
 ## Data separation
 
-Opencode stores data in three XDG scopes. The launcher splits them into **global** (shared across all projects) and **per-project** (isolated). The per-project `<project>/.opencode/data/` directory is mounted directly as `XDG_DATA_HOME/opencode/`, while the global `share/` directory is mounted at `XDG_DATA_HOME/opencode-global/`. Inside the container, `entrypoint.sh` symlinks the global items (`auth.json`, `db/`, `repos/`) into the per-project data directory so opencode can find them. This guarantees physical isolation of project data (including `opencode.db`) even if opencode's internal `projectID` collides (e.g. forked repos).
+Opencode stores data in three XDG scopes. The launcher splits them into **global** (shared across all projects) and **per-project** (isolated). The per-project `<project>/.opencode/data/` directory is mounted directly as `XDG_DATA_HOME/opencode/`, while the global `share/` directory is mounted at `XDG_DATA_HOME/opencode-global/`. Inside the container, `entrypoint.sh` symlinks the global items (`auth.json`, `db/`, `repos/`) into the per-project data directory so opencode can find them. This guarantees physical isolation of project data (including `opencode.db`) even if opencode's internal `projectID` collides (e.g. forked repos). Since v2 credentials live **inside** that per-project `opencode.db`, they are no longer shared by the symlink: `auth.json` is the canonical source and `opencode-credentials seed` reconciles each project at startup.
 
 ### Global (`~/.config/opencode/`) — shared, not affected by `-config`
 
@@ -62,7 +66,7 @@ Opencode stores data in three XDG scopes. The launcher splits them into **global
 | `~/.config/opencode/agents/` | Custom agents |
 | `~/.config/opencode/commands/` | Custom commands |
 | `~/.config/opencode/identity/` | Agent git/ssh identity (gitconfig, ssh keys) |
-| `~/.config/opencode/share/auth.json` | Credentials from `/connect` |
+| `~/.config/opencode/share/auth.json` | Canonical API keys, seeded into each project's database at startup |
 | `~/.config/opencode/share/db/` | OAuth accounts (GitHub, GitLab, Copilot, etc.) |
 | `~/.config/opencode/share/repos/` | Internal clones |
 
@@ -74,6 +78,30 @@ Opencode stores data in three XDG scopes. The launcher splits them into **global
 | `<project>/.opencode/state/` | File locks (ephemeral, `XDG_STATE_HOME`) |
 | `<project>/python/` | Canonical venv (venv-first): created automatically by `entrypoint.sh` on first start, auto-activated on every start, added to `.gitignore` |
 | `<project>/rust/` | Cargo per-project dir (`CARGO_HOME`/`CARGO_TARGET_DIR`): `registry/`, `target/`, `bin/` (isolated). Created automatically and added to `.gitignore` |
+
+## Shared credentials (opencode v2)
+
+Opencode v2 stores credentials in SQLite, in the `credential` table of the **per-project** `opencode.db`. The legacy `auth.json` is imported **once** per database (migration `20260805200742_import_legacy_credentials`) and ignored afterwards, so a symlink alone no longer shares credentials across projects. The launcher keeps `~/.config/opencode/share/auth.json` as the **canonical source** and `opencode-credentials seed` (run by `entrypoint.sh` on every start) reconciles each project against it.
+
+Precedence applied by `seed`:
+
+1. a credential created by hand in the project (TUI → Connect) is an **override**: it wins and is never touched;
+2. if the canonical key is already present (even under another id) → no-op;
+3. if only a launcher-seeded credential (`cred_seed_*` id) exists with an older key → it is logged out and re-imported;
+4. otherwise the integration is seeded.
+
+OAuth credentials are **not** shared: their refresh tokens rotate, and copying them across projects invalidates the other copies. Only static API keys (`type: api` / `key`) are seeded.
+
+| Verb | Effect |
+|------|--------|
+| `./opencode.sh --credentials-set <integration>` | Hidden prompt (`read -rs`), writes `share/auth.json` atomically as `0600`. The key never appears in `argv` or shell history |
+| `./opencode.sh --credentials-export <project>` | Reads that project's `opencode.db` (`type: key` rows, active one preferred) and merges them into `auth.json`. This is how a TUI login becomes shared |
+| `./opencode.sh --sync-credentials <pattern>` | Runs `opencode-credentials seed` inside a running container (`podman exec`) plus `opencode reload`; same pattern as `--kill` |
+| `./opencode.sh <project> --no-credentials-seed` | Injects `OPENCODE_CREDENTIALS_SEED=0`: the project keeps only its own credentials |
+
+Adoption rule: editing `auth.json` (or `--credentials-set`) is the normal path; a login done inside a container is a **local override** that survives but is not propagated until `--credentials-export` is run. The launcher prints a one-line banner at startup when `auth.json` has managed integrations.
+
+All three verbs run `opencode-credentials` **inside the image** (`podman run --rm --entrypoint ...`), so the host needs no `jq`/`sqlite3`: the tool only uses the Python stdlib plus the official `opencode auth import|logout` commands.
 
 ## Mounts (container side)
 
@@ -113,6 +141,7 @@ The global share mount must exist before the symlinks are created.
 | `AGENT_GIT_EMAIL` | `agent@opencode.local` | Git author email for agent commits |
 | `OPENCODE_MODE` | `web` / `tui` | Interface: flags `--tui`/`--no-web` or `--web` > host env `OPENCODE_GUI` (`tui`/`web`) > default web |
 | `OPENCODE_SERVER_PASSWORD` | `opencode` (default) | Web basic auth password: `--password` > host env > default. Always passed in web mode and printed at startup |
+| `OPENCODE_CREDENTIALS_SEED` | `1` (default) | `0` (from `--no-credentials-seed`) skips the `auth.json` seed at container start |
 
 Web basic auth: the `--password` flag on `opencode.sh` wins over the host env var `OPENCODE_SERVER_PASSWORD`; if neither is set, the launcher uses `opencode` as the default and prints it. The username is always `opencode`: opencode v2 hardcodes it in `ServerAuthConfig` and ignores `OPENCODE_SERVER_USERNAME`, so the `--user` flag was removed from the launcher. Only applies to web mode; ignored (with a warning) in TUI mode.
 
@@ -148,6 +177,8 @@ rm -rf "${PROJECT}/.opencode/data/opencode"
 ```
 
 Migration is manual by design to avoid overwriting data. Run it once per existing project. After migrating, `opencode.db` will be created inside `<project>/.opencode/data/` on the next run.
+
+Note: with v2, copying `auth.json` only helps **before** the first v2 start of a project (the legacy import runs once per database). For projects already running v2 with no credentials, use `./opencode.sh --credentials-set <integration>` and restart, or `--sync-credentials <pattern>` on the running container.
 
 ## Plugin dependency
 

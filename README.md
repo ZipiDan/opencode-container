@@ -38,6 +38,14 @@ ensuciar tu máquina ni empezar de cero cada vez. Y como todo el estado vive en 
 proyecto (no en el sistema), podés entrar y salir sin miedo: tu entorno local queda
 tal como estaba.
 
+## Instalación rápida — si estás apurado
+
+> ¿Llegaste con el reloj corriendo y sólo querés que funcione, ya? No leas
+> 900 líneas: andá directo al **[QUICKSTART.md](QUICKSTART.md)** — clone,
+> construcción de la imagen, agentes, credenciales, primer arranque y los dos
+> ajustes de la web. El detalle técnico sigue acá abajo, para cuando se calmen
+> las cosas (o para cuando algo se rompa y busques el porqué).
+
 ## Qué te llevás
 
 - **Un opencode completo y familiar**: mismos agentes base (`build`, `plan`) y toda

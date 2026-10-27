@@ -15,6 +15,20 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [4.2.1] — 2026-10-27
+
+### Added
+- **`QUICKSTART.md`**: guía de arranque rápido en 11 pasos (prerrequisitos,
+  instalación, construcción de la imagen, despliegue de agentes, credenciales,
+  primer arranque, los dos ajustes únicos de la web, comandos del día a día,
+  problemas típicos y siguientes pasos), pensada para dejar el proyecto
+  funcionando sin leer el README completo. Enlaza la presentación y la sección
+  "Problemas conocidos" del README.
+- `QUICKSTART.md`: nota de `OPENCODE_GUI` para fijar el entorno de trabajo
+  por defecto (web o TUI) y hacer la variable permanente en bash, zsh y fish.
+- README: sección "Instalación rápida — si estás apurado" antes de "Qué te
+  llevás", con enlace al QUICKSTART.
+
 ## [4.2.0] — 2026-10-26
 
 ### Added

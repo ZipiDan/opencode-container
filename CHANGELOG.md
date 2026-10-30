@@ -15,6 +15,40 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [4.3.0] — 2026-10-30
+
+### Added
+- **Skills ocultas del catálogo por agente**: el catálogo se inyectaba completo
+  en cada request a todos los agentes (21 skills, ~2.700 tokens fijos). Ahora 19
+  llevan `metadata.opencode/autoinvoke: false` en su `SKILL.md`: dejan de
+  anunciarse, siguen registradas y cada agente las carga **por ID** cuando su
+  prompt se lo indica. Quedan anunciadas `frontend-slides` y `mermaid2png`, más
+  las builtin `opencode` y `report`. Medido en opencode v2.1.4: **−2.442 tokens
+  por request (−12,1 %)** en los cinco agentes.
+- `src/check-skill-wiring.sh`: verifica que toda skill oculta esté nombrada con
+  su ID exacto en el `.md` de su agente dueño y que `name:` coincida con la
+  carpeta. Integrado en `agents_update.sh` como validación previa al stage de
+  skills (aborta antes de copiar; se saltea con `--no-skills`).
+- Skill **`calisto-debian-server-baseline`** (add-on de Calisto, registrada en
+  `src/agents/sysadmin/ADDONS.md`): baseline de servidor Debian/Ubuntu con gate
+  de confirmación, respaldo verificable con rollback, sumisión al pipeline
+  `first-connection` y detección del modo de privilegio (root directo, `sudo -n`
+  o root SSH fallback del ruleset).
+
+### Changed
+- Los `.md` de `agent-builder`, `developer`, `arquitecto` y `sysadmin` indican
+  explícitamente cargar sus skills por ID (versiones 6, 9, 7 y 4).
+- `upgrade-*.md` de los cuatro agentes y el checklist de `agent-architecture`:
+  toda skill nueva o re-vendorizada nace oculta, cableada en el `.md` del dueño y
+  validada con el script.
+- README: sección "Catálogo vs. carga de skills" con el mecanismo y el reparto
+  (19 ocultas / 2 anunciadas propias).
+
+### Fixed
+- YAML inválido en `python-style` y `heinzel-rules` (la `description` tenía `: `
+  sin comillas y `yaml.safe_load` fallaba).
+- `sysadmin.md` decía "five workflow skills" con siete entradas.
+
 ## [4.2.1] — 2026-10-27
 
 ### Added

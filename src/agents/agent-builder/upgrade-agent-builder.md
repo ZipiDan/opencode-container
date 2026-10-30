@@ -51,6 +51,16 @@ Revisar:
   hook como bloque `## Guardrails`.
 - Bumpear `version:` en frontmatter de `agent-builder.md`.
 
+## Paso 2b — skills nuevas nacen ocultas y cableadas
+
+El catálogo de skills se inyecta en cada request a todos los agentes: toda skill
+re-vendorizada o nueva se agrega con `metadata.opencode/autoinvoke: false` en su
+`SKILL.md` **y** con su instrucción de carga explícita (el ID) en
+`agent-builder.md`. Validar con `src/check-skill-wiring.sh`.
+
+Excepción: las skills del set global (`frontend-slides`, `mermaid2png`) se
+agregan sin el flag.
+
 ## Paso 3 — mapa de reescrituras (si se vendoriza algo)
 
 Si se incorpora referencia externa (ej. nueva doc Anthropic sobre hooks):

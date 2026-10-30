@@ -12,6 +12,8 @@ description: Run a heinzel security audit on a server — SSH
   <host>". Do NOT auto-invoke on generic phrases like "check
   server <host>". Covers Linux (Debian, Ubuntu, RHEL, CentOS,
   Fedora, SUSE) and macOS (SIP, FileVault, Gatekeeper).
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # heinzel-security

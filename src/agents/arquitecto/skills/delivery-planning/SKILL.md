@@ -10,6 +10,8 @@ description: >-
   fases Planificación y Tareas, o al armar un plan de desarrollo y priorizar
   alcance.
 version: 1
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Delivery Planning — del diseño a packs de tareas ejecutables

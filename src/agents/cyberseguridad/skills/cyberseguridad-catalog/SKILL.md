@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 name: cyberseguridad-catalog
 description: "Catálogo y router de metodologías de ciberseguridad para agentes de IA (vendorizado de briiirussell/cybersecurity-skills, MIT): auditoría de código OWASP, APIs, dependencias, secretos, cripto, móvil; pentest/recon/OSINT autorizado; respuesta a incidentes, forense, SIEM, SOC, threat hunting; auditoría cloud/container/IAM; seguridad de IA (prompt injection, AI RMF); threat modeling, CVE research, triage, CSF, comunicación; cumplimiento PCI/HIPAA/privacidad. Use when the user asks for a security audit, vulnerability assessment, secure code review, pentest, recon, OSINT, incident response, threat hunting, cloud/container/IAM audit, AI/LLM security review, prompt injection, threat modeling, CVE triage, compliance review (PCI, HIPAA, GDPR), risk assessment, or any cybersecurity task on code, infrastructure, or AI systems."
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Catálogo de ciberseguridad (router)

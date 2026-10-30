@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 name: code-simplification
 description: Simplify code for clarity without changing behavior. Uses Chesterton's Fence (understand before touching), incremental single-step changes, and the Rule of 500 (automate beyond that size). Use when asked to simplify, clean up, or refactor existing code.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Code Simplification

@@ -13,6 +13,7 @@ agente `sysadmin`.
 | Add-on | Origen | Archivos | Se despliega | Preservar en upgrade |
 |---|---|---|---|---|
 | `calisto-landlock` | Calisto | `src/agents/sysadmin/skills/calisto-landlock/**` + referencia en `sysadmin.md` | Sí, como skill global | Sí: no borrar ni sobrescribir |
+| `calisto-debian-server-baseline` | Calisto | `src/agents/sysadmin/skills/calisto-debian-server-baseline/**` + referencia en `sysadmin.md` | Sí, como skill global | Sí: no borrar ni sobrescribir |
 
 ## `calisto-landlock`
 
@@ -29,25 +30,45 @@ agente `sysadmin`.
   add-on de Calisto, no de heinzel: no se borra ni se sobrescribe en el
   re-vendorizado.
 
+## `calisto-debian-server-baseline`
+
+- **Qué es:** baseline estándar del driver para un servidor Debian/Ubuntu:
+  timezone `America/Montevideo`, paquetes base (`net-tools`, `htop`, `iotop`,
+  `neovim`, `tmux`, `lvm2`, `bash-completion`) y PS1 propio, con chequeos
+  idempotentes y las trampas del ejecutar remoto (escapado de heredoc, `tput`
+  sin PTY).
+- **No es de heinzel:** mismo trato que `calisto-landlock` — no se copia desde
+  upstream, no se pisa con una skill homónima y no se borra al limpiar skills
+  que desaparecieron de heinzel.
+- **Se oculta del catálogo:** lleva `metadata.opencode/autoinvoke: false`. Se
+  carga por ID y `sysadmin.md` la nombra explícitamente.
+- **Licencia:** MPL-2.0, igual que el resto del código propio del repo.
+
 ## Reglas para un upgrade de heinzel
 
 1. Antes de tocar nada, leer este archivo y `upgrade-heinzel.md`.
-2. Conservar `skills/calisto-landlock/` intacta. No copiar upstream encima.
+2. Conservar `skills/calisto-landlock/` y `skills/calisto-debian-server-baseline/`
+   intactas. No copiar upstream encima.
 3. Al borrar skills/reglas que desaparecieron upstream, excluir cualquier ruta
    bajo `calisto-*`.
-4. Mantener la referencia a `calisto-landlock` en `sysadmin.md` (sección de
-   skills y sección de read-only opcional).
-5. Validar: `name: calisto-landlock` coincide con la carpeta, la skill existe,
-   `sysadmin.md` la menciona y `agents_update.sh --check` la lista.
-6. Incluir `src/agents/sysadmin/skills/calisto-landlock/**` en el alcance de la
+4. Mantener la referencia a `calisto-landlock` y `calisto-debian-server-baseline`
+   en `sysadmin.md` (sección de skills; `calisto-landlock` también en la de
+   read-only opcional).
+5. Validar: `name:` coincide con la carpeta en ambas skills, `sysadmin.md` las
+   menciona, `agents_update.sh --check` las lista y `src/check-skill-wiring.sh`
+   pasa.
+6. Incluir `src/agents/sysadmin/skills/calisto-*/**` en el alcance de la
    auditoría de `cyberseguridad`.
 
 ## Validación rápida
 
 ```bash
-test -f src/agents/sysadmin/skills/calisto-landlock/SKILL.md
-grep -q 'name: calisto-landlock' src/agents/sysadmin/skills/calisto-landlock/SKILL.md
-grep -q 'calisto-landlock' src/agents/sysadmin/sysadmin.md
+for addon in calisto-landlock calisto-debian-server-baseline; do
+  test -f "src/agents/sysadmin/skills/$addon/SKILL.md"
+  grep -q "name: $addon" "src/agents/sysadmin/skills/$addon/SKILL.md"
+  grep -q "$addon" src/agents/sysadmin/sysadmin.md
+done
+src/check-skill-wiring.sh
 ```
 
 Si alguna falla, el upgrade borró o desconectó el add-on: restaurarlo desde git

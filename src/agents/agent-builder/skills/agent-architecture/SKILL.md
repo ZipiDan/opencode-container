@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 name: agent-architecture
 description: Golden Rule router for opencode agents — classify every rule as hook/prompt-guard, skill, or .md; enforce frontmatter/permissions minimalism and vendor rewrites. Use when creating, vendorizing or refactoring any agent or skill.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Agent Architecture — Golden Rule Router
@@ -103,6 +105,7 @@ Apply on every vendorized repo:
 6. `rules/<x>.md` → `./x.md` inside `references/` or `skill` reference
 7. Remove `argument-hint:` (unknown to opencode) and verify the path-derived ID (owner flat, subagents nested).
 8. Preserve custom add-ons declared in `src/agents/<agent>/ADDONS.md` (e.g. `calisto-*` skills): never delete or overwrite them during a re-vendorization.
+9. New or re-vendorized skills ship hidden: add `metadata.opencode/autoinvoke: false` to their `SKILL.md` and name their exact ID in the owner agent `.md` (load-by-ID instruction); then run `src/check-skill-wiring.sh`. Exception: skills of the global set (`frontend-slides`, `mermaid2png`) ship without the flag so they stay announced to every agent.
 
 ## Delivery Checklist (run before git diff)
 
@@ -116,4 +119,5 @@ Apply on every vendorized repo:
 - [ ] Permissions minimal, `edit/write` restricted
 - [ ] Layout: owner flat (`agents/<slug>.md`, mode `primary` or `all`); subagents nested (`agents/<slug>/<sub>.md`); prompts use full subagent IDs (`<slug>/<sub>`)
 - [ ] No `claude/.claude` or `--permission-mode` remnants (`rg -n 'claude|\.claude' src/agents/<new>`)
+- [ ] Skills are wired: hidden skills (`metadata.opencode/autoinvoke: false`) named by exact ID in their owner `.md`; `src/check-skill-wiring.sh` passes
 - [ ] Scope verified: global → `agents_update.sh --check` shows expected agents+skills; local → `ls -R <proyecto>/.opencode/{agents,skills,commands}` (`/workspace/...` in container) + `@<name>` mention test

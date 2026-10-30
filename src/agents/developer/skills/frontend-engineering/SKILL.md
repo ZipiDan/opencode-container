@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 name: frontend-engineering
 description: Frontend/UI engineering with component architecture, composition over configuration, separation of data fetching from presentation, and colocation. Use for frontend work, UI components, or web interfaces.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Frontend Engineering

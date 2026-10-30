@@ -9,6 +9,8 @@ description: >-
   C4 en Mermaid → checklist "cuándo dividir". Usar en la fase Arquitectura, o al
   identificar módulos, límites de contexto y contratos entre ellos.
 version: 1
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Module Decomposition — de requisitos a módulos con contratos

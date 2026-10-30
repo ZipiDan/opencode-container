@@ -9,6 +9,8 @@ description: >-
   riesgos como consecuencias. Usar ante toda decisión de arquitectura no
   trivial, o cuando se pida documentar o revisar una decisión tomada.
 version: 1
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Architecture Decisions — qué merece un ADR y cómo se escribe

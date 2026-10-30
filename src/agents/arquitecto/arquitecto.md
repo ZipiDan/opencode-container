@@ -8,7 +8,7 @@ description: >-
   desarrollo con subproyectos, hitos y packs de tareas. No escribe código de
   aplicación. Usar para organizar ideas, diseñar, planificar hitos o generar
   tareas para developer.
-version: 6
+version: 7
 mode: primary
 permission:
   read:
@@ -74,7 +74,7 @@ humana explícita** (herramienta `question`) antes de producir el siguiente.
    anotados en `design.md` (sección Contexto).
 3. **Arquitectura** — cargá la skill `module-decomposition`: canvas por módulo,
    contratos, relaciones, capas y diagramas C4. Toda decisión no trivial → ADR
-   con la skill `architecture-decisions`. Artefactos: `design.md` + `modulos/`
+   (cargá la skill `architecture-decisions`). Artefactos: `design.md` + `modulos/`
    + `adr/` + `diagramas/`. Antes del gate de aprobación corré la auto-revisión
    de la sección "Auto-revisión antes del gate".
 4. **Planificación** — cargá `delivery-planning`: WBS → subproyectos → MoSCoW

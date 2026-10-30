@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 name: incremental-implementation
 description: Implement features in small, verifiable, behavior-preserving steps. Simplicity First (the simplest thing that works), scope discipline (do not clean up adjacent code), and verifiable progress. Use when implementing a feature or a new piece of functionality.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Incremental Implementation

@@ -76,6 +76,32 @@ Skills sin agente portador, horneadas en la imagen y desplegadas a la config glo
 | `frontend-slides` | `src/skills/frontend-slides/` | 1 | Crea presentaciones HTML autocontenidas (animadas) desde cero o convirtiendo PPT, con descubrimiento visual de estilo anti-"AI slop" y 34 bold templates; export a PDF local. Vendorizada de `zarazhangrui/frontend-slides` (MIT). Scripts: `deps.sh` (doctor/install aislado en `.deps/` en host), `export-pdf.sh` + `export-slides.mjs` (playwright+Chromium), `pptx-extract.sh` + `extract-pptx.py` (python-pptx). Comando `/frontend-slides`. Vercel excluido. Ver `PROVENANCE.md` y `upgrade-frontend-slides.md` |
 | `mermaid2png` | `src/skills/mermaid2png/` | 2 | Renderiza diagramas Mermaid (`.mmd`) a PNG localmente con `@mermaid-js/mermaid-cli` y Chrome headless, sin servicios de terceros (kroki/mermaid.ink excluidos). Antes vivía huérfana en la config global; ahora es fuente versionada en el repo |
 
+## Catálogo vs. carga de skills
+
+El catálogo de skills se inyecta en **cada request** a **todos** los agentes:
+cada skill anunciada cuesta ~500 tokens fijos por turno (~2.300 tok con el set
+completo). Por eso las skills de dominio llevan en su `SKILL.md`:
+
+```yaml
+metadata:
+  opencode/autoinvoke: false
+```
+
+Efecto: dejan de anunciarse en el catálogo, siguen registradas y **se pueden
+cargar por ID** si el prompt del agente las nombra. El precio es que cada skill
+oculta **debe** estar nombrada, con instrucción explícita de carga, en el `.md`
+de su agente dueño; si no, el agente nunca la encuentra.
+
+Quedan anunciadas (sin el flag) solo las skills de uso transversal:
+`opencode` y `report` (built-in) más las globales `frontend-slides` y
+`mermaid2png`.
+
+Verificación determinística: `src/check-skill-wiring.sh` recorre todos los
+`SKILL.md`, detecta los ocultos, comprueba que el `.md` del dueño nombre el ID
+exacto y que `name:` coincida con la carpeta. Sale 1 si algo falta, y
+`agents_update.sh` lo corre como validación previa al stage de skills (también
+con `--check`), abortando antes de copiar nada.
+
 ## Actualización de heinzel (agente sysadmin)
 
 El agente `sysadmin` vendoriza el ruleset de [`wintermeyer/heinzel`](https://github.com/wintermeyer/heinzel):
@@ -90,8 +116,9 @@ re-vendorizar con mapa de reescrituras Claude-Code→opencode → plegar cambios
 
 No todo lo que lleva el agente viene de heinzel. Los componentes propios se
 declaran en `src/agents/<agente>/ADDONS.md` (meta-archivo, no se despliega) y usan
-el prefijo `calisto-` para distinguirlos. El caso actual es
-`src/agents/sysadmin/skills/calisto-landlock/`:
+el prefijo `calisto-` para distinguirlos. Hoy son
+`src/agents/sysadmin/skills/calisto-landlock/` y
+`src/agents/sysadmin/skills/calisto-debian-server-baseline/`:
 
 - **No** se copia desde upstream ni se sobrescribe.
 - **No** se borra cuando se limpian skills que desaparecieron de heinzel.

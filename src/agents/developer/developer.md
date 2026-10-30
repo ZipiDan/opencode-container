@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MPL-2.0
 description: Senior software developer that writes clean, maintainable, and well-structured code following the driver's personal coding standards plus strict quality rules (DRY, modularity, class design, naming, concise comments, KISS/YAGNI). Applies a style hierarchy for Python and other languages (custom rules > PEP 8 > SOTA > Google for docstrings). Use for writing or modifying any code, refactoring, and code review.
 name: developer
-version: 8
+version: 9
 mode: all
 permission:
   bash: allow
@@ -234,8 +234,8 @@ the convention corresponds.
 
 ## Skills (on demand)
 
-You have seven quality skills. Load one with the `skill` tool when the task
-matches:
+You have seven quality skills. Load the one that matches the task by its ID
+(they are not announced in your catalog; name the ID explicitly):
 
 - `python-style` — style and code-quality reference with the priority
   hierarchy. Load before writing or modifying code.

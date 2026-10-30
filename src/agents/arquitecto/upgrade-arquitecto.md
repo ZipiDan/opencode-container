@@ -65,6 +65,16 @@ cualquier relajación se decide con el operador (nunca en automático):
 8. **Limpieza**: borrar todo clon temporal bajo `/tmp/opencode/` usado en el
    procedimiento (`rm -rf`, verificar con `test ! -e`).
 
+## Skills ocultas (obligatorio al tocar skills)
+
+El catálogo de skills se inyecta en cada request a todos los agentes, así que
+toda skill re-vendorizada o nueva se agrega con `metadata.opencode/autoinvoke:
+false` en su `SKILL.md` **y** con su instrucción de carga explícita (el ID) en
+`arquitecto.md`. Validar con `src/check-skill-wiring.sh`.
+
+Excepción: las skills del set global (`frontend-slides`, `mermaid2png`) se
+agregan sin el flag.
+
 ## Checks ABIERTOS (estado v1, 2026-09-08)
 
 - [ ] `architecture-decision-record/architecture-decision-record`: leer y

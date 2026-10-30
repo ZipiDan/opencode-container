@@ -120,6 +120,16 @@ grep -q 'name: calisto-landlock' src/agents/sysadmin/skills/calisto-landlock/SKI
   actualización operativa; la documentación de desarrollo vive en
   `src/tools/landlock/DEVELOPMENT.md`, no en la skill.
 
+## Paso 3c — skills nuevas nacen ocultas y cableadas
+
+El catálogo de skills se inyecta en cada request a todos los agentes, así que
+toda skill re-vendorizada o nueva se agrega con `metadata.opencode/autoinvoke:
+false` en su `SKILL.md` **y** con su instrucción de carga explícita (el ID) en
+`sysadmin.md`. Validar con `src/check-skill-wiring.sh`.
+
+Excepción: las skills del set global (`frontend-slides`, `mermaid2png`) se
+agregan sin el flag, porque deben anunciarse a todos los agentes.
+
 ## Paso 4 — mapa de reescrituras (aplicar SIEMPRE)
 
 > El mapa aplica a las skills/reglas de heinzel. **No** aplicar a

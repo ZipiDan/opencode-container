@@ -3,7 +3,9 @@
 # SPDX-FileCopyrightText: 2026 Daniel Zipitría (Calisto)
 # SPDX-License-Identifier: MPL-2.0
 name: heinzel-rules
-description: Reference library for the sysadmin agent — distro-specific and procedural rules vendored from the heinzel project. Load this skill and read the specific reference before working on a server: the distro rule (debian.md, rhel.md, suse.md, macos.md, freebsd.md) after OS detection, plus the procedural rule for the task at hand (first-connection.md before any SSH, privilege-escalation.md before sudo, secrets.md before touching credentials, verify-before-reporting.md before claiming something is broken, etc.). Not an on-demand workflow on its own; it is the rule layer the sysadmin agent follows.
+description: "Reference library for the sysadmin agent — distro-specific and procedural rules vendored from the heinzel project. Load this skill and read the specific reference before working on a server: the distro rule (debian.md, rhel.md, suse.md, macos.md, freebsd.md) after OS detection, plus the procedural rule for the task at hand (first-connection.md before any SSH, privilege-escalation.md before sudo, secrets.md before touching credentials, verify-before-reporting.md before claiming something is broken, etc.). Not an on-demand workflow on its own; it is the rule layer the sysadmin agent follows."
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # heinzel-rules

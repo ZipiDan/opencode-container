@@ -12,6 +12,8 @@ description: Run a heinzel housekeeping (health) inspection on a
   ambiguous requests like "check server <host>" — that's
   reserved for quick queries. Covers Linux (Debian, Ubuntu, RHEL,
   CentOS, Fedora, SUSE) and macOS.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # heinzel-housekeeping

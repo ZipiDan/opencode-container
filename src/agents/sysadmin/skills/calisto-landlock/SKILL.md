@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 name: calisto-landlock
 description: Operational add-on (Calisto, not heinzel) for kernel-enforced read-only SSH access with landlock_rosh. Use when the user asks to make a server read-only, when a critical host should be protected from accidental writes, or when an existing read-only host must be verified or respected. Covers modes, deployment, verification and hard limits. Not for modifying the landlock_rosh binary itself.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # calisto-landlock

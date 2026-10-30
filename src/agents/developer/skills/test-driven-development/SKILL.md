@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 name: test-driven-development
 description: Test-driven development workflow — RED-GREEN-REFACTOR, DAMP over DRY in tests, Prove-It pattern for bugs, test pyramid 80/15/5. Use when writing new functionality with tests or fixing a bug that needs a regression test first.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Test-Driven Development

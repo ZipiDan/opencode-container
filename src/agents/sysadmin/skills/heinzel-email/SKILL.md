@@ -15,6 +15,8 @@ description: Send an email about a managed server — ad-hoc text
   readability, size, and offer a content preview before
   sending. **Never run automatically** — only on explicit user
   request.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # heinzel-email

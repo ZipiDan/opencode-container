@@ -659,7 +659,24 @@ skills_stage() {
   fi
 }
 
-[[ "$SKIP_SKILLS" == "true" ]] || skills_stage "$AGENTS_SRC" "$SKILLS_SRC" "$SKILLS_DEST"
+# Validación previa al stage de skills: toda skill oculta del catálogo
+# (metadata.opencode/autoinvoke: false) debe estar nombrada en el .md de su
+# agente dueño, si no el agente no puede cargarla por ID. Ver
+# src/check-skill-wiring.sh. Aborta antes de copiar nada.
+validate_skill_wiring() {
+  local script="${SCRIPT_DIR}/check-skill-wiring.sh"
+  [[ -f "$script" ]] || return 0
+  if ! bash "$script"; then
+    echo "[ERROR] Skill wiring validation failed: a hidden skill is not named in its owner agent .md (see above)." >&2
+    echo "        Fix src/check-skill-wiring.sh failures before deploying skills." >&2
+    exit 1
+  fi
+}
+
+if [[ "$SKIP_SKILLS" != "true" ]]; then
+  validate_skill_wiring
+  skills_stage "$AGENTS_SRC" "$SKILLS_SRC" "$SKILLS_DEST"
+fi
 [[ "$SKIP_STYLES" == "true" ]] || sync_plain "styles" "$STYLES_SRC" "$STYLES_DEST" 1
 [[ "$SKIP_COMMANDS" == "true" ]] || sync_plain "commands" "$COMMANDS_SRC" "$COMMANDS_DEST" 0
 

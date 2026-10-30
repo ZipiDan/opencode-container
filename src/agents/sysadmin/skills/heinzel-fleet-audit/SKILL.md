@@ -12,6 +12,8 @@ description: Compare key policies across all servers in
   "policy drift check", "are my servers configured the same?",
   or after a fix on one host to find which others carry the
   same bug.
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # heinzel-fleet-audit

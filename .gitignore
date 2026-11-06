@@ -32,3 +32,5 @@ python/
 # Dependencias aisladas de la skill frontend-slides (deps.sh install) — nunca versionar
 .deps/
 **/.deps/
+__pycache__/
+*.pyc

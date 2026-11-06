@@ -251,6 +251,25 @@ Arquitectura → Planificación → Tareas.
   `cyberseguridad` → deploy). v1 audited 2026-09-08 (gate final APPROVED-WITH-NOTES; riesgo residual
   documentado R1: la delegación hereda el env auto-allow del launcher).
 
+### Comando `/hand-off` (delegar a una sesión nueva)
+
+- **Qué hace**: convierte una tarea en una hoja de ruta autocontenida en
+  `<proyecto>/.opencode/handoffs/<fecha>-<slug>.md` y la dispara a un agente en una sesión nueva,
+  asíncrona (`POST /api/session` + `/prompt`), sin bloquear la sesión actual.
+- **Piezas**: `src/commands/hand-off.md` (100 líneas) y `src/skills/handoff-brief/` (`SKILL.md`,
+  `references/brief-template.md`, `scripts/handoff.py` con stdlib pura y `scripts/tests/`, que **no se
+  despliega**: el stage de skills excluye `tests/`, `__pycache__/` y `*.pyc`).
+- **Modos**: directo (`/hand-off <agente> <tarea>`, sólo texto propio) y seguro (sin argumentos:
+  pregunta agente y tarea). C-01 de plataforma documentado (los argumentos se expanden antes de los
+  bloques de shell).
+- **Retención**: 14 días / 10 archivos con confirmación en cada invocación; la sesión nueva pregunta si
+  borra la hoja al terminar.
+- **Origen**: herramienta propia de Calisto con Bj (`agent-builder`), sin repos externos ni código de
+  terceros; gate de `cyberseguridad` aprobado con notas (5 pasadas) y reportes en
+  `documents/reports/cyberseguridad-2026-11-06-*.md`.
+- **Tests**: `cd src/skills/handoff-brief && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests`
+  (37 casos, sin red).
+
 ## Notes
 
 - Container runs as root. `xdg-open` is stubbed with a no-op script.

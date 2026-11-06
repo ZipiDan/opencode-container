@@ -110,6 +110,39 @@ Ese mismo rigor es reproducible: cada agente documenta el procedimiento para
 actualizarse desde sus fuentes originales, de modo que el trabajo pueda repetirse y
 mantenerse en el tiempo.
 
+## Delegar trabajo a otra sesión: `/hand-off`
+
+Cuando la tarea ya está clara pero conviene ejecutarla aparte —con otro agente, sin
+arrastrar el contexto de esta conversación y sin bloquear la sesión que estás usando—, el
+comando global `/hand-off` arma el encargo y lo dispara:
+
+```text
+/hand-off developer arreglá el redirect del login tras el 401
+/hand-off            # modo seguro: pregunta agente y tarea
+```
+
+Qué hace:
+
+- escribe una **hoja de ruta autocontenida** en
+  `<proyecto>/.opencode/handoffs/<fecha>-<slug>.md`: objetivo, contexto mínimo, alcance
+  (incluye / no incluye), pasos con criterio de aceptación y verificación, definición de
+  terminado y rollback. Está pensada para que la lea alguien sin nada del historial de
+  esta sesión;
+- crea una **sesión nueva** con el agente elegido y le pasa la ruta y el hash de la hoja,
+  no el contenido: la sesión corre en background y aparece en la lista del TUI, así que la
+  sesión actual queda libre de inmediato;
+- antes de disparar escanea la hoja en busca de secretos y la sesión receptora comprueba
+  su `sha256` antes de leerla; si el archivo cambió en el medio, no se dispara.
+
+Las hojas no se acumulan: se conservan 14 días o 10 archivos como máximo, se pide
+confirmación antes de borrar, y al terminar la tarea la propia sesión nueva pregunta si
+elimina la suya.
+
+Es un comando, no un agente: se invoca desde cualquier sesión y usa el agente que elijas.
+Si la tarea viene de un issue, un mail o cualquier texto que no escribiste vos, invocalo
+**sin argumentos**: en ese modo el comando pregunta agente y tarea y no recibe nada por
+línea de comandos.
+
 ## Informes listos para compartir
 
 Los agentes generan Markdown, y el proyecto incluye `md2pdf`, una herramienta que

@@ -12,6 +12,7 @@
 #   agents    src/agents/**         → ~/.config/opencode/agents/**     (por defecto: SÍ)
 #   skills    src/agents/*/skills/** + src/skills/**
 #                                   → ~/.config/opencode/skills/**    (por defecto: SÍ)
+#             (excluye tests/, __pycache__/ y *.pyc: no se despliegan)
 #   styles    src/tools/css-styles/** → ~/.config/opencode/css-styles/** (por defecto: SÍ)
 #   commands  src/commands/**       → ~/.config/opencode/commands/**   (por defecto: SÍ)
 #   tools     src/tools/* (solo la raíz, p. ej. md2pdf.py)
@@ -49,6 +50,8 @@
 # (src/agents/<agente>/skills/<nombre>/) y el directorio standalone
 # (src/skills/<nombre>/), ambas se despliegan a
 # ~/.config/opencode/skills/<nombre>/ (opencode las detecta como skills/*/SKILL.md).
+# El deploy de skills excluye tests/, __pycache__/ y *.pyc (código de test y
+# bytecode no son parte de la skill en runtime).
 #
 # Los commands y los estilos se despliegan a la config global (~/.config/opencode/).
 # Esa carpeta es leída por opencode local Y se monta dentro del contenedor (ver
@@ -126,7 +129,8 @@ launcher container, so one sync covers both environments. Skills are detected
 at skills/<name>/SKILL.md. They may live under an agent
 (src/agents/<agent>/skills/<name>/) or standalone (src/skills/<name>/); both
 deploy to the global skills directory (skill names must be unique across all
-locations).
+locations). The skills stage skips tests/, __pycache__/ and *.pyc (test code
+and bytecode are not deployed).
 
 Comparison: agents use the frontmatter 'version:' field plus a sha256 checksum;
 skills, styles, tools and commands (no version field) are compared by checksum only.
@@ -597,7 +601,8 @@ sync_plain() {
 #   2) src/skills/<nombre>/**                    (skills globales sin dueño)
 # Ambas se despliegan a ~/.config/opencode/skills/<nombre>/. OpenCode las detecta
 # como skills/*/SKILL.md (un nivel) y exige nombres de skill únicos en todos los
-# ámbitos, así que se detectan duplicados entre fuentes.
+# ámbitos, así que se detectan duplicados entre fuentes. No se copian tests/,
+# __pycache__/ ni *.pyc: son artefactos de desarrollo, no parte de la skill.
 skills_stage() {
   local agents_src="$1" standalone_src="$2" dst_dir="$3"
   local -a skill_mds=()
@@ -642,7 +647,8 @@ skills_stage() {
         dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
         [[ "$src_hash" != "$dst_hash" ]] && queue_change "skills" "$rel" "$src" "$dst" "UPDATE" "(checksum)"
       fi
-    done < <(find "$agents_src" -type f -path '*/skills/*' | sort)
+    done < <(find "$agents_src" -type f -path '*/skills/*' \
+      ! -path '*/tests/*' ! -path '*/__pycache__/*' ! -name '*.pyc' | sort)
   fi
   if [[ -d "$standalone_src" ]]; then
     while IFS= read -r src; do
@@ -655,7 +661,8 @@ skills_stage() {
         dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
         [[ "$src_hash" != "$dst_hash" ]] && queue_change "skills" "$rel" "$src" "$dst" "UPDATE" "(checksum)"
       fi
-    done < <(find "$standalone_src" -type f ! -path '*/.deps/*' | sort)
+    done < <(find "$standalone_src" -type f ! -path '*/.deps/*' \
+      ! -path '*/tests/*' ! -path '*/__pycache__/*' ! -name '*.pyc' | sort)
   fi
 }
 

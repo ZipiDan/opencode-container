@@ -15,6 +15,60 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [4.4.0] — 2026-11-06
+
+### Added
+- **Comando `/hand-off`** y skill **`handoff-brief`** (oculta del catálogo y
+  cableada al comando): convierte una tarea en una hoja de ruta autocontenida en
+  `<proyecto>/.opencode/handoffs/<fecha>-<slug>.md` y la dispara a un agente en
+  una **sesión nueva**, asíncrona (`POST /api/session` + `/prompt`), sin
+  bloquear la sesión que la invoca.
+  - Dos modos: directo (`/hand-off <agente> <tarea>`, sólo para texto propio) y
+    seguro (sin argumentos: pregunta agente y tarea, obligatorio para texto de
+    terceros, porque opencode expande los argumentos antes de los bloques de
+    shell del comando).
+  - Retención acotada: barrido de 14 días / 10 archivos con confirmación en cada
+    invocación, y la sesión nueva pregunta si borra la hoja al terminar.
+  - Integridad: `sha256` de la hoja verificado por la sesión receptora antes de
+    leerla, scan de secretos antes de disparar, y datos del humano siempre por
+    archivo (`.agent`/`.task`), nunca por argv.
+- `src/skills/handoff-brief/scripts/handoff.py`: toda la lógica en un script de
+  stdlib pura (Python 3.8+, sin dependencias), con 8 subcomandos (`prep`, `scan`,
+  `delete`, `discard`, `slug`, `seal`, `agent`, `fire`).
+- `scripts/tests/test_handoff.py`: 37 casos con `unittest`, sin red (stub de
+  `opencode` por `PATH`).
+
+### Changed
+- `agents_update.sh`: el stage de skills ya no despliega `tests/`,
+  `__pycache__/` ni `*.pyc`. Son artefactos de desarrollo, no parte de la skill
+  en runtime: el árbol instalado queda sólo con lo que se usa.
+- `check-skill-wiring.sh`: una skill **standalone oculta** ahora se valida
+  contra `src/commands/*.md` y `src/agents/*/*.md`. Antes emitía un `[WARN]` y
+  asumía que las standalone siempre se anuncian; ahora falla si nadie la nombra.
+- `AGENTS.md`: sección del comando `/hand-off` (qué hace, piezas, modos,
+  retención, origen, tests).
+
+### Notes
+- **Actualización**: alcanza con `./src/agents_update.sh`. **No hace falta
+  regenerar el contenedor**, salvo que quieras actualizar las versiones de todos
+  los componentes de opencode-container. Regenerar el contenedor **no**
+  reemplaza ni evita `agents_update.sh`: agentes, skills y comandos se despliegan
+  aparte, desde el repo a `~/.config/opencode/`, que está montado dentro del
+  contenedor.
+- Herramienta propia (Calisto con Bj/`agent-builder`), sin repos externos ni
+  código de terceros. Gate de `cyberseguridad`: aprobado con notas tras 5
+  pasadas; reportes en `documents/reports/cyberseguridad-2026-11-06-*.md`.
+- Riesgo residual de plataforma documentado: en opencode v2.1.4 y v2.2.5 los
+  argumentos de un comando se expanden **antes** de ejecutar los bloques de shell
+  del comando, así que un argumento puede ejecutar shell sin aprobación. El modo
+  seguro de `/hand-off` no recibe argumentos y evita el vector; el cuerpo del
+  comando y la skill no contienen bloques de shell. Cuerpo del reporte upstream
+  en `documents/reports/upstream-opencode-command-arg-injection.md`.
+
+### Documentation
+- `README.md`: sección "Delegar trabajo a otra sesión: `/hand-off`" con los dos
+  modos, qué hace el comando y cómo se retienen las hojas.
+
 ## [4.3.0] — 2026-10-30
 
 ### Added

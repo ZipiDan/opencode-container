@@ -9,8 +9,8 @@
 # ==========================
 # CONFIGURACIÓN GENERAL (EDITABLE)
 # ==========================
-VERSION="4.3.0"
-TAG_RELEASE="v4.3.0"
+VERSION="4.4.0"
+TAG_RELEASE="v4.4.0"
 # Ruta fija para la configuración global (opencode.json con API keys, providers, etc.)
 # No se ve afectada por -config, siempre en $HOME/.config/opencode/
 GLOBAL_CONFIG_DIR="${HOME}/.config/opencode"

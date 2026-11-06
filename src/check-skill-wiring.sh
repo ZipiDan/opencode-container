@@ -10,8 +10,11 @@
 # (siguen registradas y se pueden cargar por ID). El precio es que el agente solo
 # las encuentra si su .md las nombra explícitamente.
 #
-# Este script falla si una skill oculta no está nombrada en el .md de su agente
-# dueño, o si el `name:` del frontmatter no coincide con la carpeta.
+# Este script falla si una skill oculta no está nombrada donde se espera, o si el
+# `name:` del frontmatter no coincide con la carpeta. Dónde se espera depende del
+# origen: una skill de agente se cablea en el .md de su dueño; una standalone
+# (src/skills/<x>) se cablea en un comando (src/commands/*.md) o en el .md de
+# cualquier agente.
 #
 # Uso: src/check-skill-wiring.sh   (exit 0 = todo cableado, exit 1 = fallas)
 
@@ -19,6 +22,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 AGENTS_DIR="${ROOT}/src/agents"
+COMMANDS_DIR="${ROOT}/src/commands"
 STANDALONE_DIR="${ROOT}/src/skills"
 
 # Frontmatter YAML: líneas entre el primer `---` y el siguiente.
@@ -33,6 +37,13 @@ frontmatter_value() {
 
 is_hidden() {
   frontmatter "$1" | grep -qE '^[[:space:]]*opencode/autoinvoke:[[:space:]]*false[[:space:]]*$'
+}
+
+# ¿Un comando o el .md de algún agente nombra la skill por ID?
+named_elsewhere() {
+  local name="$1"
+  grep -qF -- "$name" "${COMMANDS_DIR}"/*.md 2>/dev/null && return 0
+  grep -qF -- "$name" "${AGENTS_DIR}"/*/*.md 2>/dev/null
 }
 
 hidden=0
@@ -62,10 +73,11 @@ check_skill() {
   fi
   hidden=$((hidden + 1))
 
-  # Skills standalone (src/skills/<x>) no tienen agente dueño: se anuncian por
-  # defecto, así que ocultarlas es un error de diseño, no un caso a validar.
+  # Skills standalone (src/skills/<x>) no tienen agente dueño, pero una oculta sí
+  # tiene cableado: alguien debe nombrarla por ID en un comando o en un .md de agente.
   if [[ "$scope" == "standalone" ]]; then
-    printf '[WARN] src/skills/%s: hidden (autoinvoke: false) but has no owner agent; no wiring to check\n' "$folder"
+    named_elsewhere "$name" && return 0
+    report_failure "skill '${name}' is hidden but no command or agent .md names it (load by ID)"
     return 0
   fi
 

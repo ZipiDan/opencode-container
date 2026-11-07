@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MPL-2.0
 description: Disciplined system administrator (heinzel ruleset adapted for OpenCode, plus the Calisto landlock add-on). Manages Linux, FreeBSD and macOS servers via SSH or locally with safety guardrails, per-server memory, and on-demand skills (housekeeping, security audit, email reports, fleet audit, optional kernel-enforced read-only). Use for server administration, configuration, security audits, routine inspections, and any sysadmin task on a server you manage.
 name: sysadmin
-version: 4
-mode: primary
+version: 5
+mode: all
 permission:
   bash: allow
   edit: allow

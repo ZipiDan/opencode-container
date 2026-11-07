@@ -251,24 +251,37 @@ Arquitectura → Planificación → Tareas.
   `cyberseguridad` → deploy). v1 audited 2026-09-08 (gate final APPROVED-WITH-NOTES; riesgo residual
   documentado R1: la delegación hereda el env auto-allow del launcher).
 
-### Comando `/hand-off` (delegar a una sesión nueva)
+### Comando `/hand-off` (delegar a un subagente)
 
 - **Qué hace**: convierte una tarea en una hoja de ruta autocontenida en
-  `<proyecto>/.opencode/handoffs/<fecha>-<slug>.md` y la dispara a un agente en una sesión nueva,
-  asíncrona (`POST /api/session` + `/prompt`), sin bloquear la sesión actual.
-- **Piezas**: `src/commands/hand-off.md` (100 líneas) y `src/skills/handoff-brief/` (`SKILL.md`,
+  `<proyecto>/.opencode/handoffs/<fecha>-<slug>.md` y la delega a un **subagente** con la tool `subagent`
+  (`agent`/`description`/`prompt`), que abre una sesión hija: en primer plano bloquea a la sesión que lo invoca y
+  devuelve su informe ahí, en segundo plano la deja libre. No crea sesiones por la API y no hay link ni hash.
+- **Piezas**: `src/commands/hand-off.md` (130 líneas) y `src/skills/handoff-brief/` (`SKILL.md`,
   `references/brief-template.md`, `scripts/handoff.py` con stdlib pura y `scripts/tests/`, que **no se
   despliega**: el stage de skills excluye `tests/`, `__pycache__/` y `*.pyc`).
-- **Modos**: directo (`/hand-off <agente> <tarea>`, sólo texto propio) y seguro (sin argumentos:
-  pregunta agente y tarea). C-01 de plataforma documentado (los argumentos se expanden antes de los
-  bloques de shell).
-- **Retención**: 14 días / 10 archivos con confirmación en cada invocación; la sesión nueva pregunta si
-  borra la hoja al terminar.
+- **Subcomandos** (`handoff.py`): `prep`, `slug`, `seal --brief <ruta>`, `scan`, `delete`, `discard`. No hay
+  archivos de estado: la ruta que imprime `slug` viaja como argumento a `seal` y al prompt del subagente.
+- **Invocación**: directo (`/hand-off <agente> <tarea>`, sólo texto propio) y seguro (sin argumentos: pregunta
+  agente y tarea). C-01 sigue vigente en el modo directo: opencode sustituye los argumentos y **después** ejecuta
+  los bloques de expansión de shell del texto resultante, así que un argumento puede ejecutar shell; el modo
+  seguro, sin argumentos, es el único inmune.
+- **Modo de disparo**: se elige al disparar con una sola `question`. **Primer plano** (recomendado) bloquea la
+  sesión y devuelve el informe; **segundo plano** (`background: true`) la deja libre y el resultado llega como
+  mensaje cuando el subagente termina. En segundo plano el subagente no puede consultar al padre: si necesita una
+  decisión o un permiso puede quedar esperando, y hay que abrir su sesión en el listado de subagentes para verlo.
+  Antes de lanzar en segundo plano el comando imprime ese riesgo en pantalla.
+- **Round-trip**: si el subagente devuelve una pregunta en vez del informe, la sesión invocadora la pasa al
+  humano con `question` y continúa el **mismo** hijo con `sessionID` hasta el informe final.
+- **Retención**: 14 días / 10 archivos con confirmación en cada invocación; la hoja queda después del disparo
+  —el subagente no borra nada— y se limpia en el barrido del próximo `/hand-off` o a mano.
+- **Agentes**: `investigador`, `arquitecto`, `sysadmin` y `agent-builder` pasaron a `mode: all` para poder
+  invocarse también como subagentes.
 - **Origen**: herramienta propia de Calisto con Bj (`agent-builder`), sin repos externos ni código de
   terceros; gate de `cyberseguridad` aprobado con notas (5 pasadas) y reportes en
   `documents/reports/cyberseguridad-2026-11-06-*.md`.
 - **Tests**: `cd src/skills/handoff-brief && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests`
-  (37 casos, sin red).
+  (32 casos, sin red).
 
 ## Notes
 

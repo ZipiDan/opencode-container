@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: MPL-2.0
 description: Parallel web research via subagents (EN/ES by default, extended mode adds FR/DE/ZH/RU); merges findings into Spanish with cited sources, shows the report and saves it to documents/investigaciones/. Reuses recent searches.
 name: investigador
-version: 10
-mode: primary
+version: 11
+mode: all
 permission:
   bash: allow
   edit: allow

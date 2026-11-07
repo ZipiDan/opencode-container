@@ -15,6 +15,49 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+## [4.5.0] — 2026-11-06
+
+### Changed
+- `/hand-off`: el comando ya no crea una sesión nueva por la API. Ahora delega con la tool
+  `subagent` (`agent`/`description`/`prompt`), que abre una sesión hija. Desaparecen el
+  `POST /api/session`, el link de la sesión, el
+  `sha256` de la hoja y los archivos de estado `.state`/`.agent`: el flujo entre subcomandos
+  es la ruta que imprime `slug`.
+- `/hand-off`: si el subagente devuelve una pregunta en vez del informe, la sesión
+  invocadora la pasa al humano con `question` y continúa el **mismo** hijo con su
+  `sessionID`. La hoja queda en `.opencode/handoffs/` para el barrido del próximo
+  `/hand-off`.
+- `handoff.py`: queda en `prep`, `slug`, `seal --brief <ruta>`, `scan`, `delete`,
+  `discard` (de 854 a 414 líneas, sin código muerto). `seal` ya no calcula hash: escanea
+  secretos en la hoja indicada y el humano redacta.
+- `/hand-off`: el modo de disparo se elige con una `question`. **Primer plano** bloquea la sesión hasta
+  que el subagente termina y devuelve el informe ahí; **segundo plano** (`background: true`) la deja
+  libre y el resultado llega como mensaje al terminar. En segundo plano el subagente no puede consultar
+  al padre: si necesita una decisión o un permiso puede quedar esperando, y el comando imprime ese
+  riesgo antes de lanzar.
+- `handoff-brief`: la skill sube a `version: 4` (subcomandos, disparo por `subagent` con modo
+  primer plano / segundo plano y `background`, aviso obligatorio en segundo plano, round-trip y
+  prompt del subagente).
+- Agentes `investigador` (11), `arquitecto` (8), `sysadmin` (5) y `agent-builder` (7):
+  `mode: primary` → `mode: all`, para poder invocarlos también como subagentes. Sin
+  cambios de permisos.
+
+### Fixed
+- Se van tres defectos del enfoque por sesión, porque su causa dejó de existir: las
+  sesiones zombis por un `question` que quedaba esperando en background, los subagentes
+  sin `bash` detenidos por la verificación de hash y el `SID` que no se convertía en botón
+  en el reporte.
+
+### Notes
+- **Actualización**: alcanza con `./src/agents_update.sh`. No hace falta reiniciar el contenedor ni
+  reconstruir la imagen: `~/.config/opencode/` está montado y el server relee agentes, comandos y skills
+  solo, en segundos (verificado: un cambio en `commands/hand-off.md` aparece en el catálogo sin hacer nada).
+  La única excepción es el prompt de un **agente**: una sesión ya abierta conserva el que tenía al nacer, así
+  que para ver cambios en un `.md` de agente abrí una sesión nueva. `opencode reload` existe como forzador
+  (la web no expone un comando `/reload`), pero no hace falta en el flujo normal.
+- Los agentes `investigador`, `arquitecto`, `sysadmin` y `agent-builder` cambian de `mode`: si tenés una
+  sesión vieja abierta con uno de ellos, seguí usándola o abrí otra; no hay migración de datos.
+
 ## [4.4.0] — 2026-11-06
 
 ### Added

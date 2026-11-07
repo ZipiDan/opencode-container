@@ -8,8 +8,8 @@ description: >-
   desarrollo con subproyectos, hitos y packs de tareas. No escribe código de
   aplicación. Usar para organizar ideas, diseñar, planificar hitos o generar
   tareas para developer.
-version: 7
-mode: primary
+version: 8
+mode: all
 permission:
   read:
     "*": allow

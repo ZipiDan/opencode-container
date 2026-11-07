@@ -110,11 +110,12 @@ Ese mismo rigor es reproducible: cada agente documenta el procedimiento para
 actualizarse desde sus fuentes originales, de modo que el trabajo pueda repetirse y
 mantenerse en el tiempo.
 
-## Delegar trabajo a otra sesión: `/hand-off`
+## Delegar trabajo a un subagente: `/hand-off`
 
-Cuando la tarea ya está clara pero conviene ejecutarla aparte —con otro agente, sin
-arrastrar el contexto de esta conversación y sin bloquear la sesión que estás usando—, el
-comando global `/hand-off` arma el encargo y lo dispara:
+La idea es **ahorrar tokens**: en vez de arrastrar toda esta conversación hacia otra tarea, se
+escribe un encargo acotado y lo resuelve un subagente que sólo ve ese encargo.
+
+El comando global `/hand-off` arma ese encargo y lo delega:
 
 ```text
 /hand-off developer arreglá el redirect del login tras el 401
@@ -128,20 +129,33 @@ Qué hace:
   (incluye / no incluye), pasos con criterio de aceptación y verificación, definición de
   terminado y rollback. Está pensada para que la lea alguien sin nada del historial de
   esta sesión;
-- crea una **sesión nueva** con el agente elegido y le pasa la ruta y el hash de la hoja,
-  no el contenido: la sesión corre en background y aparece en la lista del TUI, así que la
-  sesión actual queda libre de inmediato;
-- antes de disparar escanea la hoja en busca de secretos y la sesión receptora comprueba
-  su `sha256` antes de leerla; si el archivo cambió en el medio, no se dispara.
+- la delega a un **subagente** con la tool `subagent`: el agente elegido corre como sesión
+  hija, lee la hoja, ejecuta el plan y devuelve su informe **acá mismo**, así que no hay
+  link que abrir. El modo se elige al disparar: en **primer plano** bloquea esta
+  conversación hasta terminar; en **segundo plano** la deja libre y el resultado llega como
+  mensaje, pero si el subagente necesita una decisión o un permiso puede quedar esperando
+  sin avisar (hay que abrir su sesión en el listado de subagentes para verlo), y el comando
+  imprime ese riesgo antes de lanzar;
+- antes de disparar escanea la hoja en busca de secretos: si aparece algo con forma de
+  clave, la línea se redacta y el disparo no ocurre hasta que el escaneo esté limpio.
+
+Si el subagente necesita una decisión, no abre un formulario —el invocador no puede
+contestarte en el medio—: devuelve la pregunta como texto, el comando la pasa al humano y
+continúa la misma conversación hija con su `sessionID`. En segundo plano eso pasa cuando
+llega el mensaje del subagente al terminar.
 
 Las hojas no se acumulan: se conservan 14 días o 10 archivos como máximo, se pide
-confirmación antes de borrar, y al terminar la tarea la propia sesión nueva pregunta si
-elimina la suya.
+confirmación antes de borrar, y la hoja disparada queda en disco para el barrido del
+próximo `/hand-off` o para un pedido manual.
 
 Es un comando, no un agente: se invoca desde cualquier sesión y usa el agente que elijas.
 Si la tarea viene de un issue, un mail o cualquier texto que no escribiste vos, invocalo
 **sin argumentos**: en ese modo el comando pregunta agente y tarea y no recibe nada por
 línea de comandos.
+
+Una salvedad: si invocás el comando desde `arquitecto`, su permiso de delegación sólo
+permite `investigador*` y `explore`; para delegar a otro agente, hacelo desde una sesión con
+`developer`, `cyberseguridad`, `investigador`, `sysadmin` o `agent-builder`.
 
 ## Informes listos para compartir
 

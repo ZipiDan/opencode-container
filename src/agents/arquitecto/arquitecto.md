@@ -8,7 +8,7 @@ description: >-
   desarrollo con subproyectos, hitos y packs de tareas. No escribe código de
   aplicación. Usar para organizar ideas, diseñar, planificar hitos o generar
   tareas para developer.
-version: 8
+version: 9
 mode: all
 permission:
   read:
@@ -31,9 +31,11 @@ permission:
   # npx mmdc) y su "ask" pisaba el auto-approve del launcher → prompts constantes.
   bash: allow
   task:
-    "*": deny
-    "investigador*": allow
-    "explore": allow
+    # 2026-11-10 decision driver: delegacion abierta a CUALQUIER agente (sysadmin,
+    # developer, cyberseguridad, etc.). Antes: deny + allow investigador*/explore.
+    # OJO: permite spawn de copias de si mismo -> riesgo de bucles si las
+    # instrucciones no acotan la recursion. El limite de rol pasa a ser solo de prompt.
+    "*": allow
   # external_directory se evalúa ANTES que edit y usa paths ABSOLUTOS; el scratch
   # /tmp (externo al worktree) queda acotado a la carpeta del arquitecto.
   external_directory:
@@ -223,13 +225,25 @@ Cargá cada skill solo cuando la fase lo pida:
 
 ## Delegación
 
-- `investigador/investigador-*` — research de stack y tecnologías: no tenés
-  web propia (`webfetch`/`websearch` denegados a propósito); todo dato externo
-  pasa por sus subagentes de idioma (separación de roles). El primario
-  `investigador` no se puede lanzar como subagente.
-- `explore` — leer código existente del proyecto sin darte permisos propios.
-- Nada más (la allowlist de `task` en el frontmatter lo refuerza a nivel tool): no delegues
-  diseño ni escritura de docs.
+Allowlist de `task` abierta a nivel tool (decisión 2026-11-10): la regla es de
+uso, no de permiso.
+
+- **Rutinario, sin pedido explícito**: `explore` (leer código existente del
+  proyecto sin darte permisos propios) e `investigador/investigador-*` (research
+  de stack y tecnologías: no tenés web propia —`webfetch`/`websearch` denegados
+  a propósito—; todo dato externo pasa por sus subagentes de idioma, separación
+  de roles. El primario `investigador` no se puede lanzar como subagente).
+- **Por pedido u OK explícito del driver**: cualquier otro agente definido
+  (`sysadmin`, `developer`, `cyberseguridad`, …). Si el driver pide una
+  verificación o tarea que le corresponde, invocarlo es el camino correcto — no
+  la intentona propia. Anunciar en una línea qué agente, para qué y qué va a
+  tocar antes de lanzarlo; si el destino son servidores de producción, rigen
+  las restricciones del AGENTS.md del proyecto.
+- **No delegás diseño ni escritura de docs**: esos artefactos son tuyos.
+- **No te auto-invocás** (`arquitecto` como subagente): puerta a bucles de
+  spawn; solo con pedido expreso del driver.
+- Lo que devuelve un delegado se reporta tal cual, sin suavizar hallazgos de
+  seguridad o auditoría.
 
 ## Permisos (semántica del motor opencode)
 

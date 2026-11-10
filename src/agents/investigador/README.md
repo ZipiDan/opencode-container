@@ -17,20 +17,32 @@ Este directorio (`src/agents/investigador/`) contiene todos los archivos del age
 
 | Archivo (repo) | Archivo desplegado | ID | Modo | Versión | Idioma |
 |----------------|--------------------|----|------|---------|--------|
-| `investigador.md` | `agents/investigador.md` | `investigador` | primary | 10 | — (orquesta) |
-| `investigador-en.md` | `agents/investigador/investigador-en.md` | `investigador/investigador-en` | subagent | 2 | EN |
-| `investigador-fr.md` | `agents/investigador/investigador-fr.md` | `investigador/investigador-fr` | subagent | 2 | FR |
-| `investigador-es.md` | `agents/investigador/investigador-es.md` | `investigador/investigador-es` | subagent | 2 | ES |
-| `investigador-de.md` | `agents/investigador/investigador-de.md` | `investigador/investigador-de` | subagent | 2 | DE |
-| `investigador-zh.md` | `agents/investigador/investigador-zh.md` | `investigador/investigador-zh` | subagent | 2 | ZH |
-| `investigador-ru.md` | `agents/investigador/investigador-ru.md` | `investigador/investigador-ru` | subagent | 1 | RU |
+| `investigador.md` | `agents/investigador.md` | `investigador` | primary | 12 | — (orquesta) |
+| `investigador-en.md` | `agents/investigador/investigador-en.md` | `investigador/investigador-en` | subagent | 3 | EN |
+| `investigador-fr.md` | `agents/investigador/investigador-fr.md` | `investigador/investigador-fr` | subagent | 3 | FR |
+| `investigador-es.md` | `agents/investigador/investigador-es.md` | `investigador/investigador-es` | subagent | 3 | ES |
+| `investigador-de.md` | `agents/investigador/investigador-de.md` | `investigador/investigador-de` | subagent | 3 | DE |
+| `investigador-zh.md` | `agents/investigador/investigador-zh.md` | `investigador/investigador-zh` | subagent | 3 | ZH |
+| `investigador-ru.md` | `agents/investigador/investigador-ru.md` | `investigador/investigador-ru` | subagent | 2 | RU |
 
 ## Uso
 
 - Seleccionar el agente **investigador** en el selector de agentes (Tab) y darle el tema.
 - Pedir el modo extendido explícitamente ("extendido", "extended", "todos los idiomas") si se quiere más allá de EN/ES.
-- El informe final se redacta en español con fuentes citadas: **introducción** (tipo abstract), **cuerpo unificado** con los hallazgos de todos los subagentes organizados por temas (no por idioma), **discrepancias** entre fuentes cuando existen (con el idioma de cada fuente), **conclusión** y una **lista numerada compacta de fuentes** al final. Se muestra en pantalla y se guarda en `documents/investigaciones/YYYY-MM-DD-<tema>.md` del proyecto.
+- El informe final se redacta en español con fuentes citadas: **introducción** (tipo abstract), **cuerpo unificado** con los hallazgos de todos los subagentes organizados por temas (no por idioma), **discrepancias** entre fuentes cuando existen (con el idioma de cada fuente), **conclusión**, un **glosario** opcional (solo si hay términos que lo ameriten) y una **lista numerada compacta de fuentes** al final. Se muestra en pantalla y se guarda en `documents/investigaciones/YYYY-MM-DD-<tema>.md` del proyecto.
 - Si el usuario pide la versión **PDF** del informe, el agente la genera con el comando global `/md2pdf` (o `md2pdf` si está en `PATH`). No degrada a otro método de conversión: si falta la herramienta o sus dependencias, reporta las instrucciones de instalación por OS de `md2pdf --doctor` y ofrece ejecutar `/md2pdf` cuando esté instalada.
+
+## Estilo del informe
+
+Los 7 prompts llevan una sección de estilo (cada uno en su idioma), común a todo el agente:
+
+- **Lenguaje llano:** frases cortas, una idea por frase, hilo claro de principio a fin.
+- **Sin lectura previa presupuesta:** en la primera mención va la formulación completa y comprensible, seguida del acrónimo, sigla o nombre técnico **entre paréntesis**; después se usa la forma corta con libertad, porque el concepto ya quedó presentado.
+- **Conceptos complejos:** explicación breve + recomendación de una fuente ya citada (nunca una que no se consultó).
+- **Palabras poco frecuentes:** los subagentes las listan en `Términos a explicar` (cada uno en su idioma) y el primario las pliega en el `## Glosario` del informe.
+- **Cierre del primario:** una línea ofreciendo explicar lo que haya quedado oscuro.
+
+Los subagentes no pueden preguntarle al lector (son `mode: subagent`, solo lectura, y devuelven un mensaje final): marcan los términos y es el agente primario el que ofrece la explicación.
 
 ## Mantenimiento
 

@@ -13,7 +13,52 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
-## [Unreleased]
+## [4.6.0] — 2026-11-10
+
+### Added
+- `agents_update.sh`: **backup automático** de cada archivo que un deploy reemplaza. Los `UPDATE` y
+  `REPLACE` copian el original a `~/.config/opencode/backups/agents-<timestamp>/` antes del `cp -f`
+  (los `INSTALL` no respaldan: no hay nada que perder). Si el backup falla, el deploy aborta antes de
+  pisar. Antes solo se respaldaba el `REMOVE` de owners anidados, y el `cp -f` borraba sin copia.
+
+### Changed
+- Agentes `investigador` (11→12) y sus 6 subagentes (ES/EN/DE/FR/ZH 2→3, RU 1→2): sección de
+  **estilo del informe** en el idioma de cada prompt — lenguaje llano, nada de lectura previa
+  presupuesta (la primera mención lleva la formulación completa y el acrónimo, sigla o nombre
+  técnico **entre paréntesis**; después se usa la forma corta), explicación breve de los conceptos
+  complejos con recomendación de una fuente ya citada, y lista de términos dudosos que el primario
+  pliega en un `## Glosario` opcional. El primario cierra el informe ofreciendo explicar lo que
+  quedó oscuro. Sin cambios de permisos ni de `mode`.
+- `arquitecto` 8→9: `permission.task` pasa de `deny` + allow `investigador*`/`explore` a `"*": allow`.
+  Puede delegar en cualquier agente definido (`sysadmin`, `developer`, `cyberseguridad`, …) **solo por
+  pedido u OK explícito del driver**; `explore` e `investigador/investigador-*` siguen siendo
+  rutinarios. El límite pasa a ser de prompt (`## Delegación`), con anti-auto-spawn incluido
+  (`arquitecto` no se invoca a sí mismo: con `mode: all` sería una puerta a bucles). Decisión del driver
+  del 2026-11-10, aplicada en dirección instalada→repo.
+- `agents_update.sh`: las copias instaladas con **versión superior** a la del repo ya no se informan como
+  "skipped" sino como **`[ALTERED]`** — señal de que el archivo desplegado se editó fuera del repo. El
+  aviso incluye qué pasa si el repo alcanza esa versión: el deploy la reemplaza y las modificaciones
+  locales dejan de estar activas (con copia en el backup).
+
+### Fixed
+- `agents_update.sh` **ocultaba el drift**: el bloque que imprime las copias más nuevas que el repo estaba
+  después del corte `changed == 0`, así que con el drift como único cambio el script decía "All custom
+  agents, skills, styles and commands are up to date". Ahora el aviso se emite antes del corte y el cierre
+  pasa a "Nothing to apply, but N deployed file(s) are AHEAD of the repo".
+- `agents_update.sh`: **`agent_version` devolvía 0** con frontmatter no canónico (`version: 9 # nota`,
+  `version: 8.1`, `version:` ausente). Ese 0 se comparaba como versión real: una copia instalada mal
+  formada hacía que el repo la pisara como `UPDATE` sin el aviso `[ALTERED]`, y el caso inverso producía
+  un falso `[ALTERED]`. Ahora devuelve vacío y el stage 1 aborta con
+  `[ERROR] Cannot read an integer 'version:'` en el lado que corresponda.
+
+### Notes
+- **Actualizar los agentes**: alcanza con `./src/agents_update.sh`. Es lo único necesario — no hace falta
+  reconstruir la imagen ni tocar `~/.config/opencode/` a mano. El script compara `version:` + `sha256`,
+  aplica los stages de agents, skills, styles y commands, respalda lo que reemplaza y avisa de las copias
+  alteradas fuera del repo (`[ALTERED]`). Un cambio en el prompt de un agente se ve al abrir **una sesión
+  nueva** (las abiertas conservan el prompt con el que nacieron); skills, comandos y estilos se releen solos.
+- `AGENTS.md`, el registro `src/agents/README.md` y el README de `arquitecto` documentan la delegación
+  abierta y el nuevo comportamiento del script; `TODO.md` cierra los dos defectos (filas 14 y 15).
 
 ## [4.5.0] — 2026-11-06
 

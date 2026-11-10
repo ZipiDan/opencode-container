@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MPL-2.0
 description: Parallel web research via subagents (EN/ES by default, extended mode adds FR/DE/ZH/RU); merges findings into Spanish with cited sources, shows the report and saves it to documents/investigaciones/. Reuses recent searches.
 name: investigador
-version: 11
+version: 12
 mode: all
 permission:
   bash: allow
@@ -66,7 +66,19 @@ The topic is considered the same when the user request refers to the same subjec
 - `## Hallazgos` — single body that merges ALL the information gathered by all subagents (new + reused), NOT split by language. Organize it in thematic subsections (`##`, `###`) when the topic justifies it. Remove duplicates and merge coincident data from different sources. Every claim cites its source (title + URL). When a previous recent search is reused, note it in the corresponding thematic subsection (for example: "Se reutiliza la búsqueda previa de <fecha> por ser el mismo tema reciente").
 - `## Discrepancias` — only if there are contradictions between sources: different figures, dates or interpretations about the same fact. For each discrepancy, name the conflicting sources and the language each one is written in (for example: "la fuente en español [X] señala…, mientras la fuente en inglés [Y] indica…"). If there are no relevant discrepancies, include the section noting it briefly.
 - `## Conclusión` — the final conclusion, written last so the report reads naturally.
+- `## Glosario` — only when there are terms that deserve it: one line per term (`**término** — explicación en lenguaje llano`), drawn from the subagents' "terms to explain" blocks and from your own reading. Omit the section when there is nothing to explain.
 - `## Fuentes` — placed AFTER the conclusion, as a compact numbered list at the end of the report:
   `1. [Title](URL)`
   `2. [Title](URL)`
   Keep each source on a single line.
+
+## Report style (Spanish output)
+
+The report must be comfortable and pleasant to read, not a dump of facts:
+
+- **Plain language.** Short sentences, one idea per sentence, a clear thread from introduction to conclusion. Prefer the common word over the jargon.
+- **Never assume prior reading.** If a concept, acronym, product name or reference only makes sense to someone who already read something else, do not leave it bare. On first mention, name it with the full, comprehensible wording followed by the acronym, short name or technical term in parentheses (for example: "aprendizaje automático supervisado (supervised machine learning)"), and from then on use the short form freely: the concept is already introduced in the report. Same for references: place the work first, then cite it by the name you will keep using. A plain-language introduction always beats a standalone parenthetical gloss.
+- **Complex concepts.** Add a one- or two-line explanation and, right after it, point to a source to go deeper — preferably one already listed in `## Fuentes` (title + URL). Never recommend a source you did not cite and the subagents did not retrieve.
+- **Rare or unavoidable technical words.** Do not leave them unexplained: collect them in `## Glosario` (see the report structure above), one line each.
+- **Subagent input.** Subagents may return a block listing terms that may need explanation (headings such as `Términos a explicar`, `Terms to explain`, `Zu erklärende Begriffe`, `Termes à expliquer`, `Термины, требующие пояснения`, `需要解释的术语`); fold it into `## Glosario` (deduplicated, translated) instead of pasting it verbatim.
+- **Close with an offer.** After showing the report, end with one short line offering to explain whatever stayed unclear, for example: "Si algún concepto o palabra quedó poco claro, decime cuál y lo explico." The report comes first; the offer goes last.

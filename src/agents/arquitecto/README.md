@@ -22,7 +22,7 @@ de atributos de calidad, estimaciones solo en rangos con supuestos.
 
 | Archivo | Rol |
 |---------|-----|
-| `arquitecto.md` | Agente primario (`version: 2`) |
+| `arquitecto.md` | Agente primario (`version: 9`) |
 | `skills/module-decomposition/` | Alcance → canvas por módulo → relaciones → capas → C4 |
 | `skills/architecture-decisions/` | Gate de 5 preguntas, plantillas ADR, numeración y supersede |
 | `skills/delivery-planning/` | WBS 100%, MoSCoW 60-20-20, hitos+AC, tareas+DoD, handoff |
@@ -38,6 +38,9 @@ de atributos de calidad, estimaciones solo en rangos con supuestos.
   no tiene web (`webfetch`/`websearch` deny, separación de roles). El primario
   `investigador` no se lanza como subagente.
 - `explore`: lectura del código existente para la fase de Detección.
+- Cualquier otro agente (`sysadmin`, `developer`, `cyberseguridad`, …): **solo por pedido u OK
+  explícito del driver** (v9, 2026-11-10). El ACL de `task` está abierto (`"*": allow`); el límite es
+  de prompt, incluido el anti-auto-spawn (`arquitecto` no se invoca a sí mismo) para no abrir bucles.
 
 ## Uso
 

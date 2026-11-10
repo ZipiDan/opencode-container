@@ -241,8 +241,16 @@ Arquitectura → Planificación → Tareas.
   directorio cuando el workspace root difiere del root del proyecto (root `/` + proyecto en
   `/workspace` → la ruta se relativiza como `workspace/documents/...`), así que el alcance
   (`documents/arquitectura/**` + scratch `/tmp/opencode/arquitecto/**`) se restringe **por prompt**
-  (guardrail 2), no por el motor; `bash: allow`; `task` allowlist `investigador*`/`explore`; sin
-  `webfetch`/`websearch` (el research se delega); `external_directory` acotado al scratch.
+  (guardrail 2), no por el motor; `bash: allow`; `task` abierto (`"*": allow`, v9) — el límite es de
+  prompt, no de ACL; sin `webfetch`/`websearch` (el research se delega); `external_directory`
+  acotado al scratch.
+- **Delegación (v9, 2026-11-10)**: `task: "*": allow` — puede invocar cualquier agente definido
+  (`sysadmin`, `developer`, `cyberseguridad`, …) **solo por pedido u OK explícito del driver**;
+  `explore` e `investigador/investigador-*` siguen siendo rutinarios. Mitigadores (el ACL era la
+  última barrera dura): anuncio en una línea antes de delegar, anti-auto-spawn (`arquitecto` no se
+  invoca a sí mismo), y reporte sin suavizar de lo que devuelva el delegado. Cambio autorizado por el
+  driver el 2026-11-10 y aplicado en dirección instalada→repo; sin auditoría de `cyberseguridad` por
+  decisión del driver.
 - **Comando**: `/arquitecto <idea>` (`src/commands/arquitecto.md`, frontmatter `agent: arquitecto`
   para correr bajo su envelope de permisos).
 - **Procedencia**: las plantillas y patrones provienen de guías verificadas en 6 idiomas con licencia

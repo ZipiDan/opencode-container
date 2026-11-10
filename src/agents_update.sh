@@ -444,10 +444,16 @@ if [[ "$UPDATE_DIRECTORY" == "true" ]]; then update_directories "$UPDATE_TARGET"
 
 mkdir -p "$DEST_DIR" "$SKILLS_DEST" "$STYLES_DEST" "$COMMANDS_DEST"
 
-# Devuelve la 'version:' entera del frontmatter de un archivo (0 si no existe).
+# Devuelve la 'version:' entera del frontmatter de un archivo, o VACÍO si no hay
+# una línea canónica `version: <entero>` (se toleran `version: 9` y `version:9`).
+# Nunca devuelve 0 por defecto: un 0 implícito se compara como versión real y
+# desactiva la detección de copias alteradas (ver TODO #15). Si hay varias líneas
+# de versión, gana la última.
 agent_version() {
   local file="$1"
-  sed -n '2,/^---$/p' "$file" | awk '/^[[:space:]]*version:[[:space:]]*[0-9]+[[:space:]]*$/ { v=$2 } END { print v+0 }'
+  sed -n '2,/^---$/p' "$file" |
+    sed -n 's/^[[:space:]]*version:[[:space:]]*\([0-9][0-9]*\)[[:space:]]*$/\1/p' |
+    tail -1
 }
 
 # Ruta relativa destino según el rol del archivo:
@@ -474,7 +480,11 @@ is_agent_file() {
 
 # Cola de cambios pendientes (compartida por los stages).
 declare -a pending_stage=() pending_rel=() pending_src=() pending_dst=() pending_kind=() pending_ver=()
-declare -a skipped_note=()
+# Copias instaladas con versión SUPERIOR a la del repo: alguien las editó y les
+# subió la versión fuera del repo. Es una señal de alteración deliberada, no un
+# "skip" benigno: se informa siempre (aunque no haya nada más que aplicar) y
+# nunca se sobrescribe sola. Formato de cada entrada: rel|dst_ver|src_ver.
+declare -a altered_note=()
 changed=0
 
 queue_change() {
@@ -544,11 +554,21 @@ for i in "${!managed_rel[@]}"; do
   dst_rel="${managed_dst_rel[$i]}"
   dst="${DEST_DIR}/${dst_rel}"
   src_ver="$(agent_version "$src")"
+  if [[ -z "$src_ver" ]]; then
+    echo "[ERROR] Cannot read an integer 'version:' in the repo file: $rel" >&2
+    echo "Expected a frontmatter line 'version: <integer>' (e.g. 'version: 9')." >&2
+    exit 1
+  fi
 
   if [[ ! -f "$dst" ]]; then
     queue_change "agents" "$dst_rel" "$src" "$dst" "INSTALL" "version $src_ver"
   else
     dst_ver="$(agent_version "$dst")"
+    if [[ -z "$dst_ver" ]]; then
+      echo "[ERROR] Cannot read an integer 'version:' in the installed file: $dst" >&2
+      echo "Fix its frontmatter (expected 'version: <integer>') and re-run." >&2
+      exit 1
+    fi
     src_hash="$(sha256sum "$src" | awk '{print $1}')"
     dst_hash="$(sha256sum "$dst" | awk '{print $1}')"
 
@@ -560,7 +580,7 @@ for i in "${!managed_rel[@]}"; do
         queue_change "agents" "$dst_rel" "$src" "$dst" "REPLACE" "version $src_ver"
       fi
     else
-      skipped_note+=("$dst_rel (installed version $dst_ver is newer than repo version $src_ver)")
+      altered_note+=("${dst_rel}|${dst_ver}|${src_ver}")
     fi
   fi
 
@@ -701,13 +721,41 @@ backup_remove() {
   rmdir "$(dirname "$path")" 2>/dev/null || true
 }
 
+# Informa las copias alteradas fuera del repo. Se llama ANTES del corte por
+# "nada que aplicar": si no, el aviso se pierde justo cuando el drift es lo
+# único que hay.
+print_altered_notes() {
+  [[ ${#altered_note[@]} -eq 0 ]] && return 0
+  echo ""
+  echo "${YELLOW}Deployed copies ALTERED outside the repo (installed version is newer than the repo's):${NC}"
+  local entry rel dst_ver src_ver
+  for entry in "${altered_note[@]}"; do
+    rel="${entry%%|*}"
+    dst_ver="${entry#*|}"
+    src_ver="${dst_ver#*|}"
+    dst_ver="${dst_ver%%|*}"
+    printf '  - %s[ALTERED] %s%s (installed v%s > repo v%s)\n' "$RED" "$rel" "$NC" "$dst_ver" "$src_ver"
+    echo "    The deployed file was edited outside this repo and is NOT overwritten."
+    echo "    If the repo reaches v${dst_ver} or higher, the deploy replaces it: local edits"
+    echo "    stop being active (a copy is kept in the deploy backup)."
+  done
+}
+
 if [[ "$CHECK_MODE" == "true" ]]; then
   echo "[--check mode: showing what would change. No changes will be made.]"
   echo ""
 fi
 
+print_altered_notes
+
 if [[ "$changed" -eq 0 ]]; then
-  echo "All custom agents, skills, styles and commands are up to date. Nothing to do."
+  if [[ ${#altered_note[@]} -gt 0 ]]; then
+    echo ""
+    echo "${RED}Nothing to apply, but ${#altered_note[@]} deployed file(s) are AHEAD of the repo (see above).${NC}"
+    echo "The repo is behind the installed copies: a deploy would NOT overwrite them."
+  else
+    echo "All custom agents, skills, styles and commands are up to date. Nothing to do."
+  fi
   echo "(Tools are not installed by default; use --install-tools to install them.)"
   exit 0
 fi
@@ -729,19 +777,10 @@ for i in "${!pending_rel[@]}"; do
   printf '%s  %s\n' "${RED}- [${pending_stage[$i]}] ${pending_rel[$i]}${NC}" "$note"
 done
 
-if [[ ${#skipped_note[@]} -gt 0 ]]; then
-  echo ""
-  echo "Skipped (not touched):"
-  for note in "${skipped_note[@]}"; do
-    printf '  - %s\n' "$note"
-  done
-fi
-
 echo ""
 echo "${YELLOW}These files will be REPLACED in your opencode configuration.${NC}"
-echo "${YELLOW}WARNING: If you made local changes to any of these files, those changes${NC}"
-echo "${YELLOW}will be lost. It is your responsibility to back them up first if you want${NC}"
-echo "${YELLOW}to keep them.${NC}"
+echo "${YELLOW}WARNING: local changes to any of these files stop being active.${NC}"
+echo "${YELLOW}A copy of every replaced file is kept in ${BACKUP_DIR}.${NC}"
 echo ""
 echo "Only the files under src/agents/, src/tools/ (incl. css-styles/) and"
 echo "src/commands/ are managed by this script (skills via src/agents/*/skills/)."
@@ -787,6 +826,7 @@ fi
 echo ""
 echo "Updating..."
 updated=0
+backups_made=0
 for i in "${!pending_rel[@]}"; do
   kind="${pending_kind[$i]}"
   rel="${pending_rel[$i]}"
@@ -802,6 +842,17 @@ for i in "${!pending_rel[@]}"; do
     echo "  [ERROR] Failed to create directory for $rel" >&2
     exit 1
   }
+  if [[ "$kind" == "UPDATE" || "$kind" == "REPLACE" ]]; then
+    mkdir -p "${BACKUP_DIR}/$(dirname "$rel")" || {
+      echo "  [ERROR] Failed to create backup directory for $rel" >&2
+      exit 1
+    }
+    if ! cp -p "$dst" "${BACKUP_DIR}/${rel}"; then
+      echo "  [ERROR] Failed to back up $rel" >&2
+      exit 1
+    fi
+    backups_made=$((backups_made + 1))
+  fi
   if ! cp -f "${pending_src[$i]}" "$dst"; then
     echo "  [ERROR] Failed to copy $rel" >&2
     exit 1
@@ -817,3 +868,6 @@ done
 
 echo ""
 echo "Done. $updated change(s) applied."
+if [[ "$backups_made" -gt 0 ]]; then
+  echo "Backups of the replaced files: ${BACKUP_DIR}"
+fi

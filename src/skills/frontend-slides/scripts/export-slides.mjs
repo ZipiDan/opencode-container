@@ -90,10 +90,27 @@ const port = await new Promise((resolvePort) => {
 });
 console.log(`  Servidor local (loopback) en puerto ${port}`);
 
-// ─── Screenshot por slide ─────────────────────────────────────────────────────────
-const browser = await chromium.launch({
+// ─── Opciones de lanzamiento de Chromium ─────────────────────────────────────────
+// Por defecto se usa el navegador que descarga playwright (~/.cache/ms-playwright).
+// En el contenedor de opencode.sh la imagen ya trae Chromium del sistema y se evita
+// duplicar 128 MB: PLAYWRIGHT_CHROMIUM_EXECUTABLE apunta a ese binario. Es una ruta,
+// no código, y debe ser absoluta (mismo criterio que la resolución de playwright).
+const CHROMIUM_EXECUTABLE = (() => {
+  const candidate = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  if (!candidate) return undefined;
+  if (!candidate.startsWith('/')) {
+    throw new Error('PLAYWRIGHT_CHROMIUM_EXECUTABLE debe ser una ruta absoluta');
+  }
+  return candidate;
+})();
+
+const LAUNCH_OPTIONS = {
+  executablePath: CHROMIUM_EXECUTABLE,
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-});
+};
+
+// ─── Screenshot por slide ─────────────────────────────────────────────────────────
+const browser = await chromium.launch(LAUNCH_OPTIONS);
 const page = await browser.newPage({ viewport: { width: VP_WIDTH, height: VP_HEIGHT } });
 
 await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' });
@@ -164,9 +181,7 @@ server.close();
 // ─── Ensamblar PDF ────────────────────────────────────────────────────────────────
 console.log('  Ensamblando PDF...');
 
-const browser2 = await chromium.launch({
-  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-});
+const browser2 = await chromium.launch(LAUNCH_OPTIONS);
 const pdfPage = await browser2.newPage();
 
 const imagesHtml = screenshotPaths.map((p) => {

@@ -344,7 +344,7 @@ para los propios agentes.
 
 ## Prerrequisitos
 
-- [Podman](https://podman.io/) instalado
+- [Podman](https://podman.io/) instalado (≥ 4.0 para los *cache mounts* del `Containerfile`)
 - Linux o macOS
 
 ## Instalación rápida

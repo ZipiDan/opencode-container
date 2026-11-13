@@ -28,6 +28,12 @@ relevante para el loader). Describe cómo re-vendorizar desde upstream.
      y la sección de Dependencias/`deps.sh`. Mantener Vercel excluido.
    - `scripts/export-pdf.sh`: no reimportar el instalador de playwright; portar solo mejoras de
      lógica al `export-slides.mjs`/wrapper local.
+   - `scripts/export-slides.mjs`: **preservar** `LAUNCH_OPTIONS` y la resolución de
+     `PLAYWRIGHT_CHROMIUM_EXECUTABLE` (validación de ruta absoluta). Si upstream reescribe el
+     `chromium.launch()`, re-aplicar el patch; sin él el export a PDF vuelve a fallar en el contenedor
+     porque la imagen **no** descarga el navegador de playwright.
+   - `scripts/deps.sh`: **preservar** `has_chromium` / `chromium_source` (Chromium del sistema) y el
+     mensaje de `doctor`.
    - `scripts/extract-pptx.py`: portar cambios, preservando el `try/except ImportError` accionable.
 4. Verificar que no se cuele `deploy.sh` ni referencias a Vercel/`.claude`:
    ```bash
@@ -35,9 +41,18 @@ relevante para el loader). Describe cómo re-vendorizar desde upstream.
    ```
 5. Subir `version:` en el frontmatter de `SKILL.md`.
 6. Validar en seco el deploy: `./src/agents_update.sh --check`.
-7. Auditoría de seguridad (gate) si cambió código de los scripts.
-8. Deploy: `./src/agents_update.sh`.
-9. Registrar en `BITACORA.md`.
+7. Validar el export a PDF (en el contenedor, o en host con `.deps/`):
+   ```bash
+   bash src/skills/frontend-slides/scripts/export-pdf.sh <deck.html> /tmp/check.pdf
+   ```
+   Es el chequeo que detecta si el patch de `executablePath` se perdió.
+8. Auditoría de seguridad (gate) si cambió código de los scripts.
+9. Deploy: `./src/agents_update.sh`.
+10. Correr la suite de no-regresión si el upgrade tocó scripts:
+    ```bash
+    bash documents/reports/test-rebuild.sh --skill-dir src/skills/frontend-slides
+    ```
+11. Registrar en `BITACORA.md`.
 
 ## Nota sobre Vercel
 

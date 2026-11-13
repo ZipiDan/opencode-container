@@ -68,8 +68,23 @@ browsers_path() {
 }
 
 has_chromium() {
+  # En el contenedor de opencode.sh se usa el Chromium del sistema
+  # (PLAYWRIGHT_CHROMIUM_EXECUTABLE) en vez de la caché de playwright, para no
+  # duplicar el navegador en la imagen.
+  if [ -n "${PLAYWRIGHT_CHROMIUM_EXECUTABLE:-}" ] && [ -x "${PLAYWRIGHT_CHROMIUM_EXECUTABLE}" ]; then
+    return 0
+  fi
   local bp; bp="$(browsers_path)"
   [ -n "$(find "$bp" -maxdepth 1 -iname 'chromium*' 2>/dev/null | head -1)" ]
+}
+
+# Origen del Chromium en uso, para los mensajes de `doctor`.
+chromium_source() {
+  if [ -n "${PLAYWRIGHT_CHROMIUM_EXECUTABLE:-}" ] && [ -x "${PLAYWRIGHT_CHROMIUM_EXECUTABLE}" ]; then
+    printf 'sistema: %s' "${PLAYWRIGHT_CHROMIUM_EXECUTABLE}"
+  else
+    printf 'playwright: %s' "$(browsers_path)"
+  fi
 }
 
 # ── Instrucciones por OS (H1) ─────────────────────────────────────────────────
@@ -144,7 +159,7 @@ doctor() {
   fi
 
   if has_chromium; then
-    ok "chromium headless ($(browsers_path))"
+    ok "chromium headless ($(chromium_source))"
   else
     miss "chromium headless"; missing=1
   fi

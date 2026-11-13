@@ -14,9 +14,9 @@ Convierte archivos `.mmd` (Mermaid) en `.png` sin usar ningún servicio web
 ## Requisitos
 
 1. `node` + `npx`.
-2. **Contenedor de opencode.sh**: `@mermaid-js/mermaid-cli` y un Chrome headless están
-   **horneados en la imagen**, junto con las librerías del sistema (libnspr4, libnss3, etc.).
-   No hay que instalar nada.
+2. **Contenedor de opencode.sh**: `@mermaid-js/mermaid-cli` y el **Chromium del sistema**
+   (`/usr/bin/chromium`, vía `PUPPETEER_EXECUTABLE_PATH`) están **horneados en la imagen**, junto con
+   las librerías del sistema (libnspr4, libnss3, etc.). No hay que instalar nada.
 3. **opencode en host**: el paquete se resuelve con `npx` (que lo baja on-demand la primera vez).
    Si Chrome falla por librerías faltantes, instalalas según tu distro:
 

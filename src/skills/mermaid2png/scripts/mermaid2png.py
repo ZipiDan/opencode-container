@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # mermaid2png.py — renderiza diagramas Mermaid (.mmd) a PNG localmente.
-# Pipeline: npx @mermaid-js/mermaid-cli + chrome-headless-shell (sin servicios de terceros).
+# Pipeline: npx @mermaid-js/mermaid-cli sobre el Chromium del sistema (sin servicios de terceros).
 # Uso:  python3 mermaid2png.py caso_1c.mmd            -> caso_1c.png al lado
 #       python3 mermaid2png.py caso_1c.mmd -o out.png -s 3
 import argparse

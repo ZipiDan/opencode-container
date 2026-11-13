@@ -13,6 +13,67 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [4.7.0] — 2026-11-13 · refactor de Containerfile
+
+> **Actualización requerida.** Esta versión corrige errores (export a PDF de `frontend-slides` y build de
+> ruff), así que hay que **regenerar la imagen** y **redesplegar los agentes/skills**:
+>
+> ```bash
+> ./opencode.sh --renew      # regenera la imagen desde cero y la reemplaza
+> ./src/agents_update.sh     # deploy de agentes, skills, estilos y comandos
+> ```
+>
+> Reconstruir la imagen **no alcanza**: el fix del export a PDF vive en el script del skill
+> (`frontend-slides`), que solo llega al contenedor con `agents_update.sh`.
+
+### Added
+- **ffmpeg en la imagen**: `ffmpeg` 7.1.5 + `ffprobe` (apt, +171 MB instalados, 87 dependencias) para
+  **procesar y editar video/audio** y para **armar videos a partir de capturas** —de programas o de
+  sitios que se naveguen por web— generadas con otras herramientas del contenedor: cortar, concatenar,
+  transcodificar, extraer audio, cambiar de formato y reescribir streams.
+- **Grabación de páginas web**: se instala también el `ffmpeg` propio de Playwright (`playwright install
+  ffmpeg`, 2,2 MB), el único que acepta `recordVideo` para capturar una página headless a `.webm`. **No**
+  reemplaza al de apt: aquel es un build mínimo (`--disable-everything`: solo VP9/webm, sin audio ni
+  `ffprobe`) y este es el CLI completo. Nunca se descarga un navegador de Playwright: el único es
+  `/usr/bin/chromium`.
+
+### Changed
+- `src/Containerfile` (**refactor**): build **más rápido y más liviano**.
+  - **Cache mounts** (`--mount=type=cache`) en `/var/cache/apt`, `/var/lib/apt/lists`, `/root/.npm` y
+    `/root/.cache/pip`. `--renew`/`--update` usan `--no-cache`, pero el cache mount persiste: dejan de
+    re-descargarse ~520 MB de `.deb` por rebuild. Por eso ya no se hace `apt-get clean` ni se borra
+    `/var/lib/apt/lists`.
+  - Se elimina `playwright install --with-deps`: disparaba un **tercer** ciclo de apt y sumaba ~94 MB
+    (servidor X de xvfb + fuentes `unifont`/`freefont`). Se declaran explícitamente `fonts-noto-color-emoji`,
+    `fonts-wqy-zenhei` y `fonts-ipafont-gothic` (~39 MB) para que emoji y etiquetas CJK de los diagramas
+    Mermaid sigan renderizando. El único Chromium es `/usr/bin/chromium` (`PUPPETEER_EXECUTABLE_PATH` +
+    `PLAYWRIGHT_CHROMIUM_EXECUTABLE`): −128 MB de navegador duplicado.
+  - Los `COPY` de `tools/` (`md2pdf.py`, `css-styles/`, `landlock_rosh`) se mueven al final: antes
+    estaban por delante de las capas caras (chromium ~300 MB, rustup ~850 MB), así que tocar un CSS
+    invalidaba todo eso en el siguiente `--rebuild`.
+  - Los cuatro pares `COPY` + `RUN chmod` del bloque final se fusionan en `COPY --chmod=755` (md2pdf,
+    landlock_rosh, entrypoint, credentials): el build pasa de 26 a **23 instrucciones** (−3 commits de
+    capa, caros con `fuse-overlayfs`). El smoke test de `landlock_rosh` se mantiene como `RUN` porque
+    verifica, no cambia permisos. Requiere Podman ≥ 4.4 (buildah 1.31).
+  - `npm install` con `--no-audit --no-fund` y sin los `rm -rf` de caché, que ahora viven fuera de la capa.
+- `QUICKSTART.md` / `README.md`: Podman **≥ 4.0** como prerrequisito (cache mounts).
+
+### Fixed
+- `src/Containerfile`: la instalación de **ruff** rompía el build con
+  `tar: ruff-x86_64-unknown-linux-gnu: Cannot change mode to rwxr-xr-x: Operation not permitted`.
+  El tarball de GitHub Releases viene empaquetado por el runner de CI con owner `1001:117`
+  (`runner/docker`) y `tar`, al correr como root, intentaba imponer ese owner/mode sobre el storage
+  del build. Ahora se extrae con `--no-same-owner --no-same-permissions` en un directorio propio
+  (`/tmp/ruff-install`) y se copia con `install -m 755`, que deja el binario como `root:root` (el
+  `mv` anterior preservaba el uid 1001). Se agrega `ruff --version` como smoke test del paso y
+  `curl --retry 3` para los cortes de stream de GitHub. Se sigue usando `latest`: no hay pinning.
+- `src/skills/frontend-slides`: el export a PDF estaba **roto en el contenedor**. `playwright install
+  --only-shell chromium` bajaba 126 MB a `/root/.cache/ms-playwright` y la capa de rustup los borraba
+  después con `rm -rf /root/.cache`, así que `chromium.launch()` fallaba con *Executable doesn't exist*.
+  Ahora la imagen usa un solo Chromium (el del sistema) y `export-slides.mjs` lo toma de
+  `PLAYWRIGHT_CHROMIUM_EXECUTABLE`. `deps.sh doctor` reporta el origen (`sistema:` o `playwright:`)
+  y `has_chromium` acepta el binario del sistema.
+
 ## [4.6.0] — 2026-11-10
 
 ### Added

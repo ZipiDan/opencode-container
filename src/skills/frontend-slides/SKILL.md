@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MPL-2.0
 name: frontend-slides
 description: Crea presentaciones HTML impresionantes (animadas, autocontenidas) desde cero o convirtiendo PowerPoint, con descubrimiento visual de estilo anti-"AI slop". Usar cuando se quiera armar una presentación/deck, convertir un PPT/PPTX a web, o generar slides para una charla/pitch. También exporta a PDF localmente. Vendorizada de zarazhangrui/frontend-slides (MIT).
-version: 1
+version: 2
 ---
 
 # Frontend Slides
@@ -36,9 +36,10 @@ El núcleo (generar HTML) es **zero-dependency**. Las dependencias externas apli
 |---|---|
 | Generación de decks (Fases 0–3, 5) | ninguna |
 | Conversión PPT (Fase 4) | `python-pptx` (Python) |
-| Export a PDF (Fase 6) | `node`, `playwright`, Chromium |
+| Export a PDF (Fase 6) | `node`, `playwright`, Chromium (en el contenedor, `/usr/bin/chromium` vía `PLAYWRIGHT_CHROMIUM_EXECUTABLE`) |
 
 **Contenedor de opencode.sh**: estas dependencias ya están horneadas en la imagen → `doctor` da OK.
+El navegador es el Chromium del sistema: la imagen **no** descarga el de Playwright.
 **opencode en host**: corré primero `bash scripts/deps.sh doctor`. Para provisionar de forma aislada
 (sin root, sin ensuciar el sistema): `bash scripts/deps.sh install` (crea `scripts/../.deps/` con un
 venv de Python y `node_modules/` + browsers de Playwright). Si algo no se puede, el script imprime

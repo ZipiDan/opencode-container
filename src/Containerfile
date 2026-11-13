@@ -9,7 +9,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN echo "wireshark-common wireshark-common/install-setuid boolean false" | debconf-set-selections
 
 # Instalar todas las herramientas: esenciales, build, python, red y utilidades varias
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Los índices de apt y los .deb van a cache mounts de Podman: `--rebuild`/`--renew`
+# reejecutan el RUN (--no-cache), pero el cache mount persiste entre builds, así que
+# no se re-descargan ~300 MB de paquetes en cada reconstrucción. Por eso NO se borra
+# /var/lib/apt/lists ni se hace `apt-get clean`: ya no viven en la capa.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     wget \
@@ -33,6 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-venv \
     python3-markdown \
     weasyprint \
+    ffmpeg \
     nodejs \
     npm \
     iputils-ping \
@@ -49,28 +56,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     musl-tools \
     ansible \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*.bin /var/cache/debconf/*-old
+    && rm -rf /var/cache/debconf/*-old
 
 # Create a fake xdg-open
 RUN printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/xdg-open && chmod +x /usr/local/bin/xdg-open
-
-# Comando md2pdf: convierte un informe Markdown a PDF (usa el python del sistema,
-# que ve los paquetes apt python3-markdown y weasyprint; no toca el venv del proyecto)
-COPY tools/md2pdf.py /usr/local/bin/md2pdf
-RUN chmod +x /usr/local/bin/md2pdf
-
-# Estilos CSS para md2pdf (fallback del sistema; la config global del usuario
-# montada en ~/.config/opencode/css-styles/ tiene prioridad)
-COPY tools/css-styles/ /usr/local/share/md2pdf/css-styles/
-
-# landlock_rosh: sandbox read-only para diagnóstico remoto.
-# Es un binario estático x86_64 que se usa en servidores REMOTOS; en el
-# contenedor solo vive como payload para copiarlo al target. No se ejecuta
-# localmente (el smoke test es solo de build y condicional por arquitectura).
-COPY tools/landlock_rosh /usr/local/bin/landlock_rosh
-RUN chmod 755 /usr/local/bin/landlock_rosh \
-    && if [ "$(uname -m)" = "x86_64" ]; then /usr/local/bin/landlock_rosh --version; fi
 
 # Crear la estructura de directorios usada por opencode.sh para XDG
 RUN mkdir -p /home/opencode/.config \
@@ -83,64 +72,111 @@ RUN curl -fsSL https://opencode.ai/v2/install | bash \
     && ln -sf /root/.opencode/bin/opencode /usr/local/bin/opencode \
     && rm -rf /tmp/* /var/tmp/*
 
-# Instalar pyright (LSP de Python por defecto de OpenCode) vía npm
-RUN npm install -g pyright \
-    && npm cache clean --force \
-    && rm -rf /root/.npm /root/.cache
+# Instalar pyright (LSP de Python por defecto de OpenCode) vía npm.
+# El cache de npm va a un cache mount: no queda en la capa ni hace falta limpiarlo.
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g pyright
 
 # Instalar ruff (linter/formatter de Python) como binario estático global.
 # Binario precompilado de GitHub releases (latest): no toca el venv del proyecto
 # ni el python del sistema. Va a /usr/local/bin para no ser enmascarado por los
 # mounts por-proyecto (/workspace/rust, /workspace/python).
-RUN curl -fsSL "https://github.com/astral-sh/ruff/releases/latest/download/ruff-x86_64-unknown-linux-gnu.tar.gz" \
-    | tar -xz -C /tmp \
-    && mv /tmp/ruff-x86_64-unknown-linux-gnu/ruff /usr/local/bin/ruff \
-    && rm -rf /tmp/* /var/tmp/*
+# El tarball lo empaqueta el runner de CI de ruff (owner 1001:117): tar corre como
+# root en el build y trata de imponer ese owner/mode, lo que revienta con EPERM
+# ("Cannot change mode to rwxr-xr-x") en capas de storage que emulan ownership.
+# --no-same-owner/--no-same-permissions lo evitan e install normaliza dueño/modo.
+# El smoke test corta acá si upstream cambia el layout del tarball (mismo patrón
+# que landlock_rosh) en vez de dejar un binario vacío en la imagen.
+RUN mkdir -p /tmp/ruff-install \
+    && curl -fsSL --retry 3 "https://github.com/astral-sh/ruff/releases/latest/download/ruff-x86_64-unknown-linux-gnu.tar.gz" \
+    | tar -xz --no-same-owner --no-same-permissions -C /tmp/ruff-install \
+    && install -m 755 /tmp/ruff-install/ruff-x86_64-unknown-linux-gnu/ruff /usr/local/bin/ruff \
+    && /usr/local/bin/ruff --version \
+    && rm -rf /tmp/ruff-install
 
 # Dependencias de las skills globales frontend-slides y mermaid2png (horneadas, offline):
 #  - python-pptx (conversión PPT). NO está en Debian trixie → pip del sistema.
-#  - playwright + Chromium headless shell (export PDF de frontend-slides).
-#  - @mermaid-js/mermaid-cli usando el Chromium del sistema (render de mermaid2png).
-#  - libs del sistema para Chrome/Chromium (las instala playwright --with-deps).
-# Limpieza: se borran cachés y temporales de instalación (apt/npm/pip) conservando
-# solo los artefactos (node_modules globales y los browsers de playwright).
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends chromium fonts-liberation fonts-dejavu-core \
-    && pip install --break-system-packages --no-cache-dir python-pptx \
-    && PUPPETEER_SKIP_DOWNLOAD=1 npm install -g playwright @mermaid-js/mermaid-cli \
-    && npx playwright install --with-deps --only-shell chromium \
-    && npm cache clean --force \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*.bin /var/cache/debconf/*-old \
-              /root/.npm /root/.cache/pip /tmp/* /var/tmp/*
+#  - playwright (export PDF de frontend-slides) y @mermaid-js/mermaid-cli (render de
+#    mermaid2png), ambos apuntando al Chromium del sistema (ver ENV más abajo).
+#  - libs del sistema para Chrome/Chromium: las trae el propio paquete `chromium`. Ya no se
+#    invoca `playwright install --with-deps`, que disparaba un tercer ciclo de apt y sumaba
+#    ~94 MB, casi todo el servidor X de xvfb (inútil en headless) y fuentes Unicode gigantes
+#    (unifont, freefont). Se declaran explícitamente solo las fuentes de render:
+#      · fonts-noto-color-emoji → emoji en tableros Mermaid (sin ella salen cuadraditos)
+#      · fonts-wqy-zenhei       → etiquetas en chino en diagramas
+#      · fonts-ipafont-gothic   → etiquetas en japonés en diagramas
+#    Total ~39 MB en lugar de ~94 MB, sin el lastre del servidor X.
+# Limpieza: solo temporales; los cachés de apt/npm/pip viven en cache mounts, no en la capa.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.cache/pip \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+         chromium fonts-liberation \
+         fonts-noto-color-emoji fonts-wqy-zenhei fonts-ipafont-gothic \
+    && pip install --break-system-packages python-pptx \
+    && PUPPETEER_SKIP_DOWNLOAD=1 npm install -g playwright @mermaid-js/mermaid-cli --no-audit --no-fund \
+    && npx --yes playwright install ffmpeg \
+    && rm -rf /tmp/* /var/tmp/* /var/cache/debconf/*-old
 
-# mermaid2png: puppeteer usa el Chromium del sistema (evita duplicar navegador).
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+# Un solo Chromium en la imagen para los tres consumidores:
+#  - mermaid2png (puppeteer) lo toma por PUPPETEER_EXECUTABLE_PATH.
+#  - frontend-slides (playwright) lo toma por PLAYWRIGHT_CHROMIUM_EXECUTABLE.
+# Antes, `playwright install` bajaba 126 MB de headless shell que la capa de rustup
+# borraba después con `rm -rf /root/.cache`: peso muerto en la imagen y export a PDF roto.
+# Sí se baja el ffmpeg de playwright (2,2 MB): lo exige `recordVideo` y no acepta el
+# ffmpeg del sistema. Nunca se instala un navegador de playwright.
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium
 
 # Instalar toolchain de Rust vía rustup (estable) + objetivo musl para binarios estáticos.
 # RUSTUP_HOME queda en la imagen (/root/.rustup); en runtime opencode.sh monta el proyecto
 # y entrypoint.sh re-expone los binarios dentro del CARGO_HOME per-proyecto (<proyecto>/rust).
 # CARGO_HOME/CARGO_TARGET_DIR apuntan a /workspace/rust: registry/, target/ y bin/ viven ahí,
 # aislados por proyecto y fuera del árbol del workspace.
+# Ojo: NO borrar /root/.cache acá. Esa limpieza se llevaba puesto el navegador de playwright
+# cuando lo instalaba `playwright install`; hoy no se descarga, pero el patrón era una trampa.
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
     && /root/.cargo/bin/rustup target add x86_64-unknown-linux-musl \
     && /root/.cargo/bin/rustup component remove rust-docs \
-    && rm -rf /root/.rustup/tmp /root/.rustup/downloads /root/.npm /root/.cache /tmp/* /var/tmp/*
+    && rm -rf /root/.rustup/tmp /root/.rustup/downloads /tmp/* /var/tmp/*
 
 ENV RUSTUP_HOME=/root/.rustup \
     CARGO_HOME=/workspace/rust \
     CARGO_TARGET_DIR=/workspace/rust/target \
     PATH="/root/.cargo/bin:${PATH}"
 
+# ─── Archivos propios del proyecto ───────────────────────────────────────────────
+# Van al final a propósito: son los que más cambian. Antes estaban antes de las capas
+# caras (chromium ~300 MB, rustup ~850 MB), así que tocar un CSS invalidaba todo eso.
+# Con este orden, editar md2pdf.py o los estilos solo reconstruye estos pasos.
+
+# Comando md2pdf: convierte un informe Markdown a PDF (usa el python del sistema,
+# que ve los paquetes apt python3-markdown y weasyprint; no toca el venv del proyecto)
+# COPY --chmod evita un RUN solo para el chmod: cada instrucción es un commit de capa
+# (caro con fuse-overlayfs), así que fusionarlas ahorra 3 capas al final del build.
+COPY --chmod=755 tools/md2pdf.py /usr/local/bin/md2pdf
+
+# Estilos CSS para md2pdf (fallback del sistema; la config global del usuario
+# montada en ~/.config/opencode/css-styles/ tiene prioridad)
+COPY tools/css-styles/ /usr/local/share/md2pdf/css-styles/
+
+# landlock_rosh: sandbox read-only para diagnóstico remoto.
+# Es un binario estático x86_64 que se usa en servidores REMOTOS; en el
+# contenedor solo vive como payload para copiarlo al target. No se ejecuta
+# localmente (el smoke test es solo de build y condicional por arquitectura).
+COPY --chmod=755 tools/landlock_rosh /usr/local/bin/landlock_rosh
+# El smoke test queda como RUN propio: es una verificación, no un chmod.
+RUN if [ "$(uname -m)" = "x86_64" ]; then /usr/local/bin/landlock_rosh --version; fi
+
 # Copiar y preparar el entrypoint que decide entre modo web y TUI
-COPY entrypoint.sh /usr/local/bin/opencode-entrypoint.sh
-RUN chmod +x /usr/local/bin/opencode-entrypoint.sh
+COPY --chmod=755 entrypoint.sh /usr/local/bin/opencode-entrypoint.sh
 
 # Herramienta de credenciales compartidas: siembra el auth.json canónico en la
 # base SQLite del proyecto (opencode v2 guarda las credenciales por proyecto),
 # exporta las credenciales del proyecto al canónico y las escribe por stdin.
-COPY credentials.py /usr/local/bin/opencode-credentials
-RUN chmod +x /usr/local/bin/opencode-credentials
+COPY --chmod=755 credentials.py /usr/local/bin/opencode-credentials
 
 # Directorio de trabajo por defecto: coincide con el volumen montado en opencode.sh
 WORKDIR /workspace

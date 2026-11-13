@@ -17,7 +17,7 @@ El detalle completo está en [`README.md`](README.md); la gramática de flags, e
 
 ## 2. Prerrequisitos
 
-- [Podman](https://podman.io/) instalado → `podman --version`
+- [Podman](https://podman.io/) instalado → `podman --version` (≥ 4.0: el `Containerfile` usa *cache mounts*, `RUN --mount=type=cache`, para no re-descargar los paquetes de apt en cada rebuild)
 - Linux o macOS
 
 ## 3. Instalación (30 segundos)

@@ -12,109 +12,29 @@
 //   3. Cuenta las slides, navega una por una y saca un screenshot.
 //   4. Combina los screenshots en un único PDF (una página por slide).
 //
-// Seguridad:
-//   - El paquete playwright se resuelve SOLO desde ubicaciones conocidas de node_modules
-//     (.deps/node_modules/playwright o /usr/local/lib/node_modules/playwright). No se carga
-//     código desde variables de entorno arbitrarias.
-//   - El servidor estático confina las rutas a SERVE_DIR (rechaza path traversal) y escucha
-//     únicamente en 127.0.0.1.
+// La resolución de playwright/Chromium, el servidor estático y la apertura del deck viven en
+// lib/browser.mjs. Acá queda solo la lógica de slides y el ensamblado del PDF.
 
-import { createRequire } from 'node:module';
-import { createServer } from 'node:http';
-import { readFileSync, mkdirSync, unlinkSync } from 'node:fs';
-import { join, extname, resolve, sep } from 'node:path';
+import { mkdirSync, readFileSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { launchOptions, loadPlaywright, openDeck, startStaticServer } from './lib/browser.mjs';
 
-// Resolución acotada de playwright (sin rutas de entorno arbitrarias).
-function loadPlaywright() {
-  const candidates = [
-    '/usr/local/lib/node_modules/playwright',
-    join(process.cwd(), 'node_modules', 'playwright'),
-    join(import.meta.dirname, '..', '.deps', 'node_modules', 'playwright'),
-  ];
-  for (const dir of candidates) {
-    try {
-      const req = createRequire(join(dir, 'index.js'));
-      return req(dir);
-    } catch { /* siguiente candidato */ }
-  }
-  // Último recurso: resolución normal de Node (paquete instalado en el proyecto).
-  return createRequire(import.meta.url)('playwright');
-}
 const { chromium } = loadPlaywright();
 
-const SERVE_DIR = resolve(process.argv[2]);
+const SERVE_DIR = process.argv[2];
 const HTML_FILE = process.argv[3];
 const OUTPUT_PDF = process.argv[4];
 const SCREENSHOT_DIR = process.argv[5];
 const VP_WIDTH = parseInt(process.argv[6], 10) || 1920;
 const VP_HEIGHT = parseInt(process.argv[7], 10) || 1080;
 
-// ─── Servidor estático (confinado a SERVE_DIR, solo loopback) ─────────────────────
-const MIME_TYPES = {
-  '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
-  '.mjs': 'application/javascript', '.json': 'application/json', '.png': 'image/png',
-  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml',
-  '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf',
-  '.eot': 'application/vnd.ms-fontobject',
-};
-
-const server = createServer((req, res) => {
-  let decodedUrl;
-  try {
-    decodedUrl = decodeURIComponent(req.url);
-  } catch {
-    res.writeHead(400);
-    res.end('Bad request');
-    return;
-  }
-  const filePath = resolve(SERVE_DIR, decodedUrl === '/' ? HTML_FILE : '.' + decodedUrl);
-  // Confinamiento: la ruta resuelta debe quedar dentro de SERVE_DIR.
-  if (filePath !== SERVE_DIR && !filePath.startsWith(SERVE_DIR + sep)) {
-    res.writeHead(403);
-    res.end('Forbidden');
-    return;
-  }
-  try {
-    const content = readFileSync(filePath);
-    const ext = extname(filePath).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
-    res.end(content);
-  } catch {
-    res.writeHead(404);
-    res.end('Not found');
-  }
-});
-
-const port = await new Promise((resolvePort) => {
-  server.listen(0, '127.0.0.1', () => resolvePort(server.address().port));
-});
-console.log(`  Servidor local (loopback) en puerto ${port}`);
-
-// ─── Opciones de lanzamiento de Chromium ─────────────────────────────────────────
-// Por defecto se usa el navegador que descarga playwright (~/.cache/ms-playwright).
-// En el contenedor de opencode.sh la imagen ya trae Chromium del sistema y se evita
-// duplicar 128 MB: PLAYWRIGHT_CHROMIUM_EXECUTABLE apunta a ese binario. Es una ruta,
-// no código, y debe ser absoluta (mismo criterio que la resolución de playwright).
-const CHROMIUM_EXECUTABLE = (() => {
-  const candidate = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
-  if (!candidate) return undefined;
-  if (!candidate.startsWith('/')) {
-    throw new Error('PLAYWRIGHT_CHROMIUM_EXECUTABLE debe ser una ruta absoluta');
-  }
-  return candidate;
-})();
-
-const LAUNCH_OPTIONS = {
-  executablePath: CHROMIUM_EXECUTABLE,
-  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-};
+// ─── Servidor estático y navegador ───────────────────────────────────────────────
+const server = await startStaticServer({ serve_dir: SERVE_DIR, html_file: HTML_FILE });
+console.log(`  Servidor local (loopback) en puerto ${server.port}`);
 
 // ─── Screenshot por slide ─────────────────────────────────────────────────────────
-const browser = await chromium.launch(LAUNCH_OPTIONS);
-const page = await browser.newPage({ viewport: { width: VP_WIDTH, height: VP_HEIGHT } });
-
-await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' });
-await page.evaluate(() => document.fonts.ready);
+const browser = await chromium.launch(launchOptions());
+const page = await openDeck({ browser, url: server.url, width: VP_WIDTH, height: VP_HEIGHT });
 await page.waitForTimeout(1500);
 
 const slideCount = await page.evaluate(() => document.querySelectorAll('.slide').length);
@@ -141,10 +61,10 @@ for (let i = 0; i < slideCount; i++) {
         slide.style.visibility = 'visible';
         slide.style.position = 'relative';
         slide.style.transform = 'none';
-        slide.classList.add('active');
+        slide.classList.add('active', 'visible');
       } else {
         slide.style.display = 'none';
-        slide.classList.remove('active');
+        slide.classList.remove('active', 'visible');
       }
     });
     if (window.presentation && typeof window.presentation.goToSlide === 'function') {
@@ -167,6 +87,22 @@ for (let i = 0; i < slideCount; i++) {
     }
   }, i);
 
+  // Las entradas de los decks usan transiciones con `transition-delay: var(--d)` (o keyframes):
+  // si se fotografía antes de que terminen, la página sale con el contenido todavía invisible.
+  // Terminarlas es instantáneo y deja cada elemento en su estado final, que es lo que un PDF
+  // estático tiene que mostrar. Las animaciones infinitas (cursores, pulsos) no se pueden
+  // "terminar" y se dejan como están.
+  await page.evaluate(() => {
+    for (const anim of document.getAnimations()) {
+      if (anim.effect?.getTiming?.().iterations === Infinity) continue;
+      try {
+        anim.finish();
+      } catch {
+        /* la transición ya no existe: no hay nada que terminar */
+      }
+    }
+  });
+
   await page.waitForTimeout(100);
 
   const screenshotPath = join(SCREENSHOT_DIR, `slide-${String(i + 1).padStart(3, '0')}.png`);
@@ -181,7 +117,7 @@ server.close();
 // ─── Ensamblar PDF ────────────────────────────────────────────────────────────────
 console.log('  Ensamblando PDF...');
 
-const browser2 = await chromium.launch(LAUNCH_OPTIONS);
+const browser2 = await chromium.launch(launchOptions());
 const pdfPage = await browser2.newPage();
 
 const imagesHtml = screenshotPaths.map((p) => {

@@ -57,22 +57,17 @@ OUTPUT_PDF="${OUTPUT_DIR}/$(basename "$OUTPUT_PDF")"
 # ── Dependencias ──────────────────────────────────────────────────────────────
 command -v node >/dev/null 2>&1 || { err "Falta node. Corré: bash scripts/deps.sh doctor"; exit 3; }
 
-PW_MODULE=""
-for cand in "${DEPS_DIR}/node_modules/playwright" /usr/local/lib/node_modules/playwright; do
-  [ -d "$cand" ] && { PW_MODULE="$cand"; break; }
-done
-if [ -z "$PW_MODULE" ] && command -v npm >/dev/null 2>&1; then
-  root="$(npm root -g 2>/dev/null || true)"
-  [ -n "$root" ] && [ -d "${root}/playwright" ] && PW_MODULE="${root}/playwright"
-fi
-if [ -z "$PW_MODULE" ] || [ ! -d "$PW_MODULE" ]; then
-  err "Falta playwright. Corré: bash scripts/deps.sh doctor"
-  exit 3
-fi
-
 # Browsers aislados en host (.deps); en contenedor se usa la caché por defecto.
 if [ -d "${DEPS_DIR}/browsers" ]; then
   export PLAYWRIGHT_BROWSERS_PATH="${DEPS_DIR}/browsers"
+fi
+
+# Después de PLAYWRIGHT_BROWSERS_PATH: el doctor resuelve el navegador con chromium.executablePath().
+DOCTOR_OUT=""
+if ! DOCTOR_OUT="$(node "${HERE}/lib/browser.mjs" --doctor 2>&1)"; then
+  printf '%s\n' "$DOCTOR_OUT" >&2
+  err "Falta playwright o Chromium. Corré: bash scripts/deps.sh doctor"
+  exit 3
 fi
 
 # ── Export ────────────────────────────────────────────────────────────────────

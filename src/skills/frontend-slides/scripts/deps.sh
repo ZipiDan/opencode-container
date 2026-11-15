@@ -45,48 +45,6 @@ resolve_python() {
   return 1
 }
 
-# ── Resolución del paquete npm de playwright (solo ubicaciones de node_modules) ──
-resolve_pw_module() {
-  local cand root
-  for cand in "${DEPS_DIR}/node_modules/playwright" /usr/local/lib/node_modules/playwright; do
-    [ -d "$cand" ] && { printf '%s' "$cand"; return 0; }
-  done
-  if has_cmd npm; then
-    root="$(npm root -g 2>/dev/null || true)"
-    [ -n "$root" ] && [ -d "${root}/playwright" ] && { printf '%s' "${root}/playwright"; return 0; }
-  fi
-  return 1
-}
-
-# ── Resolución de la caché de browsers de playwright ──────────────────────────
-browsers_path() {
-  if [ -d "${DEPS_DIR}/browsers" ]; then
-    printf '%s' "${DEPS_DIR}/browsers"
-  else
-    printf '%s' "${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
-  fi
-}
-
-has_chromium() {
-  # En el contenedor de opencode.sh se usa el Chromium del sistema
-  # (PLAYWRIGHT_CHROMIUM_EXECUTABLE) en vez de la caché de playwright, para no
-  # duplicar el navegador en la imagen.
-  if [ -n "${PLAYWRIGHT_CHROMIUM_EXECUTABLE:-}" ] && [ -x "${PLAYWRIGHT_CHROMIUM_EXECUTABLE}" ]; then
-    return 0
-  fi
-  local bp; bp="$(browsers_path)"
-  [ -n "$(find "$bp" -maxdepth 1 -iname 'chromium*' 2>/dev/null | head -1)" ]
-}
-
-# Origen del Chromium en uso, para los mensajes de `doctor`.
-chromium_source() {
-  if [ -n "${PLAYWRIGHT_CHROMIUM_EXECUTABLE:-}" ] && [ -x "${PLAYWRIGHT_CHROMIUM_EXECUTABLE}" ]; then
-    printf 'sistema: %s' "${PLAYWRIGHT_CHROMIUM_EXECUTABLE}"
-  else
-    printf 'playwright: %s' "$(browsers_path)"
-  fi
-}
-
 # ── Instrucciones por OS (H1) ─────────────────────────────────────────────────
 detect_os() {
   case "$(uname -s)" in
@@ -133,6 +91,16 @@ os_instructions() {
   esac
   echo "       npm install -g playwright && npx playwright install --with-deps --only-shell chromium"
   echo ""
+  echo "  3) ffmpeg (export de video):"
+  case "$os" in
+    debian|wsl) echo "       sudo apt-get install -y ffmpeg";;
+    fedora)     echo "       sudo dnf install -y ffmpeg   (rpmfusion si no está en los repos base)";;
+    arch)       echo "       sudo pacman -S ffmpeg";;
+    suse)       echo "       sudo zypper install -y ffmpeg";;
+    macos)      echo "       brew install ffmpeg";;
+    *)          echo "       instalá ffmpeg (https://ffmpeg.org/download.html)";;
+  esac
+  echo ""
   echo -e "  ${YELLOW}Alternativa recomendada (aislada, sin root):${NC} bash scripts/deps.sh install --yes"
   echo ""
 }
@@ -141,27 +109,31 @@ os_instructions() {
 doctor() {
   echo -e "${BOLD}Frontend Slides — diagnóstico de dependencias${NC}"
   echo ""
-  local missing=0 py pw
+  local missing=0 py ff_ver
 
-  if has_cmd node; then ok "node ($(node --version 2>/dev/null))"; else miss "node (export PDF)"; missing=1; fi
+  if has_cmd node; then
+    ok "node ($(node --version 2>/dev/null))"
+    # playwright y el navegador se resuelven en un único lugar (lib/browser.mjs). La salida se
+    # muestra tal cual —"módulo:" y "navegador:"— y un exit code no-cero significa que falta algo.
+    node "${HERE}/lib/browser.mjs" --doctor || missing=1
+  else
+    miss "node (export video/PDF)"; missing=1
+  fi
+
   if has_cmd npx;  then ok "npx"; else miss "npx"; missing=1; fi
+
+  # ffmpeg sólo lo necesita el export a video (Fase 7), pero el diagnóstico es uno solo.
+  if has_cmd ffmpeg; then
+    ff_ver="$(ffmpeg -version 2>/dev/null | awk 'NR == 1 { print $3 }')"
+    ok "ffmpeg (${ff_ver:-?})"
+  else
+    miss "ffmpeg (export video)"; missing=1
+  fi
 
   if py="$(resolve_python)"; then
     ok "python con python-pptx ($py)"
   else
     miss "python-pptx (conversión PPT)"; missing=1
-  fi
-
-  if pw="$(resolve_pw_module)"; then
-    ok "playwright ($pw)"
-  else
-    miss "playwright (export PDF)"; missing=1
-  fi
-
-  if has_chromium; then
-    ok "chromium headless ($(chromium_source))"
-  else
-    miss "chromium headless"; missing=1
   fi
 
   echo ""

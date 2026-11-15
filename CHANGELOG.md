@@ -13,6 +13,59 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [4.8.0] — 2026-11-15 · export a video
+
+> **Actualización recomendada.** No cambia la imagen: **no hace falta `--renew`**. La skill
+> `frontend-slides` se actualiza con:
+>
+> ```bash
+> ./src/agents_update.sh     # deploy de agentes, skills, estilos y comandos
+> ```
+>
+> El export a video usa el `ffmpeg` que ya viene en la imagen desde la 4.7.0.
+
+### Added
+- **Export a video (MP4) en `frontend-slides`**: `bash scripts/export-video.sh <deck.html> [salida.mp4]
+  [opciones]` convierte el deck HTML en un MP4 determinista, sin tocar la generación de slides. El motor
+  (`scripts/capture-video.mjs`) detiene el reloj de pared: pausa cada transición CSS/WAAPI y la conduce
+  con un reloj virtual (`T = n / fps`), así el video no se desfasa aunque cada screenshot tarde ~300 ms.
+  Los frames van a `ffmpeg` por stdin (`image2pipe`), sin escribir nada en disco.
+  - Timeline derivado del número de slides: `total = (N-1) × (dwell + fade) + closing`,
+    `frames = round(total × fps)`. Defaults: 30 fps, dwell 1.2 s, crossfade 0.35 s, cierre 2.1 s.
+  - Parámetros: `--fps`, `--dwell`, `--closing`, `--duration` (deriva el dwell), `--hold i=s` (por slide,
+    0-based), `--quality max|fast`, `--dry-run`, `--smoke`, `--keep-frames`, `--hide-chrome`,
+    `--allow-fallback-fonts`.
+  - Costo medido (1920×1080, deck de 19 slides): 900 frames ≈ 4,5 min en `max` (PNG + x264 slow crf 18)
+    y ≈ 1,3 min en `fast` (JPEG q100 + veryfast crf 20). El script **nunca** abre un prompt: sin
+    `--quality` usa `max`.
+- **`scripts/lib/browser.mjs`**: único lugar donde se resuelven `playwright` y Chromium. Expone
+  `loadPlaywright()`, `launchOptions()`, `startStaticServer()` y `openDeck()`, y `--doctor` imprime
+  `módulo:` y `navegador:`. Sin `NODE_PATH` y sin rutas de entorno arbitrarias.
+- **`scripts/tests/guard.mjs`**: guard mecánico (R1–R3) que falla si vuelve el Chromium hardcodeado, un
+  `playwright` importado pelado o una segunda lista de candidatos fuera de `lib/browser.mjs`.
+- **`src/bonus/setup-subuid.sh`**: ayuda para provisionar rangos `subuid`/`subgid` en hosts donde Podman
+  rootless no arranca por no tenerlos (equipos de dominio, instalaciones viejas). Es un prerrequisito de
+  Podman, no un problema de opencode; tiene su propio `src/bonus/README.md`.
+
+### Changed
+- `deps.sh doctor` ahora **verifica `ffmpeg`** (el export a video lo necesita) y reporta su versión.
+- `deps.sh`, `export-pdf.sh` y `export-slides.mjs` delegan la resolución de playwright/Chromium en
+  `lib/browser.mjs`: una sola fuente de verdad. `export-pdf.sh` valida cargando el módulo y avisa con
+  exit 3 y la causa si falta algo.
+- `SKILL.md` (`version: 3`): **Fase 7 "Export a video"** con la tabla completa de parámetros, la guía de
+  decisión y los límites conocidos (el reloj virtual cubre CSS/WAAPI, no `requestAnimationFrame` ni
+  canvas; el fallback DOM no actualiza el pager del deck).
+- `PROVENANCE.md` y `upgrade-frontend-slides.md`: registran los archivos locales que un re-vendorizado de
+  upstream no debe borrar y los parches que hay que re-aplicar.
+- `capture.js` (POC del motor) se mueve a `documents/reports/capture.js`.
+
+### Fixed
+- `frontend-slides`: el **export a PDF** salía con las páginas 2..N casi vacías. El script marcaba cada
+  slide con `.active` pero no con `.visible` (el CSS revela con `.slide.visible .reveal`) y fotografiaba
+  antes de que terminaran las entradas con `transition-delay`: sólo se veía el kicker. Ahora marca ambas
+  clases y termina las animaciones finitas (`anim.finish()`) antes de cada screenshot. El bug existía
+  antes del refactor de esta versión, no lo introdujo.
+
 ## [4.7.0] — 2026-11-13 · refactor de Containerfile
 
 > **Actualización requerida.** Esta versión corrige errores (export a PDF de `frontend-slides` y build de

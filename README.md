@@ -281,6 +281,14 @@ compatibilidad y transparencia al 100% con opencode tradicional y permite seguir
 mantener un fork. Mientras tanto, estos dos clics son el precio de la web. Y en general son
 necesarios 1 sola vez por puerto de la interfaz web que uses.
 
+**Podman no arranca: faltan rangos `subuid`/`subgid`** · *muy poco frecuente*
+
+En hosts donde el usuario no tiene rangos en `/etc/subuid` y `/etc/subgid` (habitual en equipos de
+dominio o instalaciones viejas), Podman rootless falla al crear el namespace y el launcher no llega a
+arrancar. No es un problema de opencode ni del contenedor: es un prerrequisito de Podman.
+`src/bonus/setup-subuid.sh` crea esos rangos cuando hacen falta; el detalle está en
+`src/bonus/README.md`.
+
 ## Compatibilidad y actualización
 
 Este desarrollo se esfuerza por mantenerse **completamente compatible con opencode

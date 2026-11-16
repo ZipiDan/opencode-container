@@ -29,8 +29,12 @@ chmod +x ./opencode.sh
 # opcional recomendado: lanzarlo desde cualquier carpeta
 ln -s "opencode.sh" ~/.local/bin/opencode.sh  # O una carpeta que este en tu Path
 ```
-*Nota*: Si la imagen no está creada en la primera ejecucución genera la imagen.
-      Pero yo tengo la mala costumbre de generarla a mano.
+*Nota*: el repo de GitLab es el canónico; hay una réplica en
+[github.com/ZipiDan/opencode-container](https://github.com/ZipiDan/opencode-container)
+(mismo código, historia reescrita por separado: los SHA no coinciden).
+
+*Nota*: si la imagen no está creada, la primera ejecución la genera sola
+(aunque yo tengo la mala costumbre de generarla a mano).
 
 ## 4. Construir la imagen del contenedor
 

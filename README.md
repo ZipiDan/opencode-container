@@ -11,6 +11,12 @@ proyecto, con las herramientas ya dispuestas y tus carpetas locales siempre a la
 > Los agentes, comandos, skills y configuraciones que viajan acá se despliegan igual
 > de bien en el contenedor como en una instalación tradicional de opencode.
 
+> **Dos espejos, el mismo código.** El canónico es
+> [gitlab.com/dzipitria/opencode-container](https://gitlab.com/dzipitria/opencode-container);
+> hay una réplica en [github.com/ZipiDan/opencode-container](https://github.com/ZipiDan/opencode-container).
+> Cada espejo tiene su historia reescrita en cada publicación: los SHA no coinciden entre
+> sí ni con el repo de desarrollo.
+
 ---
 
 ## Presentación

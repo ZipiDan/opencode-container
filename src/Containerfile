@@ -94,8 +94,16 @@ RUN mkdir -p /tmp/ruff-install \
     && /usr/local/bin/ruff --version \
     && rm -rf /tmp/ruff-install
 
-# Dependencias de las skills globales frontend-slides y mermaid2png (horneadas, offline):
+# Dependencias horneadas (offline) de las skills globales frontend-slides y mermaid2png,
+# más una del agente `sysadmin`:
 #  - python-pptx (conversión PPT). NO está en Debian trixie → pip del sistema.
+#  - python3-pil (Pillow) para la skill del agente `sysadmin` calisto-proxmox-console-fallback:
+#    convierte el PPM del screendump de Proxmox a PNG con /usr/bin/python3, porque el venv
+#    por proyecto nace vacío y no lo tiene. weasyprint (motor del md2pdf) ya lo arrastra como
+#    dependencia transitiva e importa PIL directo (draw.py/images.py); se declara igual para
+#    que sacar weasyprint de la imagen no rompa la skill en silencio. Por apt y no por pip:
+#    una sola copia de PIL; con pip, /usr/local taparía a /usr/lib y weasyprint pasaría de
+#    11 a 12 sin que nadie lo pida.
 #  - playwright (export PDF de frontend-slides) y @mermaid-js/mermaid-cli (render de
 #    mermaid2png), ambos apuntando al Chromium del sistema (ver ENV más abajo).
 #  - libs del sistema para Chrome/Chromium: las trae el propio paquete `chromium`. Ya no se
@@ -114,6 +122,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update \
     && apt-get install -y --no-install-recommends \
          chromium fonts-liberation \
+         python3-pil \
          fonts-noto-color-emoji fonts-wqy-zenhei fonts-ipafont-gothic \
     && pip install --break-system-packages python-pptx \
     && PUPPETEER_SKIP_DOWNLOAD=1 npm install -g playwright @mermaid-js/mermaid-cli --no-audit --no-fund \

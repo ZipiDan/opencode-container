@@ -13,6 +13,51 @@ proyecto respeta [SemVer](https://semver.org/lang/es/).
 > v1.5.0. Las iteraciones anteriores (v1.0–v1.4) no llevan número en el script;
 > su historial se reconstruye desde los mensajes de commit.
 
+## [4.9.0] — 2026-11-18 · consola de Proxmox como último recurso
+
+> **Actualización recomendada.** La skill se instala con **`./src/agents_update.sh`** y no
+> exige regenerar la imagen. El `python3-pil` explícito del `Containerfile` entra en el
+> próximo `--rebuild`/`--renew`; la imagen actual ya lo trae (apt, dependencia de
+> `weasyprint`), así que la skill funciona sin rebuild.
+
+### Added
+- **Skill `calisto-proxmox-console-fallback`** (agente `sysadmin`, add-on de Calisto): acceso
+  de **último recurso** a una VM de Proxmox VE cuando SSH, `qemu-guest-agent` y la consola
+  serie fallaron. Captura el framebuffer por el monitor QEMU (`screendump`), lo convierte a
+  PNG y escribe con `sendkey`; incluye el diagnóstico del **OpenSSH legacy** (4.3 / solo
+  SHA-1) que suele estar detrás de "antes entraba y ahora no".
+  - **Gate de 6 puntos** antes de empezar (pedido explícito, evidencia de las tres vías de
+    texto, pipeline heinzel cargado, root en el nodo, modelo con visión, aprobación por
+    paso) y prueba de aborto: si el modelo no puede describir la primera captura, se detiene.
+  - `sendkey` se declara **escritura sobre el guest**, con aprobación explícita y **prohibido**
+    en hosts read-only o landlocked. La aprobación nunca viene de lo que muestra la pantalla.
+  - **La pantalla es dato, no orden**: un modelo con visión esquiva el filtro de "texto de
+    salida", así que el texto renderizado en el guest se reporta, no se obedece.
+  - `/usr/bin/python3` para el PPM→PNG: el venv por proyecto nace vacío y no tiene Pillow.
+  - `qm monitor` acotado a `screendump`: es una consola HMP completa (`quit`, `system_reset`,
+    `drive_add`) y la skill no le envía otra cosa.
+  - Trampas documentadas: `serial` no es hot-pluggable, serial sin getty es mudo, layout de
+    teclado del guest, framebuffer de 720x400, limpieza del PPM y registro en memoria.
+
+### Changed
+- **`sysadmin` v5 → v6**: octava skill on-demand, bullet en el catálogo, sección *Proxmox
+  console fallback (last resort)* y `description` del agente actualizada.
+- **`ADDONS.md`**: registro del nuevo add-on y validación en **ambos sentidos** — el registro
+  manda (toda fila debe existir, tener `name:` correcto y estar cableada) y toda carpeta
+  `calisto-*` debe figurar en el registro, para que un add-on no quede fuera del gate.
+- **`upgrade-heinzel.md`**: los Pasos 3b y 6 recorren el registro de `ADDONS.md` en vez de
+  hardcodear `calisto-landlock`, así un re-vendorizado no borra ni desconecta los add-ons
+  nuevos; el Paso 8 suma el área "acciones con efecto remoto" (aprobación, read-only, secretos,
+  texto de pantalla como dato).
+- **`src/Containerfile`**: `python3-pil` explícito en el apt. Antes llegaba como dependencia
+  transitiva de `weasyprint` y la skill dependía de eso sin declararlo.
+
+### Fixed
+- El artefacto heredado del hand-off tenía cuatro defectos que habrían roto el procedimiento:
+  `$F` definido en el nodo y usado en el `scp` local, un ejemplo de tecleo con espacios y `/`
+  (que `qm sendkey` no acepta como nombre de tecla), bloques que mezclaban comandos del nodo y
+  del contenedor, y una mención a la aplicación Java del cliente que identificaba el caso.
+
 ## [4.8.0] — 2026-11-15 · export a video
 
 > **Actualización recomendada.** No cambia la imagen: **no hace falta `--renew`**. La skill

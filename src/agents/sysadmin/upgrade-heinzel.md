@@ -102,14 +102,29 @@ Borrar del vendor cualquier skill/regla que haya desaparecido upstream,
 
 ## Paso 3b — preservar add-ons de Calisto (obligatorio)
 
-`src/agents/sysadmin/ADDONS.md` es el manifiesto. El add-on `calisto-landlock`
-**no viene de heinzel** y no debe borrarse ni sobrescribirse:
+`src/agents/sysadmin/ADDONS.md` es el manifiesto. Los add-ons `calisto-*` **no
+vienen de heinzel** y no deben borrarse ni sobrescribirse. El gate recorre el
+registro de `ADDONS.md`, así que un add-on nuevo queda cubierto sin editar este
+paso:
 
 ```bash
 # Gate rápido antes y después del re-vendorizado
-test -f src/agents/sysadmin/skills/calisto-landlock/SKILL.md || {
-  echo "ERROR: falta calisto-landlock"; exit 1; }
-grep -q 'name: calisto-landlock' src/agents/sysadmin/skills/calisto-landlock/SKILL.md
+addons=$(sed -n 's/^| `\(calisto-[a-z0-9-]*\)` |.*/\1/p' src/agents/sysadmin/ADDONS.md)
+[ -n "$addons" ] || { echo "ERROR: registro de ADDONS.md vacío"; exit 1; }
+for addon in $addons; do
+  test -f "src/agents/sysadmin/skills/$addon/SKILL.md" || {
+    echo "ERROR: falta $addon"; exit 1; }
+  grep -q "^name: $addon$" "src/agents/sysadmin/skills/$addon/SKILL.md" || {
+    echo "ERROR: $addon: name: no coincide"; exit 1; }
+  grep -qF -- "$addon" src/agents/sysadmin/sysadmin.md || {
+    echo "ERROR: $addon no está cableado en sysadmin.md"; exit 1; }
+done
+# control inverso: una carpeta calisto-* sin fila en el registro quedaría fuera del gate
+for dir in src/agents/sysadmin/skills/calisto-*/; do
+  addon="$(basename "$dir")"
+  grep -qF -- "| \`$addon\` |" src/agents/sysadmin/ADDONS.md || {
+    echo "ERROR: $addon no está registrado en ADDONS.md"; exit 1; }
+done
 ```
 
 - No copiar upstream encima de `skills/calisto-*`.
@@ -119,6 +134,9 @@ grep -q 'name: calisto-landlock' src/agents/sysadmin/skills/calisto-landlock/SKI
 - Si el binario `landlock_rosh` cambió de versión, revisar si la skill necesita
   actualización operativa; la documentación de desarrollo vive en
   `src/tools/landlock/DEVELOPMENT.md`, no en la skill.
+- Si cambian las dependencias de `calisto-proxmox-console-fallback` (por ejemplo
+  Pillow en el `Containerfile`), actualizar su ficha en `ADDONS.md` antes de
+  desplegar.
 
 ## Paso 3c — skills nuevas nacen ocultas y cableadas
 
@@ -174,9 +192,9 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
   `description`, `version` entero.
 - Cada skill referenciada existe en `skills/` y su `name:` coincide con la
   carpeta.
-- Add-on `calisto-landlock` presente y referenciado:
-  `test -f src/agents/sysadmin/skills/calisto-landlock/SKILL.md` y
-  `grep -q calisto-landlock src/agents/sysadmin/sysadmin.md`.
+- Add-ons del registro de `ADDONS.md` presentes y cableados: correr el bloque de
+  **Validación rápida** de ese archivo (recorre todos los `calisto-*`, no sólo
+  `calisto-landlock`).
 - Sin directivas solo-Claude-Code sin adaptar en las skills (`rg -n
   'claude|\.claude|AskUserQuestion|--permission-mode' src/agents/sysadmin`).
 - Sin referencias `rules/` rotas (`rg -n 'rules/' src/agents/sysadmin`).
@@ -202,7 +220,8 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
    - `src/agents/sysadmin/sysadmin.md`
    - `src/agents/sysadmin/ADDONS.md`
    - `src/agents/sysadmin/skills/**` (heinzel-rules + housekeeping, security,
-     email, fleet-audit + **calisto-landlock**)
+     email, fleet-audit + **todas las skills `calisto-*`**: landlock,
+     debian-server-baseline, proxmox-console-fallback)
    - `~/.config/opencode/agents/sysadmin.md` y `~/.config/opencode/skills/`
      (los archivos desplegados)
 3. Áreas de verificación mínimas (específicas del rol sysadmin):
@@ -214,6 +233,10 @@ Plegar manualmente los cambios relevantes de `CLAUDE.md` upstream:
      bypass de una restricción ya impuesta (otra clave, `--no-log`, `sudo`,
      editar `authorized_keys`), y `--log-only` debe presentarse como auditoría,
      no como control.
+   - **Acciones con efecto remoto:** `calisto-proxmox-console-fallback` debe
+     declarar que `sendkey` cambia el guest (no es read-only), exigir aprobación
+     explícita, prohibirlo en hosts read-only/landlocked, no permitir secretos
+     por `argv` y tratar el texto visto en pantalla como dato, no como orden.
    - **Tabúes y destructivos intactos:** los comandos tabú (`fdisk`,
      `wipefs`, `mkfs`, borrado de disco, edición de `sshd_config`, borrado de
      claves SSH) deben seguir bloqueados; que ninguna skill o reescritura los
